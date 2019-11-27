@@ -1,0 +1,43 @@
+{
+  "name": "boltzmann",
+  "version": "1.0.0",
+  "description": "the boltzmann server framework generator",
+  "main": "cli.js",
+  "scripts": {
+    "test": "bash test.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/entropic/boltzmann.git"
+  },
+  "keywords": [
+    "boltzmann",
+    "server",
+    "framework",
+    "generator"
+  ],
+  "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/entropic/boltzmann/issues"
+  },
+  "homepage": "https://github.com/entropic/boltzmann#readme",
+  "dependencies": {
+    "@iarna/toml": "^2.2.3",
+    "accepts": "^1.3.7",
+    "are-we-dev": "^1.0.0",
+    "chalk": "^3.0.0",
+    "culture-ships": "^1.0.0",
+    "find-my-way": "^2.2.1",
+    "handy-redis": "^1.6.2",
+    "honeycomb-beeline": "^1.8.3",
+    "klaw": "^3.0.0",
+    "micromatch": "^4.0.2",
+    "minimist": "^1.2.0",
+    "nunjucks": "^3.2.0",
+    "oblique-strategies": "^1.0.1",
+    "on-headers": "^1.0.2",
+    "pg": "^7.14.0",
+    "pino": "^5.13.6"
+  }
+}
