@@ -2,10 +2,11 @@
 
 module.exports = main
 
-const { execSync } = require('child_process')
+const { execSync, spawn } = require('child_process')
 const oblique = require('oblique-strategies')
 const micromatch = require('micromatch')
 const { promises: fs } = require('fs')
+const { promisify } = require('util')
 const nunjucks = require('nunjucks')
 const toml = require('@iarna/toml')
 const chalk = require('chalk')
@@ -31,13 +32,20 @@ async function main (rawArgv, {
   }
 
   const { force, _, ...argv } = rawArgv
-  const [destination, ...rest] = _
-  if (!destination || argv.h || argv.help) {
+  const [reldest, ...rest] = _
+  if (!reldest || argv.h || argv.help) {
     return help()
   }
-  const updating = await fs.access(destination).catch(() => false)
-
+  const destination = path.resolve(reldest)
+  const updating = await fs.access(destination).then(
+    ent => true,
+    err => false
+  )
   const context = {
+    service: argv.service || path.basename(destination),
+    oblique: oblique.draw(),
+    version: require('./package').version,
+    test: process.env.TEST,
     ignore: [],
     ...Object.fromEntries(Object.entries(argv).map(([key, value]) => {
       if (key.startsWith('with-')) {
@@ -51,13 +59,13 @@ async function main (rawArgv, {
     const rawConfig = await fs.readFile(path.join(destination, configFile), 'utf8')
     const config = parse(rawConfig)
 
-    for (const key of config) {
+    for (const key of config.args) {
       if (!(key in context)) {
         context[key] = config[key]
       }
     }
 
-    if (!Array.isArray(context.ignore)) {
+    if (!Array.isArray(context.config.ignore)) {
       context.ignore = []
     }
   } catch {}
@@ -66,10 +74,10 @@ async function main (rawArgv, {
     try {
       const stdout = execSync(
         `git --git-dir=${path.join(
-          destpath,
+          destination,
           '.git'
         )}  --no-optional-locks status --short`,
-        { cwd: destpath, stdio: ['pipe', 'pipe', 'ignore'] }
+        { cwd: destination, stdio: ['pipe', 'pipe', 'ignore'] }
       );
 
       if (String(stdout).trim().length !== 0) {
@@ -107,6 +115,38 @@ async function main (rawArgv, {
   }
 
   await Promise.all(jobs)
+  if (!updating) {
+    const cp = spawn(
+      `npm`,
+      ['init'],
+      { cwd: destination, stdio: ['inherit', 'pipe', 'pipe'] }
+    )
+    cp.stdout.pipe(process.stdout, { close: false })
+    cp.stderr.pipe(process.stderr, { close: false })
+
+    await new Promise((resolve, reject) => {
+      cp.on('error', reject)
+        .on('close', resolve)
+    })
+    console.log('done. DONE')
+  }
+
+  try {
+    const cp = spawn(
+      `npm`,
+      ['install'],
+      { cwd: destination, stdio: ['inherit', 'pipe', 'pipe'] }
+    )
+    cp.stdout.pipe(process.stdout, { close: false })
+    cp.stderr.pipe(process.stderr, { close: false })
+
+    await new Promise((resolve, reject) => {
+      cp.on('error', reject)
+        .on('close', resolve)
+    })
+  } catch (err) {
+    console.log('caught err installing', err.stack)
+  }
 }
 
 async function render (tpl, context, ignore, templateDir, destination) {
