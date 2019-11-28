@@ -932,6 +932,31 @@ function _requireOr (target, value) {
   }
 }
 
+async function go(promiselike) {
+  try {
+    return [null, await promiselike]
+  } catch (err) {
+    return [err, null]
+  }
+}
+
+function err2http (type, status, headers = null) {
+  return (err) => {
+    if (err instanceof type) {
+      err[Symbol.for('status')] = status
+      if (headers) {
+        err[Symbol.for('headers')] = {
+          ...(err[Symbol.for('headers')] || {}),
+          headers
+        }
+      }
+    }
+    throw err
+  }
+}
+
+exports.go = go
+exports.err2http = err2http
 exports.Context = Context
 exports.main = main
 exports.body = {
@@ -939,6 +964,16 @@ exports.body = {
   urlEncoded
 }
 exports.decorators = {
+  err2http: (...config) => {
+    const cast = err2http(...config)
+    return next => async (...args) => {
+      try {
+        return next(...args)
+      } catch (err) {
+        cast(err)
+      }
+    }
+  },
   validate: {
     body: validateBody,
     query: validateBlock(ctx => ctx.query),

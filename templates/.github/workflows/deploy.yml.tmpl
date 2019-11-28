@@ -1,0 +1,25 @@
+name: build container artifacts
+on:
+  push:
+    branches:
+      - 'deploy/*'
+jobs:
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build the Docker image
+      run: |
+        docker build . \
+          --file Dockerfile \
+          --build-arg GIT_COMMIT_IN=$(git rev-parse --short HEAD) \
+          <% if github_package_registry %>--tag docker.pkg.github.com/${GITHUB_REPOSITORY}/${GITHUB_REF##*/}:$(node -pe 'require("./package").version')-$(git rev-parse --short HEAD)<% else -%>
+          --tag ${GITHUB_REPOSITORY#*/}:$(node -pe 'require("./package").version')-$(git rev-parse --short HEAD)<% endif %>
+        <% if github_package_registry %>
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login --password-stdin docker.pkg.github.io
+        docker login
+        docker push docker.pkg.github.com/${GITHUB_REPOSITORY}/${GITHUB_REF##*/}:$(node -pe 'require("./package").version')-$(git rev-parse --short HEAD)
+        <% endif %>
