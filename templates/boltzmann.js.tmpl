@@ -96,6 +96,7 @@ class Context {
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
+    this.params = null
 
     this.remote = request.socket
       ? request.socket.remoteAddress.replace('::ffff:', '')
@@ -238,6 +239,7 @@ function router (handlers) {
       version
     } = match.handler
 
+    context.params = match.params
     context._routed = {
       method,
       route,
@@ -795,7 +797,7 @@ let savepointId = 0
 
 function test ({
   middleware = [],
-  handlers = _requireOr('./handlers'),
+  handlers = _requireOr('./handlers', {}),
   bodyParsers = _requireOr('./body', [urlEncoded, json]),
   after = require('tap').teardown
 }) {
