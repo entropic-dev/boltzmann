@@ -19,13 +19,16 @@ honeycomb = "<$ honeycomb $>"
 [config]
 ignore = [
   '.env-example',
+  'middleware.*',
   'middleware/*',
+  'handlers.*',
   'handlers/*',
+  'body.*',
   'body/*',
   'package.json',
   '.gitignore',
   'README.md',
   <% if postgres %>'migrations/*.sql'<% endif %>
-  # feel free to add ".eazy.toml" here if you've made edits.
+  # feel free to add ".boltzmann.toml" here if you've made edits.
 ]
 
