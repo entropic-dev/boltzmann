@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-{% if selftest == false %}/* eslint-disable */{% endif %}
-{% if selftest == false %}/* istanbul ignore file */{% endif %}
+{% if not selftest %}/* eslint-disable */{% endif %}
+{% if not selftest %}/* istanbul ignore file */{% endif %}
 
 'use strict'
 
-// {% if honeycomb == "on" %}
+// {% if honeycomb %}
 const beeline = require('honeycomb-beeline')({
   writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
   dataset: process.env.HONEYCOMBIO_DATASET,
@@ -13,7 +13,9 @@ const beeline = require('honeycomb-beeline')({
 const onHeaders = require('on-headers')
 // {% endif %}
 
+// {% if ping %}
 const ship = require('culture-ships').random()
+// {% endif %}
 const querystring = require('querystring')
 const { promisify } = require('util')
 const isDev = require('are-we-dev')
@@ -22,17 +24,17 @@ const accepts = require('accepts')
 const http = require('http')
 const bole = require('bole')
 const os = require('os')
-// {% if redis == "on" %}
+// {% if redis %}
 const redis = require('handy-redis')
 // {% endif %}
-// {% if postgres == "on" %}
+// {% if postgres %}
 const pg = require('pg')
 // {% endif %}
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
-// {% if honeycomb == "on" %}
+// {% if honeycomb %}
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
 // {% endif %}
 
@@ -110,16 +112,16 @@ class Context {
     this._response = response // do not touch this
     this._routed = {}
 
-    // {% if redis == "on" %}
+    // {% if redis %}
     this._redisClient = null
     // {% endif %}
-    // {% if postgres == "on" %}
+    // {% if postgres %}
     this._postgresPool = null
     this._postgresConnection = null
     // {% endif %}
   }
 
-  // {% if postgres == "on" %}
+  // {% if postgres %}
   /** @type {Promise<pg.Client>} */
   get postgresClient () {
     this._postgresConnection = this._postgresConnection || this._postgresPool.connect()
@@ -127,7 +129,7 @@ class Context {
   }
   // {% endif %}
 
-  // {% if redis == "on" %}
+  // {% if redis %}
   /** @type {redis.IHandyRedis} */
   get redisClient () {
     return this._redisClient
@@ -241,7 +243,7 @@ function router (handlers) {
       params: match.params
     }
 
-    // {% if honeycomb == "on" %}
+    // {% if honeycomb %}
     let span = null
     if (process.env.HONEYCOMBIO_WRITE_KEY) {
       span = beeline.startSpan({
@@ -257,7 +259,7 @@ function router (handlers) {
     try {
       // {% endif %}
       return match.handler(context, match.params, match.store, null)
-      // {% if honeycomb == "on" %}
+      // {% if honeycomb %}
     } finally {
       if (process.env.HONEYCOMBIO_WRITE_KEY) {
         beeline.finishSpan(span)
@@ -275,14 +277,14 @@ async function buildMiddleware (middleware, router) {
   const middlewareToSplice = (
     isDev()
     ? (mw) => [
-      // {% if honeycomb == "on" %}
+      // {% if honeycomb %}
       honeycombMiddlewareSpans(mw),
       // {% endif %}
       dev(mw),
       enforceInvariants()
     ]
     : (mw) => [
-      // {% if honeycomb == "on" %}
+      // {% if honeycomb %}
       honeycombMiddlewareSpans(mw),
       // {% endif %}
       enforceInvariants()
@@ -293,7 +295,7 @@ async function buildMiddleware (middleware, router) {
     return [...lhs, ...middlewareToSplice(mw), mw(...args)]
   }, []).concat(middlewareToSplice({ name: 'router' }))
 
-  // {% if honeycomb == "on" %}
+  // {% if honeycomb %}
   // drop the outermost honeycombMiddlewareSpans mw.
   result.shift()
   // {% endif %}
@@ -494,7 +496,7 @@ function urlEncoded (next) {
   }
 }
 
-// {% if honeycomb == "on" %}
+// {% if honeycomb %}
 function honeycomb ({
   headerSources = [TRACE_HTTP_HEADER, 'x-request-id'],
   parentRequestHeader = 'floop'
@@ -612,7 +614,7 @@ function honeycombMiddlewareSpans ({name} = {}) {
 }
 
 // {% endif %}
-// {% if redis == "on" %}
+// {% if redis %}
 function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   return next => {
     const client = redis.createHandyClient({ url })
@@ -623,7 +625,7 @@ function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   }
 }
 // {% endif %}
-// {% if postgres == "on" %}
+// {% if postgres %}
 function attachPostgres ({
   url = process.env.PGURL || 'postgres://postgres@localhost:5432/<$ service $>',
   max = Number(process.env.PGPOOLSIZE) || 20
@@ -660,13 +662,14 @@ function attachPostgres ({
 }
 // {% endif %}
 
-function handleMonitor ({
+// {% if status %}
+function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = {
-    // {% if postgres == "on" %}
+    // {% if postgres %}
     postgresReachability,
     // {% endif %}
-    // {% if redis == "on" %}
+    // {% if redis %}
     redisReachability,
     // {% endif %}
     ..._requireOr('./reachability', {})
@@ -719,7 +722,9 @@ function handleMonitor ({
     }
   }
 }
+// {% endif %}
 
+// {% if ping %}
 function handlePing () {
   return next => context => {
     if (context.url.pathname === '/monitor/ping') {
@@ -728,12 +733,14 @@ function handlePing () {
     return next(context)
   }
 }
+// {% endif %}
 
+// {% if postgres or redis %}
 // - - - - - - - - - - - - - - - -
 // Reachability Checks
 // - - - - - - - - - - - - - - - -
-
-// {% if postgres == "on" %}
+// {% endif %}
+// {% if postgres %}
 async function postgresReachability (context, meta) {
   const client = await context.postgresClient
   meta.status = 'got-client'
@@ -741,7 +748,7 @@ async function postgresReachability (context, meta) {
 }
 // {% endif %}
 
-// {% if redis == "on" %}
+// {% if redis %}
 async function redisReachability (context, meta) {
   await context.redisClient.ping()
 }
@@ -805,7 +812,7 @@ function test ({
   after = require('tap').teardown
 }) {
   const shot = require('@hapi/shot')
-  // {% if postgres == "on" %}
+  // {% if postgres %}
   const database = process.env.TEST_DB_NAME || '<$ service $>_test'
   const postgresClient = new pg.Client({
     connectionString: process.env.PGURL || `postgres://localhost:5432/${database}`
@@ -813,23 +820,23 @@ function test ({
   postgresClient.connect()
   // {% endif %}
 
-  // {% if redis == "on" %}
+  // {% if redis %}
   const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
   // {% endif %}
 
   // {% if postgres or redis %}
   after(() => {
-    // {% if postgres == "on" %}
+    // {% if postgres %}
     postgresClient.end()
     // {% endif %}
-    // {% if redis == "on" %}
+    // {% if redis %}
     redisClient.end()
     // {% endif %}
   })
   // {% endif %}
 
   return inner => async assert => {
-    // {% if postgres == "on" %}
+    // {% if postgres %}
     // if we're in postgres, run the test in a transaction, run
     // routes in checkpoints.
     await postgresClient.query(`begin`)
@@ -855,7 +862,7 @@ function test ({
     })
     assert.postgresClient = postgresClient
     // {% endif %}
-    // {% if redis == "on" %}
+    // {% if redis %}
     await redisClient.flushdb()
     middleware.push(() => next => async context => {
       context._redisClient = redisClient
@@ -902,7 +909,7 @@ function test ({
     try {
       await inner(assert, request)
     } finally {
-      // {% if postgres == "on" %}
+      // {% if postgres %}
       await postgresClient.query('rollback')
       // {% endif %}
     }
@@ -950,23 +957,25 @@ exports.decorators = {
   test
 }
 
-// {% if selftest == false %}
+// {% if not selftest %}
 if (require.main === module) {
   main({
     middleware: [
-      // {% if honeycomb == "on" %}
+      // {% if honeycomb %}
       honeycomb,
       // {% endif %}
+      // {% if ping %}
       handlePing,
+      // {% endif %}
       log,
-      // {% if redis == "on" %}
+      // {% if redis %}
       attachRedis,
       // {% endif %}
-      // {% if postgres == "on" %}
+      // {% if postgres %}
       attachPostgres,
       // {% endif %}
       ..._requireOr('./middleware', []),
-      ...[handleMonitor]
+      ...[handleStatus]
     ]
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000)

@@ -92,7 +92,7 @@ struct Flags {
     githubci: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable /monitor/status healthcheck endpoint")]
-    monitoring: Option<Option<Flipper>>,
+    status: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable /monitor/ping healthcheck endpoint")]
     ping: Option<Option<Flipper>>,
@@ -122,7 +122,7 @@ struct Settings {
     githubci: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    monitoring: Option<bool>,
+    status: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     ping: Option<bool>,
@@ -148,7 +148,7 @@ impl Settings {
             postgres: cast(&flags.postgres, &self.postgres),
             honeycomb: cast(&flags.honeycomb, &self.honeycomb),
             githubci: cast(&flags.githubci, &self.githubci),
-            monitoring: cast(&flags.monitoring, &self.monitoring),
+            status: cast(&flags.status, &self.status),
             ping: cast(&flags.ping, &self.ping),
             selftest: if flags.selftest {
                 Some(true)
@@ -169,7 +169,7 @@ impl Into<Context> for Settings {
         ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
         ctxt.insert("selftest", &self.selftest.unwrap_or(false));
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
-        ctxt.insert("monitoring", &self.monitoring.unwrap_or(false));
+        ctxt.insert("status", &self.status.unwrap_or(false));
         ctxt.insert("ping", &self.ping.unwrap_or(false));
         ctxt.insert("version", &self.version.unwrap_or_else(|| "<unknown version>".to_string())[..]);
 
@@ -361,7 +361,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     let default_settings = Settings {
         githubci: Some(true),
-        monitoring: Some(true),
+        status: Some(true),
         ping: Some(true),
         ..Default::default()
     };
