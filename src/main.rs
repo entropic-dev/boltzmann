@@ -3,9 +3,10 @@ use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
 use std::io::prelude::*;
 
 use serde::{ Serialize, Deserialize };
-use anyhow::{ Context as ErrorContext, Result };
+use anyhow::{ anyhow, Context as ErrorContext, Result };
 use tera::{ Tera, Context };
 use structopt::StructOpt;
+use subprocess::{ Exec, ExitStatus, NullFile };
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -116,8 +117,34 @@ fn load_project_settings(dir: &PathBuf) -> Result<()> {
     Ok(())
 }
 
+// Return ok if we can proceed, and an error saying why if we can't.
 fn check_git_status(flags: &Flags) -> Result<()> {
-    Ok(())
+    if flags.force {
+        return Ok(()); // YOLO!
+    }
+
+    if !std::path::Path::new(&flags.destination).exists() {
+        return Ok(());
+    }
+
+    let exit_status = Exec::cmd("git")
+        .arg("diff")
+        .arg("--quiet")
+        .cwd(&flags.destination)
+        .stderr(NullFile)
+        .join()?;
+
+    match exit_status {
+        ExitStatus::Exited(129) => Ok(()), // target is not a git dir; this is fine
+        ExitStatus::Exited(0) => Ok(()),   // target is clean
+        ExitStatus::Exited(1) => {
+          Err(anyhow!("git working directory is dirty; pass --force if you want to run anyway"))
+        },
+        ExitStatus::Exited(_) => Ok(()),
+        ExitStatus::Signaled(_) => Ok(()),
+        ExitStatus::Other(_) => Ok(()),
+        ExitStatus::Undetermined => Ok(()),
+    }
 }
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
