@@ -2,7 +2,7 @@
 
 Boltzmann is a JS micro framework for JSON api services. It is implemented in a single file that lives alongside your code.
 
-Boltzmann doesn't try to be fast. We have no idea how fast or how slow Boltzmann is, in fact. (If we needed to be fast, we'd use Rust.) We are focused on *developer experience*. Things that we find we need to do every time we write a microservice, we want our framework to do out of the box. We also do not want to invent more than we need to, so Boltzmann is a thin wrapper around well-tested node packages like [jshttp](https://github.com/jshttp) and [find-my-way](https://github.com/delvedor/find-my-way). Our goal is that it should be easy to _throw Boltzmann away_ if you move on from it.
+Boltzmann doesn't try to be fast. We have no idea how fast or how slow Boltzmann is, in fact. (If we needed to be fast, we'd use Rust.) We are focused on *developer experience*. Things that we find we need to do every time we write a service, we want our framework to do out of the box. We also do not want to invent more than we need to, so Boltzmann is a thin wrapper around well-tested node packages like [jshttp](https://github.com/jshttp) and [find-my-way](https://github.com/delvedor/find-my-way).
 
 Our design goals:
 
@@ -12,8 +12,12 @@ Our design goals:
 - Only modify objects we provide; do not rely on modifications to node's request & response objects.
 - Provide pluggable behavior for body-parsing and middleware, with good defaults.
 - Bake in observability (optionally), via [Honeycomb](https://honeycomb.io) tracing.
+- Rely on a little bit of documented convention to avoid configuration.
+- Making throwing Boltzmann away if you need to move on _possible_.
 
 Boltzmann provides Typescript definitions for its exports, for your development convenience, but it does not require you to opt-in to Typescript or do any transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
+
+Who's the "we" in this document? @ceejbot and @chrisdickinson.
 
 ## Hello world
 
@@ -74,7 +78,7 @@ Boltzmann respects the following environment variables out of the box:
 
 - `NODE_ENV`: dev(elopment), prod(uction), or test; consumed by [are-we-dev](https://github.com/chrisdickinson/are-we-dev)
 - `LOG_LEVEL`: one of error, warn, info, debug; defaults to `debug`
-- `PORT`: the port to listen on; boltzmann always binds `0.0.0.0`.
+- `PORT`: the port to listen on; defaults to 5000; boltzmann always binds `0.0.0.0`.
 - `DEV_LATENCY_ERROR_MS`: in dev mode, the length of time a middleware is allowed to run before it's treated as hung
 - `DEV_LATENCY_WARNING_MS`: in dev mode, the length of time a middleware can run before you get a warning that it's slow
 - `GIT_COMMIT`: a bit of text labeled as the git hash for the current running service; used by the optional status endpoint
@@ -102,11 +106,18 @@ Every route handler receives exactly one parameter: a context object. You should
 
 ### Route handlers
 
-Route handlers are functions with a `route` field. The route field is a [find-my-way](https://github.com/delvedor/find-my-way) route with a little sugar. The handler is a function that takes a context object and returns a plain old Javascript object.
+Route handlers are functions with a `route` field. The route field is a [find-my-way](https://github.com/delvedor/find-my-way) route with a little sugar. The handler is a function that takes a context object and returns a plain old Javascript object *or* throws an error.
 
-The route field should look like this: `VERB /path/with/:params`. The first segment of the string must be an http verb that find-my-way can pass to its `route.on()`. The second segment must be a path format that find-my-way understands.
+Boltzmann looks for handlers exported by the following two places:
 
-To respond to a request with data, return the data from your handler function. Boltmann will correctly set content type headers for several common response type, like `text/plain` and `application/json`.
+- from `handlers.js` in the same directory (good for small services)
+- from a `handlers/` directory
+
+The scaffolding tool gives you a working `handlers.js` file.
+
+The route field should look like this: `VERB /path/with/:params`. The first segment of the string must be an http verb that `find-my-way` can pass to its `route.on()`. The second segment must be a path format that `find-my-way` understands.
+
+To respond to a request with data, return the data from your handler function. Boltmann will correctly set content type headers for several common response types, like `text/plain` and `application/json`.
 
 Here is a Boltzmann hello world:
 
@@ -134,11 +145,55 @@ Routes have one more meaningful optional field: `decorators`.
 
 ### Decorators and middleware
 
-Here we borrow some concepts from [aspect-oriented programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming) and Python [decorators](https://en.wikipedia.org/wiki/Aspect-oriented_programming). Change route handler behavior by wrapping your handlers in *decorators*.
+Change route handler behavior by wrapping your handlers in *decorators*. Add behavior to all routes by defining *middleware*. This is an important part of Boltzmann's API and a place where it differs from Express and Connect-middleware style node frameworks. We borrow some concepts from [aspect-oriented programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming) and Python [decorators](https://en.wikipedia.org/wiki/Aspect-oriented_programming), so if you've used frameworks like Django you'll find them familiar.
 
 Decorators and middleware have the same API. The difference is that "middlewares" are set up for the whole application: they apply to every route. Decorators are applied to only the routes that need them. Use a decorator when you want to require, for example, administrator-only access to a set of routes, or when you'd like to make sure a root object exists before doing things with it.
 
-To add decorators to a route, add a `decorators` field. The `decorators` field must be an array of functions that wrap the handler function. Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  The functions are:
+To add decorators to a route, add a `decorators` field. The `decorators` field must be an array of functions that wrap the handler function.
+
+To set up your application with middleware,
+
+Boltzmann looks for middleware exported by the following two places:
+
+- from `middleware.js` in the same directory (good for small services)
+- from a `middleware/` directory
+
+The scaffolding tool gives you a working `middleware.js` file.
+
+So what is this decorator/middleware api? A decorator takes a `next` parameter and returns a function that takes a single context `param`. Here's a generic Boltzmann middleware file, suitable to copy-n-paste to start yours:
+
+```js
+// in middleware.js
+function setupMiddlewareFunc (/* your config */) {
+  // startup configuration goes here
+  return function createMiddlewareFunc (next) {
+    return async function inner (context) {
+      // do things like make objects to put on the context
+      // then give following middlewares a chance
+      // route handler runs last
+      // awaiting is optional, depending on what you're doing
+      const result = await next(context)
+      // do things with result here; can replace it entirely!
+      // and you're responsible for returning it
+      return result
+    }
+  }
+}
+
+modules.exports = [
+    setupMiddlewareFunc
+]
+```
+
+See `examples/middleware/` for some meatier examples. Pro tip: debugging is easier if you name each of these layers instead of using anonymous functions.
+
+### Built-in middleware
+
+TOOD
+
+### Built-in decorators
+
+Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  The functions are:
 
 - `boltzmann.decorators.body`: validate the structure of an incoming body
 - `boltzmann.decorators.query`: validate parameters in the query string
@@ -157,43 +212,10 @@ identityDetail.decorators = [
     }
   })
 ]
-async function identityDetail (/** @type {Context} */ context, params) { }
+async function identityDetail (/** @type {Context} */ context) { }
 ```
 
 The `boltzmann.decorators.params` function takes an ajv schema and generates a decorator that applies the schema to any route params supplied.
-
-### Middleware
-
-TODO: example of setting up middleware for an app
-
-TODO: example of setting up middleware for _tests_
-
-### Generic middleware
-
-A generic Boltzmann middleware function, suitable to copy-n-paste to start yours:
-
-```js
-// in middleware.js
-function setupMiddlewareFunc () {
-  return function createMiddlewareFunc (next) {
-    return async function inner (context) {
-      // do things like make objects to put on the context
-      // then give following middlewares a chance
-      // route handler runs last
-      const result = await next(context)
-      // do things with result here; can replace it entirely!
-      // and you're responsible for returning it
-      return result
-    }
-  }
-}
-
-modules.exports = [
-    setupMiddlewareFunc
-]
-```
-
-See `examples/middleware/` for some meatier examples. Pro tip: debugging is easier if you name each of these layers instead of using anonymous functions.
 
 ### Tests
 
@@ -221,6 +243,9 @@ test('sessionCreate: can create a session', _(async assert => {
   assert.ok(Date.parse(result.json.session.updated))
 }))
 ```
+
+TODO: example of setting up middleware for tests
+
 
 ## Dependencies
 
