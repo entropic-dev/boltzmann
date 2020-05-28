@@ -45,6 +45,14 @@ The scaffold currently assumes you're using node as your runtime and NPM as your
 
 If you need to change Boltzmann's core behavior, you can either re-run the command-line tool to change features *or* write your own middleware. You'll be writing your own middleware for any reasonably complex project anyway!
 
+Features:
+
+- postgres
+- redis
+- honeycomb
+- ping
+- status
+
 
 ## The Boltzmann API
 
@@ -54,7 +62,7 @@ Examples
 
 Boltzmann respects the following environment variables out of the box:
 
-- `NODE_ENV`
+- `NODE_ENV`: dev(elopment), prod(uction), or test; consumed by [is-dev]()
 - `LOG_LEVEL`: one of error, warn, info, debug; defaults to `debug`
 - `PORT`: the port to listen on; boltzmann always binds to listen to all hosts.
 - `DEV_LATENCY_WARNING_MS`: in dev mode, the length of time a middleware can run before you get a warning that it's slow
@@ -62,22 +70,25 @@ Boltzmann respects the following environment variables out of the box:
 - `SERVICE_NAME`: the name of the service to advertise to Honeycomb and others; falls back to the name of your package in package.json
 - `HONEYCOMBIO_WRITE_KEY`: a write key, if you have enabled the Honeycomb feature
 - `HONEYCOMBIO_DATASET`: the name of your Honeycomb dataset, if you have enabled the feature
-
+- `REDIS_URL`: passed to redis client constructor, if redis is enabled
+- `PGURL` & `PGPOOLSIZE`: passed to the postgres pool constructor, if postgres is enabled
+- `GIT_COMMIT`: a bit of text labeled as the git hash for the current running service; used by the optional status endpoint
 
 ### The context object
 
-Every route handler receives exactly one parameter: a context object.
+Every route handler receives exactly one parameter: a context object. You should extend the context object with whatever data you find useful to preserve through the lifetime of a single request. The context exposes the following getters for data you're likely to find useful:
 
-* `method`: the request method
-* `headers`: the request headers
-* `url`: the parsed request url
-* `query`: the request query params, if any
-* `body`: a promise that resolves to the request body content
-* `start`: timestamp in ms since the epoch of when the request started to be handled
-* `accepts`: content-negotiation for the request, provided by [accepts](https://github.com/jshttp/accepts)
-* `request`: the raw node request object
-* `redisClient`: a [node-redis](https://github.com/NodeRedis/node-redis) client; present if you have enabled the redis feature
-* `postgresClient`: a [node-postgres](https://github.com/brianc/node-postgres) client; present if you have enabled the postgresql feature
+- `method`: the request method
+- `headers`: the request headers
+- `url`: the parsed request url
+- `query`: the request query params, if any
+- `params`: the request url params, if any
+- `body`: a promise that resolves to the request body content
+- `start`: timestamp in ms since the epoch of when the request started to be handled
+- `accepts`: content-negotiation for the request, provided by [accepts](https://github.com/jshttp/accepts)
+- `request`: the raw node request object
+- `redisClient`: a [node-redis](https://github.com/NodeRedis/node-redis) client; present if you have enabled the redis feature
+- `postgresClient`: a [node-postgres](https://github.com/brianc/node-postgres) client; present if you have enabled the postgresql feature
 
 
 
