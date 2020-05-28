@@ -42,7 +42,7 @@ export async function greeting(/** @type {Context} */ context) {
 }
 ```
 
-To run: `./boltzmann.js`. And to view the response: `curl GET localhost:5000/hello/world`
+To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`
 
 ## Creating a boltzmann app
 
