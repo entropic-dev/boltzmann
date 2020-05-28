@@ -1,42 +1,6 @@
-'use strict'
+import { Context } from './boltzmann.js' // optionally pull in typescript definition
 
-const uuid = require('uuid')
-
-const { Context } = require('../boltzmann')
-
-module.exports = {
-  createIdentity,
-  getIdentity
+greeting.route = 'GET /hello/:name'
+export async function greeting(/** @type {Context} */ context) {
+    return `hello ${context.params.name}`
 }
-
-getIdentity.route = 'GET /identities/identity/:id'
-async function getIdentity (/** @type {Context} */ context, params) {
-  const data = await context.redisClient.get(params.id)
-
-  return {
-    id: params.id,
-    ...JSON.parse(String(data)),
-    ...{ password: '*****' }
-  }
-}
-
-createIdentity.route = 'POST /identities'
-async function createIdentity (/** @type {Context} */ context, params) {
-  const body = await context.body
-
-  const { email, password } = body
-  const id = uuid.v4()
-
-  const data = await context.redisClient.set(id, JSON.stringify({
-    email,
-    password
-  }))
-
-  return Object.assign(getIdentity(context, { id }), {
-    [Symbol.for('status')]: 201,
-    [Symbol.for('headers')]: {
-      location: `</identities/identity/${id}>; rel=canonical`
-    }
-  })
-}
-
