@@ -215,32 +215,6 @@ test('sessionCreate: can create a session', _(async assert => {
 - [pg]()
 - [redis]()
 
-
-## TODO
-
-- write the command-line tool lol.
-- write examples
-- Hide ajv by presenting a better facade for it.
-
-Facts to make true:
-
-- This is a rust tool
-- it operates on `.`
-- it takes its options as single-word arguments, with `--` in front of them optional
-- mentioning a feature turns it on; `=off` removes the feature
-- it generates a directory with some files in it
-- it makes a package.json if none exists (npm -init -y)
-- it installs its deps using bash to run npm
-- it stores its options in package.json in the field `boltzmann`
-- if you rerun it without options, it'll respect the ones in the package.json if found; cli options override the ones in package.json
-
-`ludwig redis hc pg=off` scaffolds with redis and honeycomb, and turns off postgres.
-
-
-
-
-
-
 ## LICENCE
 
 Apache-2.0.

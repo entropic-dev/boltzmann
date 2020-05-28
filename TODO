@@ -1,0 +1,45 @@
+## TODO
+
+### EOD 2020-05-27
+
+CEEJ expresses intent to push docs changes directly to master.
+We'll regroup to add information architecture.
+
+Code changes will be PR'd in.
+
+- [ ] CHRIS: Add two subcommands: `init` and `update`.
+- [ ] CEEJ: detect git state of destination dir, respecting force flag
+- [ ] CHRIS: load existing package.json
+    - [ ] implement turning a thing off
+- [ ] attach "skip if present" data to Nodes (& skip creating them if they're present)
+- [ ] inspect the flags and map them to npm actions
+    - [ ] run npm install in a subprocess
+- [ ] render our actual templates, for real
+- [ ] run the tests
+    - [ ] write a github CI action for this repo
+- [ ] write a github CI action for releases
+- [ ] finish off the docs
+    - [ ] add more examples
+- [ ] maybe make "jwt middleware" a flag
+- [ ] pick a better linter and install it by default
+
+### BOD 2020-05-27
+
+- write the command-line tool lol.
+- write examples
+- Hide ajv by presenting a better facade for it.
+
+Facts to make true:
+
+- This is a rust tool
+- it operates on `.`
+- it takes its options as single-word arguments, with `--` in front of them optional
+- mentioning a feature turns it on; `=off` removes the feature
+- it generates a directory with some files in it
+- it makes a package.json if none exists (npm -init -y)
+- it installs its deps using bash to run npm
+- it stores its options in package.json in the field `boltzmann`
+- if you rerun it without options, it'll respect the ones in the package.json if found; cli options override the ones in package.json
+
+`ludwig redis hc pg=off` scaffolds with redis and honeycomb, and turns off postgres.
+

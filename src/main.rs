@@ -87,8 +87,12 @@ impl Node {
 
 fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<String>, context: &mut Context) -> Result<Option<String>> {
 
-    println!("entering \x1b[34m;\"{:?}\"\x1b[0m;", cwd);
-    std::fs::DirBuilder::new().mode(mode).create(&cwd)?;
+    println!("entering \x1b[34m{:?}\x1b[0m;", cwd);
+    if let Err(e) = std::fs::DirBuilder::new().mode(mode).create(&cwd) {
+        if e.kind() != std::io::ErrorKind::AlreadyExists {
+            return Err(e.into())
+        }
+    }
 
     for (basename, node, mode) in spec.children {
         cwd.push(&basename[..]);
@@ -96,7 +100,9 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 
         // failure to render is fatal.
         if let Some(data) = node.render(cwd, mode, parents, context)? {
-            let mut fd = std::fs::OpenOptions::new().mode(mode).open(&cwd)?;
+            let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).mode(mode).open(&cwd)
+                .with_context(|| format!("failed to open {:?} with mode {:?}", cwd, mode))?;
+
             fd.write_all(data.as_bytes())
                 .with_context(|| format!("failed to write {:?}", cwd))?;
         }
@@ -106,11 +112,26 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
     Ok(None)
 }
 
+fn load_project_settings(dir: &PathBuf) -> Result<()> {
+    Ok(())
+}
+
+fn check_git_status(flags: &Flags) -> Result<()> {
+    Ok(())
+}
+
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
+
+
+
     let root_node: Node = ron::de::from_str(include_str!("dirspec.ron"))?;
     let flags = Flags::from_args();
     let mut parents = Vec::new();
     let mut cwd = flags.destination.clone();
+
+    let package_json = load_project_settings(&cwd)?;
+    check_git_status(&flags)?;
+
     let mut context = Context::from_serialize(flags)?;
 
     root_node.render(&mut cwd, 0o777, &mut parents, &mut context)?;

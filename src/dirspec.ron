@@ -1,6 +1,7 @@
-Node(
-  Dir(
-    children: [
-    ]
-  )
-)
+Dir(DirSpec(
+  children: [
+    ("example.txt", Template(TemplateSpec(
+      template_name: "example.tmpl"
+    )), 0o644)
+  ]
+))
