@@ -2,6 +2,15 @@ Dir(DirSpec(
   children: [
     ("example.txt", Template(TemplateSpec(
       template_name: "example.tmpl"
-    )), 0o644)
+    )), 0o644),
+    ("boltzmann.js", Template(TemplateSpec(
+      template_name: "boltzmann.js.tmpl"
+    )), 0o755),
+    ("handlers.js", Template(TemplateSpec(
+      template_name: "handlers.js.tmpl"
+    )), 0o644),
+    ("middleware.js", Template(TemplateSpec(
+      template_name: "middleware.js.tmpl"
+    )), 0o644),
   ]
 ))

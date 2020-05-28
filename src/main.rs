@@ -106,7 +106,8 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
             fd.write_all(data.as_bytes())
                 .with_context(|| format!("failed to write {:?}", cwd))?;
         }
-
+        cwd.pop();
+        parents.pop();
     }
 
     Ok(None)
