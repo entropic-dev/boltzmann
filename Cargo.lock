@@ -296,6 +296,7 @@ dependencies = [
  "lazy_static",
  "ron",
  "serde",
+ "serde_json",
  "structopt",
  "tera",
 ]

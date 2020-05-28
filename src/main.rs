@@ -1,11 +1,13 @@
-use std::path::PathBuf;
 use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
+use std::collections::HashMap;
 use std::io::prelude::*;
+use std::path::PathBuf;
 
-use serde::{ Serialize, Deserialize };
 use anyhow::{ Context as ErrorContext, Result };
+use serde::{ Serialize, Deserialize };
 use tera::{ Tera, Context };
 use structopt::StructOpt;
+use serde_json::Value;
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -19,8 +21,35 @@ lazy_static::lazy_static! {
     };
 }
 
-#[derive(Clone, Serialize, StructOpt)]
+#[derive(Clone, Serialize, Deserialize, StructOpt)]
+enum Command {
+    Update {
+        #[structopt(parse(from_os_str))]
+        destination: PathBuf
+    },
+    Init {
+        #[structopt(parse(from_os_str))]
+        destination: PathBuf
+    },
+    #[structopt(external_subcommand)]
+    Default(Vec<String>)
+}
+
+impl Flags {
+    fn destination (&self) -> PathBuf {
+        match self.command {
+            Command::Init { ref destination } => destination.clone(),
+            Command::Update { ref destination } => destination.clone(),
+            Command::Default(ref paths) => PathBuf::from(paths.first().unwrap())
+        }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, StructOpt)]
 struct Flags {
+    #[structopt(subcommand)]
+    command: Command,
+
     #[structopt(long, help = "Apply changes to destination even if there are changes")]
     force: bool, // for enemies
 
@@ -44,9 +73,13 @@ struct Flags {
 
     #[structopt(long, help = "Enable GitHub actions CI", default_value = "on")]
     ping: Option<Option<String>>,
+}
 
-    #[structopt(parse(from_os_str))]
-    destination: PathBuf
+#[derive(Serialize, Deserialize)]
+struct PackageJson {
+    #[serde(flatten)]
+    pub(crate) rest: HashMap<String, Value>,
+    boltzmann: Option<Vec<String>>
 }
 
 #[derive(Deserialize)]
@@ -112,8 +145,27 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
     Ok(None)
 }
 
-fn load_project_settings(dir: &PathBuf) -> Result<()> {
-    Ok(())
+fn load_project_settings(dir: &PathBuf) -> Result<Vec<String>> {
+    let mut package_json = dir.clone();
+    package_json.push("package.json");
+
+    let mut fd = match std::fs::File::open(&package_json) {
+        Ok(fd) => fd,
+        _ => return Ok(Vec::new())
+    };
+
+    let mut contents = Vec::new();
+    fd.read_to_end(&mut contents)
+        .context("Failed to read package.json")?;
+
+    let contents  = String::from_utf8(contents)?;
+    let package_json: PackageJson = serde_json::from_str(&contents[..])?;
+
+    if let Some(boltzmann) = package_json.boltzmann {
+        Ok(boltzmann)
+    } else {
+        Ok(Vec::new())
+    }
 }
 
 fn check_git_status(flags: &Flags) -> Result<()> {
@@ -127,9 +179,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let root_node: Node = ron::de::from_str(include_str!("dirspec.ron"))?;
     let flags = Flags::from_args();
     let mut parents = Vec::new();
-    let mut cwd = flags.destination.clone();
+    let mut cwd = flags.destination();
 
-    let package_json = load_project_settings(&cwd)?;
+    let previous_flags = load_project_settings(&cwd)?;
     check_git_status(&flags)?;
 
     let mut context = Context::from_serialize(flags)?;
