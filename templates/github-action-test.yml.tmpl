@@ -1,0 +1,60 @@
+name: Node CI
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+{% if postgres %}
+      postgres:
+        image: postgres:11.6-alpine
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_PASSWORD: postgres
+{% endif %}
+{% if redis %}
+      redis:
+        image: redis
+        ports:
+        - 6379:6379
+        options: --entrypoint redis-server
+{% endif %}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js 12.x
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
+    - name: npm ci
+      run: npm ci
+      env:
+        NODE_AUTH_TOKEN: {% raw %}${{ secrets.NPM_TOKEN }}{% endraw %}
+
+{% if postgres %}
+    - name: create the database
+      run: createdb -U postgres -h localhost -p 5432 database
+      env:
+        PGPASSWORD: postgres
+
+    - name: run migrations
+      run: |
+        docker run -v                   \
+          $(pwd)/migrations:/migrations \
+          --network host                \
+          migrate/migrate               \
+          -path=/migrations/            \
+          -database 'postgres://postgres:postgres@localhost:5432/database?sslmode=disable'  \
+          up
+{% endif %}
+
+    - name: npm test
+      run: PATH=node_modules/.bin:$PATH $(jq -r '.scripts.test' < package.json)
+      env:
+        {% if postgres %}
+        PGURL: postgres://postgres:postgres@localhost:5432/database
+        {% endif %}
+        CI: true

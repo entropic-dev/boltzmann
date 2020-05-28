@@ -1,0 +1,47 @@
+[
+  Dep("are-we-dev", "^1.0.0", None),
+  Dep("culture-ships", "^1.0.0", Some(When(
+    feature: "ping",
+    if_not_present: []
+  )),
+  Dep("find-my-way", "^2.2.1", None),
+  Dep("bole", "^4.0.0", None),
+  Dep("jsonwebtoken", "^8.5.1", Some(When(
+    feature: "jwt",
+    if_not_present: []
+  )),
+  Dep("ajv", "^6.12.2", None),
+  Dep("dotenv", "^8.2.0", None),
+  Dep("accepts", "^1.3.7", None),
+
+  Dep("honeycomb-beeline", "^2.1.1", Some(When(
+    feature: "honeycomb",
+    if_not_present: []
+  )),
+
+  Dep("on-headers", "^1.0.2", Some(When(
+    feature: "honeycomb",
+    if_not_present: []
+  )),
+
+  Dep("pg", "^8.2.1", Some(When(
+    feature: "postgres",
+    if_not_present: []
+  )),
+
+  Dep("handy-redis", "^1.8.1", Some(When(
+    feature: "redis",
+    if_not_present: []
+  )),
+
+  Dep("redis", "^3.0.2", Some(When(
+    feature: "redis",
+    if_not_present: []
+  )),
+
+  Dev("tap", "^14.10.7", None),
+  Dev("@hapi/shot", "^4.1.2", None),
+  Dev("babel-eslint", "^10.1.0", None),
+  Dev("bistre", "^1.0.1", None),
+  Dev("standard", "^14.3.4", None),
+]
