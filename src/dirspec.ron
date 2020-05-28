@@ -1,16 +1,34 @@
 Dir(DirSpec(
   children: [
-    ("example.txt", Template(TemplateSpec(
-      template_name: "example.tmpl"
-    )), 0o644),
-    ("boltzmann.js", Template(TemplateSpec(
+    ("boltzmann.js", 0o755, Template(TemplateSpec(
       template_name: "boltzmann.js.tmpl"
-    )), 0o755),
-    ("handlers.js", Template(TemplateSpec(
+    )), None),
+
+    ("handlers.js", 0o644, Template(TemplateSpec(
       template_name: "handlers.js.tmpl"
-    )), 0o644),
-    ("middleware.js", Template(TemplateSpec(
-      template_name: "middleware.js.tmpl"
-    )), 0o644),
-  ]
+    )), Some(When(
+      if_not_present: ["handlers.js", "handlers"]
+    ))),
+
+    ("middleware.js", 0o644, Template(TemplateSpec(
+      template_name: "middleware.js.tmpl",
+    )), Some(When(
+      if_not_present: ["middleware.js", "middleware"]
+    ))),
+
+    (".github", 0o755, Dir(DirSpec(
+      children: [
+        ("workflows", 0o755, Dir(DirSpec(
+          children: [
+            ("test.yml", 0o644, Template(TemplateSpec(
+              template_name: "github-action-test.yml.tmpl"
+            )), None)
+          ]
+        )), None)
+      ]
+    )), Some(When(
+      feature: Some("githubci"),
+      if_not_present: []
+    )))
+  ],
 ))
