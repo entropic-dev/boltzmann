@@ -1,0 +1,68 @@
+# This file is provided for local development purposes only.
+# The intent is to spin up necessary database resources
+# in docker locally, then tear them down once you're done.
+#
+# To run, use `docker-compose up -d`. This will run the containers
+# in the background.
+#
+# To shut down, run `docker-compose down`.
+version: '3.1'
+services:
+# 
+
+# 
+  db:
+    image: postgres:10.1-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${USER}
+    networks:
+      todo-api:
+        aliases:
+          - database
+
+  createdb:
+    links: [db]
+    image: jbergknoff/postgresql-client
+    entrypoint: ["createdb"]
+    command: ["-U", "postgres", "-h", "database", "todo-api"]
+    networks:
+      - todo-api
+
+  migrate:
+    image: migrate/migrate
+    networks:
+      - todo-api
+    volumes:
+      - ./migrations:/migrations
+    links: [createdb]
+    command: ["-path", "/migrations", "-database", "postgres://${USER}@database:5432/todo-api?sslmode=disable", "up"]
+
+  createdb_test:
+    links: [db]
+    image: jbergknoff/postgresql-client
+    entrypoint: ["createdb"]
+    command: ["-U", "postgres", "-h", "database", "todo-api_test"]
+    networks:
+      - todo-api
+
+  migrate_test:
+    image: migrate/migrate
+    networks:
+      - todo-api
+    volumes:
+      - ./migrations:/migrations
+    links: [createdb_test]
+    command: ["-path", "/migrations", "-database", "postgres://${USER}@database:5432/todo-api_test?sslmode=disable", "up"]
+# 
+networks:
+  todo-api:
+
+# 
+volumes:
+  postgres_data:
+# 
+
