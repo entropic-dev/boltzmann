@@ -1,8 +1,6 @@
 # boltzmann
 
-Boltzmann is a JS micro framework for JSON api services. It is implemented in a single file that lives alongside your code.
-
-Boltzmann doesn't try to be fast. We have no idea how fast or how slow Boltzmann is, in fact. (If we needed to be fast, we'd use Rust.) We are focused on *developer experience*. Things that we find we need to do every time we write a service, we want our framework to do out of the box. We also do not want to invent more than we need to, so Boltzmann is a thin wrapper around well-tested node packages like [jshttp](https://github.com/jshttp) and [find-my-way](https://github.com/delvedor/find-my-way).
+Boltzmann is a JavaScript framework for writing web servers. It is implemented in a single file that lives alongside your code. Boltzmann is focused on delivering a great developer experience and makes its tradeoffs with that goal in mind.
 
 Our design goals:
 
@@ -11,6 +9,7 @@ Our design goals:
 - Use global types, no special response types.
 - Only modify objects we provide; do not rely on modifications to node's request & response objects.
 - Provide pluggable behavior for body-parsing and middleware, with good defaults.
+- Use only minimal, well-vetted dependencies.
 - Bake in observability (optionally), via [Honeycomb](https://honeycomb.io) tracing.
 - Rely on a little bit of documented convention to avoid configuration.
 - Making throwing Boltzmann away if you need to move on _possible_.
@@ -21,11 +20,12 @@ Who's the "we" in this document? @ceejbot and @chrisdickinson.
 
 ## Hello world
 
-Install the scaffolding tool and run it:
+To get started with Boltzmann, download the `boltzmann` command-line tool. You can get it from [the releases page][https://github.com/entropic-dev/boltzmann/releases] or run it via `npx boltzmann-cli`. The tool is responsible for initializing a new Boltzmann project as well as keeping it up to date. You enable or disable specific Boltzmann features using the tool.
+
+For example, to scaffold with the defaults:
 
 ```sh
-cargo install ludwig
-ludwig ./hello
+npx boltzmann-cli ./hello
 cd hello
 npm install
 ```
@@ -42,23 +42,27 @@ export async function greeting(/** @type {Context} */ context) {
 }
 ```
 
-To run: `./boltzmann.js`. And to view the response: `[http](https://httpie.org) GET localhost:5000/hello/world`
+To run: `./boltzmann.js`. And to view the response: `curl GET localhost:5000/hello/world`
 
 ## Creating a boltzmann app
 
-This repo includes a command-line tool, `ludwig`, that generates a single javascript file with all of Boltzmann's implementation, and some scaffolding for a full Boltzmann app if it's not already present. The tool enables or disables specific Boltzmann features. The tool is safe to re-run, *provided* you are running it in a versioned git directory.
+This repo includes a command-line tool, `boltzmann`, that generates a single javascript file with all of Boltzmann's implementation, and some scaffolding for a full Boltzmann app if it's not already present. The tool enables or disables specific Boltzmann features. The tool is safe to re-run, provided you are running it in a versioned git directory.
 
 To scaffold with redis and honeycomb:
 
 ```sh
-ludwig --redis=on --honeycomb=on
+npx boltzmann-cli --postgres --honeycomb todo-api
 ```
 
-The scaffold currently assumes you're using node as your runtime and NPM as your package manager. It installs its dependencies for you, at the versions it needs. From this moment on, both boltzmann and its dependencies are under your management. Boltzmann is in your app repo as a source file, not as a dependency you install. You are free to make changes to the Boltzmann file, but be aware the scaffolding tool won't respect your changes if you run it again to update. You are also free to update or pin Boltzmann's dependencies.
+This creates a new project in `./todo-api` with postgres and Honeycomb integration enabled. If it finds existing code in `./todo-api`, it updates `boltzmann.js`.
+
+The scaffold currently assumes you're using node as your runtime and NPM as your package manager. It installs its dependencies for you, at the versions it needs. From this moment on, both boltzmann and its dependencies are under your management. Boltzmann is in your app repo as a *source file*, not as a dependency. You are free to make changes to the Boltzmann file, but be aware the scaffolding tool won't respect your changes if you run it again to update. You are also free to update or pin Boltzmann's dependencies.
 
 If you need to change Boltzmann's core behavior, you can either re-run the command-line tool to change features *or* write your own middleware. You'll be writing your own middleware for any reasonably complex project anyway!
 
-Features:
+## Features
+
+Here are the features you can enable or disable at the command-line:
 
 - ping: respond to `GET /ping` with a short text message; on by default
 - status: respond to `GET /status` with a JSON object with process information; off by default
@@ -66,7 +70,7 @@ Features:
 - redis: provide a redis client via middleware; off by default
 - honeycomb: send trace data to honeycomb for each response, with a span for each middleware executed
 
-If this documentation lags reality, `ludwig --help` will provide more info.
+If this documentation lags reality, `npx boltzmann-cli --help` is a definitive source of truth.
 
 ## The Boltzmann API
 
@@ -111,7 +115,7 @@ Route handlers are functions with a `route` field. The route field is a [find-my
 Boltzmann looks for handlers exported by the following two places:
 
 - from `handlers.js` in the same directory (good for small services)
-- from a `handlers/` directory
+- from `handlers/index.js`
 
 The scaffolding tool gives you a working `handlers.js` file.
 
@@ -145,22 +149,20 @@ Routes have one more meaningful optional field: `decorators`.
 
 ### Decorators and middleware
 
-Change route handler behavior by wrapping your handlers in *decorators*. Add behavior to all routes by defining *middleware*. This is an important part of Boltzmann's API and a place where it differs from Express and Connect-middleware style node frameworks. We borrow some concepts from [aspect-oriented programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming) and Python [decorators](https://en.wikipedia.org/wiki/Aspect-oriented_programming), so if you've used frameworks like Django you'll find them familiar.
+Change route handler behavior by wrapping your handlers in *decorators*. Add behavior to all routes by defining *middleware*. This is an important part of Boltzmann's API and a place where it differs from Express and Connect-middleware style node frameworks. We borrow some concepts from [aspect-oriented programming](https://en.wikipedia.org/wiki/Aspect-oriented_programming) and Python [decorators](https://en.wikipedia.org/wiki/Aspect-oriented_programming), so if you've used frameworks like Django you'll find this approach familiar.
 
-Decorators and middleware have the same API. The difference is that "middlewares" are set up for the whole application: they apply to every route. Decorators are applied to only the routes that need them. Use a decorator when you want to require, for example, administrator-only access to a set of routes, or when you'd like to make sure a root object exists before doing things with it.
+Decorators and middleware have the same API. The difference is that "middlewares" are set up for the whole application: they apply to every route. Decorators are applied to only the routes that need them. Use a decorator when you want to require, for example, administrator-only access to a set of routes, or when you'd like to lookup a user object from a session cookie and put it onto your context.
 
-To add decorators to a route, add a `decorators` field. The `decorators` field must be an array of functions that wrap the handler function.
+To add decorators to a route, add a `decorators` field. The `decorators` field must be an array of functions. They're called in the order you list them in the array. Your route handler is called last.
 
-To set up your application with middleware,
-
-Boltzmann looks for middleware exported by the following two places:
+To set up your server with middleware, export an array of middleware where Boltzmann can find it. Boltzmann looks for middleware exported by the following two places:
 
 - from `middleware.js` in the same directory (good for small services)
-- from a `middleware/` directory
+- from `middleware/index.js`
 
 The scaffolding tool gives you a working `middleware.js` file.
 
-So what is this decorator/middleware api? A decorator takes a `next` parameter and returns a function that takes a single context `param`. Here's a generic Boltzmann middleware file, suitable to copy-n-paste to start yours:
+What is this decorator/middleware api? A decorator takes a `next` parameter and returns a function that takes a single context `param`. Here's a generic Boltzmann middleware file, suitable to copy-n-paste to start yours:
 
 ```js
 // in middleware.js
@@ -189,7 +191,7 @@ See `examples/middleware/` for some meatier examples. Pro tip: debugging is easi
 
 ### Built-in middleware
 
-TOOD
+TODO
 
 ### Built-in decorators
 
@@ -219,7 +221,7 @@ The `boltzmann.decorators.params` function takes an ajv schema and generates a d
 
 ### Tests
 
-Boltzmann uses tap for testing. (We're looking for a replacement.) It provides some convenience wrappers to make testing your route handlers easier. It provides [shot](https://github.com/hapijs/shot) as a way to inject requests into your service. If you're using postgres, it wraps each test in a transaction so you can exercise your db code without changing state in your underlying database. We feel that databases are not behavior we want to replicate in mocks. It's more useful to test use of the db directly.
+Boltzmann uses tap for testing. It provides some convenience wrappers to make testing your route handlers easier. It provides [shot](https://github.com/hapijs/shot) as a way to inject requests into your service. If you're using postgres, it wraps each test in a transaction so you can exercise your db code without changing state in your underlying database. We feel that databases are not behavior we want to replicate in mocks. It's more useful to test use of the db directly.
 
 Here's an example test from a real-world Boltzmann service:
 
@@ -245,22 +247,6 @@ test('sessionCreate: can create a session', _(async assert => {
 ```
 
 TODO: example of setting up middleware for tests
-
-
-## Dependencies
-
-- [accepts](https://github.com/jshttp/accepts)
-- [ajv](https://github.com/epoberezkin/ajv)
-- [are-we-dev](https://github.com/chrisdickinson/are-we-dev)
-- [bole](https://github.com/rvagg/bole)
-- [culture-ships](https://github.com/ceejbot/culture-ships)
-- [dotenv](https://github.com/motdotla/dotenv)
-- [find-my-way](https://github.com/delvedor/find-my-way)
-- [handy-redis](https://github.com/mmkal/handy-redis)
-- [honeycomb-beeline](https://github.com/honeycombio/beeline-nodejs)
-- [on-headers](https://github.com/jshttp/on-headers)
-- [pg](https://github.com/brianc/node-postgres)
-- [redis](https://github.com/NodeRedis/node-redis)
 
 ## LICENCE
 
