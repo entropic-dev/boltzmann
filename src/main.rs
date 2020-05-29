@@ -177,7 +177,7 @@ impl Into<Context> for Settings {
     }
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Default, Deserialize, Serialize)]
 struct PackageJson {
     dependencies: Option<HashMap<String, String>>,
 
@@ -294,7 +294,6 @@ fn load_package_json(flags: &Flags, default_settings: Settings) -> Option<Packag
     let mut contents = Vec::new();
     fd.read_to_end(&mut contents).ok()?;
 
-
     let mut package_json = serde_json::from_slice::<PackageJson>(&contents[..]).ok()?;
     package_json.boltzmann = package_json.boltzmann.or(Some(default_settings));
     Some(package_json)
@@ -351,6 +350,21 @@ fn initialize_package_json(path: &PathBuf) -> Result<()> {
     }
 }
 
+// data structures for dep lists
+#[derive(Deserialize)]
+enum DependencyType {
+    Normal,
+    Development
+}
+
+#[derive(Deserialize)]
+struct DependencySpec {
+    name: String,
+    version: String,
+    kind: DependencyType,
+    preconditions: Option<When>
+}
+
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let root_node: Node = ron::de::from_str(include_str!("dirspec.ron"))?;
     let flags = Flags::from_args();
@@ -366,12 +380,16 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         ..Default::default()
     };
 
+    let initial_settings = Settings {
+        ..Default::default()
+    };
+
     let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings.clone()) {
         xs
     } else {
         initialize_package_json(&flags.destination)
             .context("Failed to use npm to initialize the repo.")?;
-        load_package_json(&flags, default_settings).unwrap()
+        load_package_json(&flags, initial_settings).unwrap()
     };
 
     if package_json.boltzmann.is_none() {
@@ -381,6 +399,49 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let settings = package_json.boltzmann.take().unwrap();
     let updated_settings = settings.merge_flags("the version of boltzmann".to_string(), &flags);
     root_node.render(&mut cwd, 0o777, &mut parents, &updated_settings)?;
+
+    let old = serde_json::to_value(settings)?;
+    let new = serde_json::to_value(&updated_settings)?;
+
+    let mut dependencies = package_json.dependencies.take().unwrap_or_else(|| HashMap::new());
+    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(|| HashMap::new());
+    let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
+
+    for candidate in candidates {
+        let target = match candidate.kind {
+            DependencyType::Normal => &mut dependencies,
+            DependencyType::Development => &mut devdeps
+        };
+
+        if let Some(preconditions) = candidate.preconditions {
+            let feature = preconditions.feature.unwrap();
+            let wants_feature = new.get(&feature)
+                .map(|xs| xs.as_bool().unwrap_or(false))
+                .unwrap_or(false);
+            let used_to_have = old.get(&feature)
+                .map(|xs| xs.as_bool().unwrap_or(false))
+                .unwrap_or(false);
+
+            if wants_feature != used_to_have {
+                if wants_feature {
+                    target.insert(candidate.name, candidate.version);
+                } else {
+                    target.remove(&candidate.name[..]);
+                }
+            }
+        } else {
+            target.insert(candidate.name, candidate.version);
+        }
+    }
+
+    package_json.boltzmann.replace(updated_settings);
+    package_json.dependencies.replace(dependencies);
+    package_json.dev_dependencies.replace(devdeps);
+
+    cwd.push("package.json");
+    let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&cwd)
+        .with_context(|| format!("failed to write an updated package.json {:?}", cwd))?;
+    serde_json::to_writer_pretty(&mut fd, &package_json)?;
 
     Ok(())
 }

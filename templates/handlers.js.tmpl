@@ -1,6 +1,10 @@
-import { Context } from './boltzmann.js' // optionally pull in typescript definition
+const { Context } = require('./boltzmann.js'); // optionally pull in typescript definition
 
 greeting.route = 'GET /hello/:name'
-export async function greeting(/** @type {Context} */ context) {
+async function greeting(/** @type {Context} */ context) {
     return `hello ${context.params.name}`
+}
+
+module.exports = {
+    greeting
 }
