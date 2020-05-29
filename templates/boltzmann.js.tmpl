@@ -4,7 +4,10 @@
 
 'use strict'
 
-const serviceName = process.env.SERVICE_NAME || require('./package.json').name
+const serviceName = (
+  process.env.SERVICE_NAME ||
+  require('./package.json').name.split('/').pop()
+)
 
 // {% if honeycomb %}
 const beeline = require('honeycomb-beeline')({
@@ -630,7 +633,7 @@ function attachRedis ({ url = process.env.REDIS_URL } = {}) {
 // {% endif %}
 // {% if postgres %}
 function attachPostgres ({
-  url = process.env.PGURL || 'postgres://postgres@localhost:5432/<$ service $>',
+  url = process.env.PGURL || `postgres://postgres@localhost:5432/${serviceName}`,
   max = Number(process.env.PGPOOLSIZE) || 20
 } = {}) {
   return async next => {
@@ -816,7 +819,7 @@ function test ({
 }) {
   const shot = require('@hapi/shot')
   // {% if postgres %}
-  const database = process.env.TEST_DB_NAME || '<$ service $>_test'
+  const database = process.env.TEST_DB_NAME || `${serviceName}_test`
   const postgresClient = new pg.Client({
     connectionString: process.env.PGURL || `postgres://localhost:5432/${database}`
   })
