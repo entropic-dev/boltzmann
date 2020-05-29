@@ -4,11 +4,13 @@
 
 'use strict'
 
+const serviceName = process.env.SERVICE_NAME || require('./package.json').name
+
 // {% if honeycomb %}
 const beeline = require('honeycomb-beeline')({
   writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
   dataset: process.env.HONEYCOMBIO_DATASET,
-  serviceName: process.env.SERVICE_NAME || require('./package.json').name
+  serviceName
 })
 const onHeaders = require('on-headers')
 // {% endif %}
@@ -242,6 +244,7 @@ function router (handlers) {
       version,
       params: match.params
     }
+    context.params = match.params
 
     // {% if honeycomb %}
     let span = null
@@ -701,7 +704,7 @@ function handleStatus ({
           return {
             git,
             uptime: process.uptime(),
-            service: '<$ service $>',
+            service: serviceName,
             hostname,
             memory: process.memoryUsage(),
             downstream,
