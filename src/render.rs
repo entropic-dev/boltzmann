@@ -9,15 +9,22 @@ use tera::{ Tera, Context };
 use super::Settings;
 use super::When;
 
+const TEMPLATES_DIR: include_dir::Dir = include_dir::include_dir!("templates");
+
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        match Tera::new("templates/**/*") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {}", e);
-                ::std::process::exit(1);
+        let mut tera = Tera::default();
+
+        let items: Vec<_> = TEMPLATES_DIR.find("**/*.tmpl").unwrap().filter_map(|xs| {
+            if let include_dir::DirEntry::File(fd) = xs {
+                Some((fd.path().to_str()?, fd.contents_utf8()?))
+            } else {
+                None
             }
-        }
+        }).collect();
+
+        tera.add_raw_templates(items).expect("added templates");
+        tera
     };
 }
 
