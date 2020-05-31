@@ -164,7 +164,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         xs
     } else {
         initialize_package_json(&flags.destination)
-            .context(format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
+            .with_context(|| format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
         load_package_json(&flags, initial_settings).unwrap()
     };
 
