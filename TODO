@@ -7,7 +7,7 @@
     - what changed. why it changed.
 - [ ] npm installs (and uninstalls HA HA HA)
 - [x] make ping and status controlled by options
-- [ ] bake templates into CLI binary
+- [x] bake templates into CLI binary
 - [ ] github releases of the tool
 - [ ] release npx package (boltzmann and boltzmann-cli)
 
