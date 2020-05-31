@@ -7,6 +7,8 @@ use subprocess::{ Exec, ExitStatus, NullFile };
 use serde::{ Serialize, Deserialize };
 use serde_json::{ Value, self };
 use structopt::StructOpt;
+use structopt::clap::AppSettings::*;
+
 
 mod render;
 mod settings;
@@ -14,21 +16,20 @@ mod settings;
 use settings::{ Flipper, Settings, When };
 
 #[derive(Clone, Serialize, StructOpt)]
+#[structopt(name = "boltzmann", about = "Generate or update scaffolding for a Boltzmann service.
+To enable a feature, mention it or set the option to `on`.
+To remove a feature from an existing project, set it to `off`.")]
+#[structopt(global_setting(ColoredHelp), global_setting(ColorAuto))]
 pub struct Flags {
-    #[structopt(long, help = "Apply changes to destination even if there are changes")]
-    force: bool, // for enemies
-
-    #[structopt(long, help = "Apply changes to destination even if there are changes")]
+    #[structopt(long, help = "Enable redis")]
     redis: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable postgres")]
     postgres: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable honeycomb")]
+    #[structopt(long, help = "Enable honeycomb",
+        about = "some help text")]
     honeycomb: Option<Option<Flipper>>,
-
-    #[structopt(long, help = "Run the oven in self-cleaning mode.")]
-    selftest: bool, // turn on boltzmann self test.
 
     #[structopt(long, help = "Enable GitHub actions CI")]
     githubci: Option<Option<Flipper>>,
@@ -36,10 +37,16 @@ pub struct Flags {
     #[structopt(long, help = "Enable /monitor/status healthcheck endpoint")]
     status: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable /monitor/ping healthcheck endpoint")]
+    #[structopt(long, help = "Enable /monitor/ping liveness endpoint")]
     ping: Option<Option<Flipper>>,
 
-    #[structopt(parse(from_os_str))]
+    #[structopt(long, help = "Update a git-repo destination even if there are changes")]
+    force: bool, // for enemies
+
+    #[structopt(long, help = "Build for a self-test.")]
+    selftest: bool, // turn on the oven in self-cleaning mode.
+
+    #[structopt(parse(from_os_str), help = "The path to the Boltzmann service")]
     destination: PathBuf
 }
 
@@ -157,7 +164,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         xs
     } else {
         initialize_package_json(&flags.destination)
-            .context("Failed to use npm to initialize the repo.")?;
+            .with_context(|| format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
         load_package_json(&flags, initial_settings).unwrap()
     };
 
@@ -166,10 +173,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let settings = package_json.boltzmann.take().unwrap();
-    let updated_settings = settings.merge_flags("the version of boltzmann".to_string(), &flags);
+    let updated_settings = settings.merge_flags(option_env!("CARGO_PKG_VERSION").unwrap().to_string(), &flags);
 
     render::scaffold(&mut cwd, &updated_settings)
-        .with_context(|| format!("could not render boltzmann files!"))?;
+        .with_context(|| format!("Failed to render Boltzmann files"))?;
 
     let old = serde_json::to_value(settings)?;
     let new = serde_json::to_value(&updated_settings)?;
@@ -211,7 +218,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     cwd.push("package.json");
     let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&cwd)
-        .with_context(|| format!("failed to write an updated package.json {:?}", cwd))?;
+        .with_context(|| format!("Failed to update {:?}", cwd))?;
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
 
     Ok(())

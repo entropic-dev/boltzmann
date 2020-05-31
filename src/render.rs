@@ -105,10 +105,10 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
         // failure to render is fatal.
         if let Some(data) = node.render(cwd, mode, parents, settings)? {
             let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).mode(mode).open(&cwd)
-                .with_context(|| format!("failed to open {:?} with mode {:?}", cwd, mode))?;
+                .with_context(|| format!("Failed to open {:?} with mode {:?}", cwd, mode))?;
 
             fd.write_all(data.as_bytes())
-                .with_context(|| format!("failed to write {:?}", cwd))?;
+                .with_context(|| format!("Failed to write {:?}", cwd))?;
         }
         cwd.pop();
         parents.pop();
