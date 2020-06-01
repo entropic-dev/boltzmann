@@ -5,12 +5,12 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 
 use anyhow::{ anyhow, Context as ErrorContext, Result };
+use atty::Stream;
 use subprocess::{ Exec, ExitStatus, NullFile };
 use serde::{ Serialize, Deserialize };
 use serde_json::{ Value, self };
 use structopt::StructOpt;
 use structopt::clap::AppSettings::*;
-
 
 mod render;
 mod settings;
@@ -147,6 +147,24 @@ struct DependencySpec {
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut flags = Flags::from_args();
+    // Is this a tty? What is the user trying to do? Is there a user? What is an electron anyway?
+    if flags.destination.as_os_str().is_empty() && atty::is(Stream::Stdout) {
+        println!("Scaffolding a Boltzmann service in the current working directory.");
+        println!("To see full help, run `boltzmann --help`.");
+        print!("Scaffold here? (y/n): ");
+        std::io::stdout().flush()?;
+        let mut buffer = String::new();
+        std::io::stdin().read_line(&mut buffer)?;
+        buffer.make_ascii_uppercase();
+        match &buffer[..]{
+            "Y\n" => {},
+            "YES\n" => {},
+            _ => {
+                println!("Exiting without scaffolding.");
+                ::std::process::exit(0);
+            }
+        }
+    }
     let cwd = std::env::current_dir()?;
     flags.destination = cwd.join(&flags.destination);
     let mut target = flags.destination.clone();

@@ -79,6 +79,7 @@ name = "boltzmann"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "atty",
  "include_dir",
  "lazy_static",
  "ron",
