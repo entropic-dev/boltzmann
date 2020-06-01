@@ -1,3 +1,5 @@
+#![allow(clippy::option_option)]
+
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -46,7 +48,7 @@ pub struct Flags {
     #[structopt(long, help = "Build for a self-test.")]
     selftest: bool, // turn on the oven in self-cleaning mode.
 
-    #[structopt(parse(from_os_str), help = "The path to the Boltzmann service")]
+    #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
     destination: PathBuf
 }
 
@@ -144,8 +146,10 @@ struct DependencySpec {
 }
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
-    let flags = Flags::from_args();
-    let mut cwd = flags.destination.clone();
+    let mut flags = Flags::from_args();
+    let cwd = std::env::current_dir()?;
+    flags.destination = cwd.join(&flags.destination);
+    let mut target = flags.destination.clone();
 
     check_git_status(&flags)?;
 
@@ -176,7 +180,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
     let updated_settings = settings.merge_flags(version, &flags);
 
-    render::scaffold(&mut cwd, &updated_settings)
+    render::scaffold(&mut target, &updated_settings)
         .context("Failed to render Boltzmann files")?;
 
     let old = serde_json::to_value(settings)?;
@@ -217,9 +221,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     package_json.dependencies.replace(dependencies);
     package_json.dev_dependencies.replace(devdeps);
 
-    cwd.push("package.json");
-    let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&cwd)
-        .with_context(|| format!("Failed to update {:?}", cwd))?;
+    target.push("package.json");
+    let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&target)
+        .with_context(|| format!("Failed to update {:?}", target))?;
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
 
     Ok(())
