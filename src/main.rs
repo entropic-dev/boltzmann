@@ -243,6 +243,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&target)
         .with_context(|| format!("Failed to update {:?}", target))?;
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
+    target.pop();
 
-    Ok(())
+    let exit_status = Exec::cmd("npm")
+        .arg("i")
+        .cwd(&target)
+        .join()?;
+
+    match exit_status {
+        ExitStatus::Exited(0) => Ok(()),
+        _ => Err(anyhow!("npm init exited with non-zero status").into())
+    }
 }

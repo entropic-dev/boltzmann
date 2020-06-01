@@ -29,6 +29,15 @@ Dir(DirSpec(
     )), Some(When(
       feature: Some("githubci"),
       if_not_present: []
+    ))),
+
+    // jumper module for selftest, to trick tap into
+    // reporting test coverage output for boltzmann.js
+    ("test.js", 0o644, File(FileSpec(
+      contents: "require('./boltzmann')"
+    )), Some(When(
+      feature: Some("selftest"),
+      if_not_present: []
     )))
   ],
 ))

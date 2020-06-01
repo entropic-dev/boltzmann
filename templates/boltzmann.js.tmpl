@@ -981,7 +981,9 @@ if (require.main === module) {
       attachPostgres,
       // {% endif %}
       ..._requireOr('./middleware', []),
+      // {% if status %}
       ...[handleStatus]
+      // {% endif %}
     ]
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000)
