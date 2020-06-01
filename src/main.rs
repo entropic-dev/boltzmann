@@ -160,7 +160,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         ..Default::default()
     };
 
-    let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings.clone()) {
+    let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings) {
         xs
     } else {
         initialize_package_json(&flags.destination)
@@ -173,16 +173,17 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let settings = package_json.boltzmann.take().unwrap();
-    let updated_settings = settings.merge_flags(option_env!("CARGO_PKG_VERSION").unwrap().to_string(), &flags);
+    let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
+    let updated_settings = settings.merge_flags(version, &flags);
 
     render::scaffold(&mut cwd, &updated_settings)
-        .with_context(|| format!("Failed to render Boltzmann files"))?;
+        .context("Failed to render Boltzmann files")?;
 
     let old = serde_json::to_value(settings)?;
     let new = serde_json::to_value(&updated_settings)?;
 
-    let mut dependencies = package_json.dependencies.take().unwrap_or_else(|| HashMap::new());
-    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(|| HashMap::new());
+    let mut dependencies = package_json.dependencies.take().unwrap_or_else(HashMap::new);
+    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(HashMap::new);
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
 
     for candidate in candidates {
