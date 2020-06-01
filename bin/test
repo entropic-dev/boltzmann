@@ -1,0 +1,71 @@
+#!/bin/bash
+
+set -e
+
+function run_selftest() {
+  rm -rf .test
+  mkdir -p .test/selftest
+
+  cargo run -- --selftest --force .test/selftest
+  .test/selftest/node_modules/.bin/tap .test/selftest/test.js
+}
+
+function run_startup() {
+  rm -rf .test
+  mkdir -p .test/startup
+
+  cargo run -- .test/startup --force
+  PORT=8080 .test/startup/boltzmann.js &
+  pid=$!
+
+  result=$(curl -sfL localhost:8080/hello/world)
+  kill $pid
+
+  if [ "$result" != "hello world" ]; then
+    echo -e "expected \"hello world\", got \"$result\""
+    exit 1
+  fi
+}
+
+function run_examples() {
+  for example in examples/*; do
+    cd $example
+    npm t
+    // just in case
+    docker-compose down || echo 'no docker detected'
+    cd -
+  done
+}
+
+function list_tests() {
+  typeset -f          | \
+    grep '()'         | \
+    grep 'run_*'      | \
+    grep -v 'run_all' | \
+    awk '{print $1}'  | \
+    sed -e 's/run_//g'
+}
+
+function run_all() {
+  for test in $(list_tests); do
+    run_$test
+  done
+}
+
+case $1 in
+  "selftest")
+    run_selftest
+  ;;
+  "startup")
+    run_startup
+  ;;
+  "examples")
+    run_examples
+  ;;
+  "list")
+    list_tests
+  ;;
+  *)
+    run_all
+  ;;
+esac

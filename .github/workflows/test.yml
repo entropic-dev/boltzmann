@@ -1,0 +1,39 @@
+on: [push]
+
+name: CI
+
+jobs:
+  build_and_test:
+    services:
+      postgres:
+        image: postgres:11.6-alpine
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        env:
+          POSTGRES_PASSWORD: postgres
+      redis:
+        image: redis
+        ports:
+        - 6379:6379
+        options: --entrypoint redis-server
+
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+
+      - name: run selftest
+        run: |
+          cargo run -- selftest --selftest
+          cd selftest && node_modules/.bin/tap test.js
+
+      - name: does the project start?
+        run: |
+          echo hi
