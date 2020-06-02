@@ -30,9 +30,25 @@ function run_startup() {
 function run_examples() {
   for example in examples/*; do
     cd $example
-    npm t
-    // just in case
-    docker-compose down || echo 'no docker detected'
+    cargo run -- . --force
+    if [ ! -z "$(git diff $example)" ]; then
+      echo -e '\x1b[31m'"$example is no longer up-to-date"'\x1b[0m; consider running "npm run update" in the example dir and committing the results.'
+    fi
+
+    echo "testing $example startup"
+    PORT=8080 $example/boltzmann.js &
+    pid=$!
+    kill $pid
+
+    echo "testing $example startup"
+    npm t # this may trigger docker-compose up
+
+    if [ -e $example/docker-compose.yml ]; then
+      docker-compose down || echo 'no docker detected'
+    fi
+
+    git checkout $example
+    git clean -f $example
     cd -
   done
 }

@@ -252,6 +252,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     match exit_status {
         ExitStatus::Exited(0) => Ok(()),
-        _ => Err(anyhow!("npm init exited with non-zero status").into())
+        _ => Err(anyhow!("npm install exited with non-zero status").into())
     }
 }
