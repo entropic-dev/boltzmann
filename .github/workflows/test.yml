@@ -29,11 +29,14 @@ jobs:
           command: build
           args: --release --all-features
 
-      - name: run selftest
+      - name: run selftest tests
         run: |
-          cargo run -- selftest --selftest
-          cd selftest && node_modules/.bin/tap test.js
+          bin/test selftest
 
-      - name: does the project start?
+      - name: run startup tests
         run: |
-          echo hi
+          bin/test startup
+
+      - name: run examples tests
+        run: |
+          bin/test examples

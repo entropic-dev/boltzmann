@@ -809,6 +809,31 @@ function validateBlock(what) {
   }
 }
 
+function tupleResponse() {
+  return function mapTupleResponse (next) {
+    return async (context, ...args) => {
+      let response = null
+      try {
+        response = await next(context, ...args)
+      } catch (err) {
+        response = err
+        response[THREW] = true
+      }
+
+      if (Array.isArray(response)) {
+        const [body, status = 200, headers = {}] = response
+        body[THREW] = response[THREW]
+        body[STATUS] = status
+        body[HEADERS] = headers
+
+        return body
+      }
+
+      return response
+    }
+  }
+}
+
 let savepointId = 0
 
 function test ({
