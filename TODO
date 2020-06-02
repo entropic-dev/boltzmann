@@ -1,5 +1,12 @@
 ## TODO
 
+### 2020-06-03
+
+- [ ] add npm run scripts
+    - [ ] start, if it doesn't exist
+    - [ ] test, if it doesn't exist
+    - [ ] boltzmann:upgrade, to upgrade the thing
+
 ### 2020-05-28
 
 - [ ] improve tool output
