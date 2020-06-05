@@ -16,7 +16,7 @@
     - [ ] boltzmann:upgrade, to upgrade the thing
 - [x] call decorators middleware
 - [x] maybe make "jwt middleware" a flag
-- [ ] pick a better linter and install it by default
+- [x] pick a better linter and install it by default
 
 ### 2020-05-28
 
