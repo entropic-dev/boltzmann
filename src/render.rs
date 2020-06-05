@@ -1,5 +1,10 @@
 use std::io::prelude::*;
+
+#[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::OpenOptionsExt;
+
 use std::path::PathBuf;
 
 use anyhow::{ Context as ErrorContext, Result };
@@ -68,7 +73,16 @@ impl Node {
 fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<String>, settings: &Settings) -> Result<Option<String>> {
 
     println!("entering \x1b[34m{:?}\x1b[0m;", cwd);
-    if let Err(e) = std::fs::DirBuilder::new().mode(mode).create(&cwd) {
+
+    let mut db = std::fs::DirBuilder::new();
+
+    let db = if cfg!(not(windows)) {
+        db.mode(mode)
+    } else {
+        &mut db
+    };
+
+    if let Err(e) = db.create(&cwd) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
             return Err(e.into())
         }
@@ -104,7 +118,15 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 
         // failure to render is fatal.
         if let Some(data) = node.render(cwd, mode, parents, settings)? {
-            let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).mode(mode).open(&cwd)
+            let mut oo = std::fs::OpenOptions::new();
+
+            oo.create(true).truncate(true).write(true);
+
+            if cfg!(not(windows)) {
+                oo.mode(mode);
+            }
+
+            let mut fd = oo.open(&cwd)
                 .with_context(|| format!("Failed to open {:?} with mode {:?}", cwd, mode))?;
 
             fd.write_all(data.as_bytes())
