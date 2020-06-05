@@ -76,9 +76,8 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 
     let mut db = std::fs::DirBuilder::new();
 
-    if !cfg!(target_os = "windows") {
-        db.mode(mode);
-    }
+    #[cfg(not(target_os = "windows"))]
+    db.mode(mode);
 
     if let Err(e) = db.create(&cwd) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
@@ -120,9 +119,8 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 
             oo.create(true).truncate(true).write(true);
 
-            if !cfg!(target_os = "windows") {
-                oo.mode(mode);
-            }
+            #[cfg(not(target_os = "windows"))]
+            oo.mode(mode);
 
             let mut fd = oo.open(&cwd)
                 .with_context(|| format!("Failed to open {:?} with mode {:?}", cwd, mode))?;
