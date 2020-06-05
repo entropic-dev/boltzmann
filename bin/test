@@ -15,10 +15,15 @@ function run_startup() {
   mkdir tmp
 
   cargo run -- tmp --force
+
+  echo 'running the server'
   PORT=8080 tmp/boltzmann.js &
   pid=$!
 
+  echo 'attempting to curl'
   result=$(curl -sfL localhost:8080/hello/world)
+
+  echo 'stopping the server'
   kill $pid
 
   if [ "$result" != "hello world" ]; then
