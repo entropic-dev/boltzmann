@@ -3,19 +3,19 @@
 set -e
 
 function run_selftest() {
-  rm -rf .test
-  mkdir -p .test/selftest
+  rm -rf tmp
+  mkdir -p tmp/selftest
 
-  cargo run -- --selftest --force .test/selftest
-  .test/selftest/node_modules/.bin/tap .test/selftest/test.js
+  cargo run -- --selftest --force tmp/selftest
+  tmp/selftest/node_modules/.bin/tap tmp/selftest/test.js
 }
 
 function run_startup() {
-  rm -rf .test
-  mkdir -p .test/startup
+  rm -rf tmp
+  mkdir -p tmp/startup
 
-  cargo run -- .test/startup --force
-  PORT=8080 .test/startup/boltzmann.js &
+  cargo run -- tmp/startup --force
+  PORT=8080 tmp/startup/boltzmann.js &
   pid=$!
 
   result=$(curl -sfL localhost:8080/hello/world)
