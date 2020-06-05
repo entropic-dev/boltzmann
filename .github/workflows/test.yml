@@ -4,6 +4,8 @@ name: CI
 
 jobs:
   build_and_test:
+    env:
+      DEBUG: 1
     name: Rust project
     runs-on: ${{ matrix.os }}
     strategy:

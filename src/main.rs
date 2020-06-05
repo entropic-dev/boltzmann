@@ -116,13 +116,20 @@ fn initialize_package_json(path: &PathBuf) -> Result<()> {
         }
     }
 
-    let exit_status = Exec::cmd("npm")
+    let mut subproc = Exec::cmd("npm")
         .arg("init")
         .arg("--yes")
-        .cwd(&path)
-        .stdout(NullFile)
-        .stderr(NullFile)
-        .join()?;
+        .cwd(&path);
+
+    subproc = if !std::env::var("DEBUG").ok().unwrap_or_else(|| "".to_string()).is_empty() {
+        subproc
+            .stdout(NullFile)
+            .stderr(NullFile)
+    } else {
+        subproc
+    };
+
+    let exit_status = subproc.join()?;
 
     match exit_status {
         ExitStatus::Exited(0) => Ok(()),
