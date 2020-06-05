@@ -6,7 +6,7 @@ function run_selftest() {
   rm -rf tmp
   mkdir tmp
 
-  cargo run -- --selftest --force tmp
+  cargo run -- --selftest --jwt --force tmp
   tmp/node_modules/.bin/tap tmp/test.js
 }
 

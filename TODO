@@ -2,17 +2,28 @@
 
 ### 2020-06-03
 
+- [x] write a github CI action for releases
+    - [x] create artifacts
+    - [ ] cut a release
+    - [ ] release a npx tool
+- [ ] finish off the docs
+    - [ ] add more examples
+    - [ ] use github pages
+    - [ ] cut docs into some kind of IA
 - [ ] add npm run scripts
     - [ ] start, if it doesn't exist
     - [ ] test, if it doesn't exist
     - [ ] boltzmann:upgrade, to upgrade the thing
+- [x] call decorators middleware
+- [x] maybe make "jwt middleware" a flag
+- [ ] pick a better linter and install it by default
 
 ### 2020-05-28
 
 - [ ] improve tool output
     - answer the following: what does the user care about?
     - what changed. why it changed.
-- [ ] npm installs (and uninstalls HA HA HA)
+- [x] npm installs (and uninstalls HA HA HA)
 - [x] make ping and status controlled by options
 - [x] bake templates into CLI binary
 - [ ] github releases of the tool
@@ -25,16 +36,16 @@ We'll regroup to add information architecture.
 
 Code changes will be PR'd in.
 
-- [ ] CHRIS: Add two subcommands: `init` and `update`.
-- [ ] CEEJ: detect git state of destination dir, respecting force flag
-- [ ] CHRIS: load existing package.json
-    - [ ] implement turning a thing off
-- [ ] attach "skip if present" data to Nodes (& skip creating them if they're present)
-- [ ] inspect the flags and map them to npm actions
-    - [ ] run npm install in a subprocess
-- [ ] render our actual templates, for real
-- [ ] run the tests
-    - [ ] write a github CI action for this repo
+- [ ] CHRIS: ~Add two subcommands: `init` and `update`.~ **Edit**: We ended up not doing this
+- [x] CEEJ: detect git state of destination dir, respecting force flag
+- [x] CHRIS: load existing package.json
+    - [x] implement turning a thing off
+- [x] attach "skip if present" data to Nodes (& skip creating them if they're present)
+- [x] inspect the flags and map them to npm actions
+    - [x] run npm install in a subprocess
+- [x] render our actual templates, for real
+- [x] run the tests
+    - [x] write a github CI action for this repo
 - [ ] write a github CI action for releases
 - [ ] finish off the docs
     - [ ] add more examples
