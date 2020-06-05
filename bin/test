@@ -21,7 +21,7 @@ function run_startup() {
   pid=$!
 
   echo 'attempting to curl'
-  result=$(curl -sfL localhost:8080/hello/world)
+  result=$(curl -sfL 127.0.0.1:8080/hello/world)
 
   echo 'stopping the server'
   kill $pid
