@@ -17,8 +17,10 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Boltzmann ${{ github.ref }}
-          draft: false
+          draft: true
           prerelease: false
+      - run: |
+          echo ${{ steps.create_release.outputs.upload_url }}
       - run: |
           echo ${{ steps.create_release.outputs.upload_url }} > upload-url.txt
       - name: save the upload url
