@@ -38,7 +38,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - run: cargo build
+      - run: cargo build --release
       - name: tar it up
         run: |
           tar cfz boltzmann_x86_linux_gnu.tar.gz -C target/release boltzmann
@@ -46,7 +46,8 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: upload-url
-      - run: echo "::set-env name=UPLOAD_URL::$(cat upload-url.txt)"
+      - name: put upload url into the environment
+        run: echo "::set-env name=UPLOAD_URL::$(cat upload-url.txt)"
       - run: echo $UPLOAD_URL
       - run: echo ${{ env.UPLOAD_URL }}
       - name: upload x86 linux gnu release
