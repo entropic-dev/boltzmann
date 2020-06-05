@@ -3,22 +3,29 @@
 set -e
 
 function run_selftest() {
-  rm -rf .test
-  mkdir -p .test/selftest
+  rm -rf tmp
+  mkdir tmp
 
-  cargo run -- --selftest --force .test/selftest
-  .test/selftest/node_modules/.bin/tap .test/selftest/test.js
+  cargo run -- --selftest --force tmp
+  tmp/node_modules/.bin/tap tmp/test.js
 }
 
 function run_startup() {
-  rm -rf .test
-  mkdir -p .test/startup
+  rm -rf tmp
+  mkdir tmp
 
-  cargo run -- .test/startup --force
-  PORT=8080 .test/startup/boltzmann.js &
+  cargo run -- tmp --force
+
+  echo 'running the server'
+  PORT=8080 tmp/boltzmann.js &
+  bg &> /dev/null || result=1
   pid=$!
 
-  result=$(curl -sfL localhost:8080/hello/world)
+  sleep 2 # ha ha ha ha ha
+  echo 'attempting to curl'
+  result=$(curl -sL http://127.0.0.1:8080/hello/world)
+
+  echo 'stopping the server'
   kill $pid
 
   if [ "$result" != "hello world" ]; then
