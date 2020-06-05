@@ -21,6 +21,7 @@ function run_startup() {
   bg &> /dev/null || result=1
   pid=$!
 
+  sleep 2 # ha ha ha ha ha
   echo 'attempting to curl'
   result=$(curl -sL http://127.0.0.1:8080/hello/world)
 
