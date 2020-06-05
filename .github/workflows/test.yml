@@ -23,13 +23,16 @@ jobs:
           command: build
 
       - name: run selftest tests
+        shell: bash
         run: |
           bin/test selftest
 
       - name: run startup tests
+        shell: bash
         run: |
           bin/test startup
 
       - name: run examples tests
+        shell: bash
         run: |
           bin/test examples
