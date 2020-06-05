@@ -7,7 +7,7 @@ function run_selftest() {
   mkdir tmp
 
   cargo run -- --selftest --force tmp
-  tmp/selftest/node_modules/.bin/tap tmp/test.js
+  tmp/node_modules/.bin/tap tmp/test.js
 }
 
 function run_startup() {

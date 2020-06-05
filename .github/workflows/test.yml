@@ -6,7 +6,7 @@ jobs:
   build_and_test:
     env:
       DEBUG: 1
-    name: Rust project
+    name: ${{ matrix.os }} / Node ${{ matrix.node_version }} test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

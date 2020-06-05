@@ -17,6 +17,12 @@ mod settings;
 
 use settings::{ Flipper, Settings, When };
 
+// Darn, I had to cap-case NPM. What a shame.
+#[cfg(not(target_os = "windows"))]
+static NPM: &'static str = "npm";
+#[cfg(target_os = "windows")]
+static NPM: &'static str = "npm.cmd";
+
 #[derive(Clone, Serialize, StructOpt)]
 #[structopt(name = "boltzmann", about = "Generate or update scaffolding for a Boltzmann service.
 To enable a feature, mention it or set the option to `on`.
@@ -116,7 +122,7 @@ fn initialize_package_json(path: &PathBuf) -> Result<()> {
         }
     }
 
-    let mut subproc = Exec::cmd("npm")
+    let mut subproc = Exec::cmd(NPM)
         .arg("init")
         .arg("--yes")
         .cwd(&path);
@@ -252,7 +258,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
     target.pop();
 
-    let exit_status = Exec::cmd("npm")
+    let exit_status = Exec::cmd(NPM)
         .arg("i")
         .cwd(&target)
         .join()?;
