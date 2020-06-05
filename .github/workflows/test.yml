@@ -4,40 +4,44 @@ name: CI
 
 jobs:
   build_and_test:
-    services:
-      postgres:
-        image: postgres:11.6-alpine
-        ports: ["5432:5432"]
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-        env:
-          POSTGRES_PASSWORD: postgres
-      redis:
-        image: redis
-        ports:
-        - 6379:6379
-        options: --entrypoint redis-server
-
-    name: Rust project
-    runs-on: ubuntu-latest
+    env:
+      DEBUG: 1
+    name: ${{ matrix.os }} / Node ${{ matrix.node_version }} test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        # eventually: add node 14 + lts
+        node_version: ["12.x"]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2
+
+      - name: Use Node.js 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node_version }}
 
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
 
       - uses: actions-rs/cargo@v1
+        timeout-minutes: 10
         with:
           command: build
 
       - name: run selftest tests
+        shell: bash
         run: |
           bin/test selftest
 
       - name: run startup tests
+        shell: bash
         run: |
           bin/test startup
 
       - name: run examples tests
+        shell: bash
         run: |
           bin/test examples
