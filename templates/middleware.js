@@ -1,9 +1,9 @@
 'use strict'
 
-function setupMiddlewareFunc (/* your config */) {
+function setupMiddlewareFunc(/* your config */) {
   // startup configuration goes here
-  return function createMiddlewareFunc (next) {
-    return async function inner (context) {
+  return function createMiddlewareFunc(next) {
+    return async function inner(context) {
       // do things like make objects to put on the context
       // then give following middlewares a chance
       // route handler runs last
@@ -16,6 +16,4 @@ function setupMiddlewareFunc (/* your config */) {
   }
 }
 
-module.exports = [
-    setupMiddlewareFunc
-]
+module.exports = [setupMiddlewareFunc]

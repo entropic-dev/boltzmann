@@ -130,7 +130,7 @@ fn initialize_package_json(path: &PathBuf) -> Result<()> {
         .arg("--yes")
         .cwd(&path);
 
-    subproc = if !std::env::var("DEBUG").ok().unwrap_or_else(|| "".to_string()).is_empty() {
+    subproc = if std::env::var("DEBUG").ok().unwrap_or_else(|| "".to_string()).is_empty() {
         subproc
             .stdout(NullFile)
             .stderr(NullFile)

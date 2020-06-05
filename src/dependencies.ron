@@ -91,21 +91,46 @@
     preconditions:None
   ),
   DependencySpec(
-    name: "babel-eslint",
-    version: "^10.1.0",
-    kind: Development,
-    preconditions:None
-  ),
-  DependencySpec(
     name: "bistre",
     version: "^1.0.1",
     kind: Development,
     preconditions:None
   ),
   DependencySpec(
-    name: "standard",
-    version: "^14.3.4",
+    name: "eslint",
+    version: "^7.1.0",
     kind: Development,
     preconditions:None
   ),
+  DependencySpec(
+    name: "@typescript-eslint/parser",
+    version: "^3.1.0",
+    kind: Development,
+    preconditions:None
+  ),
+  DependencySpec(
+    name: "@typescript-eslint/eslint-plugin",
+    version: "^3.1.0",
+    kind: Development,
+    preconditions:None
+  ),
+  DependencySpec(
+    name: "eslint-config-prettier",
+    version: "^6.11.0",
+    kind: Development,
+    preconditions:None
+  ),
+  DependencySpec(
+    name: "eslint-plugin-prettier",
+    version: "^3.1.3",
+    kind: Development,
+    preconditions:None
+  ),
+  DependencySpec(
+    name: "prettier",
+    version: "^2.0.5",
+    kind: Development,
+    preconditions:None
+  ),
+
 ]

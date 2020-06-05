@@ -20,7 +20,7 @@ lazy_static::lazy_static! {
     pub static ref TEMPLATES: Tera = {
         let mut tera = Tera::default();
 
-        let items: Vec<_> = TEMPLATES_DIR.find("**/*.tmpl").unwrap().filter_map(|xs| {
+        let items: Vec<_> = TEMPLATES_DIR.find("**/*").unwrap().filter_map(|xs| {
             if let include_dir::DirEntry::File(fd) = xs {
                 Some((fd.path().to_str()?, fd.contents_utf8()?))
             } else {

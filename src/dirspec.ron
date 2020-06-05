@@ -1,17 +1,29 @@
 Dir(DirSpec(
   children: [
     ("boltzmann.js", 0o755, Template(TemplateSpec(
-      template_name: "boltzmann.js.tmpl"
+      template_name: "boltzmann.js"
     )), None),
 
     ("handlers.js", 0o644, Template(TemplateSpec(
-      template_name: "handlers.js.tmpl"
+      template_name: "handlers.js"
     )), Some(When(
       if_not_present: ["handlers.js", "handlers"]
     ))),
 
+    (".eslintrc.js", 0o644, Template(TemplateSpec(
+      template_name: "eslintrc.js"
+    )), Some(When(
+      if_not_present: [".eslintrc.js", ".eslintrc"]
+    ))),
+
+    (".prettierrc.js", 0o644, Template(TemplateSpec(
+      template_name: "prettierrc.js"
+    )), Some(When(
+      if_not_present: [".prettierrc.js", ".prettierrc" ]
+    ))),
+
     ("middleware.js", 0o644, Template(TemplateSpec(
-      template_name: "middleware.js.tmpl",
+      template_name: "middleware.js",
     )), Some(When(
       if_not_present: ["middleware.js", "middleware"]
     ))),
@@ -21,7 +33,7 @@ Dir(DirSpec(
         ("workflows", 0o755, Dir(DirSpec(
           children: [
             ("test.yml", 0o644, Template(TemplateSpec(
-              template_name: "github-action-test.yml.tmpl"
+              template_name: "github-action-test.yml"
             )), None)
           ]
         )), None)

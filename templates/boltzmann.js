@@ -1085,7 +1085,9 @@ exports.decorators = {
   test
 }
 exports.middleware = {
+// {% if jwt %}
   authenticateJWT,
+// {% endif %}
   handleCORS,
   applyXFO,
 }
