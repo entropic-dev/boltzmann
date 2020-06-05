@@ -40,6 +40,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) ping: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) jwt: Option<bool>,
+
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
 }
@@ -63,6 +66,7 @@ impl Settings {
             githubci: cast(&flags.githubci, &self.githubci),
             status: cast(&flags.status, &self.status),
             ping: cast(&flags.ping, &self.ping),
+            jwt: cast(&flags.jwt, &self.jwt),
             selftest: if flags.selftest {
                 Some(true)
             } else {
@@ -84,6 +88,7 @@ impl Into<Context> for Settings {
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
         ctxt.insert("status", &self.status.unwrap_or(false));
         ctxt.insert("ping", &self.ping.unwrap_or(false));
+        ctxt.insert("jwt", &self.jwt.unwrap_or(false));
         ctxt.insert("version", &self.version.unwrap_or_else(|| "<unknown version>".to_string())[..]);
 
         ctxt

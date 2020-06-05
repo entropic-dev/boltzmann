@@ -26,6 +26,7 @@ const { promisify } = require('util')
 const isDev = require('are-we-dev')
 const fmw = require('find-my-way')
 const accepts = require('accepts')
+const fs = require('fs').promises
 const http = require('http')
 const bole = require('bole')
 const os = require('os')
@@ -202,9 +203,13 @@ function router (handlers) {
         opts.version = handler.version
       }
 
-      const { version, decorators, ...rest } = handler
+      const { version, middleware, decorators, ...rest } = handler
       if (Array.isArray(decorators)) {
         handler = decorators.reduceRight((lhs, rhs) => rhs(lhs), handler)
+      }
+
+      if (Array.isArray(middleware)) {
+        handler = buildMiddleware(middleware, handler)
       }
 
       Object.assign(handler, {
@@ -431,6 +436,93 @@ function enforceInvariants () {
   }
 }
 
+function handleCORS ({
+  origins = [],
+  methods = [],
+  headers = []
+}) {
+  return next => {
+    return function cors (context) {
+      if (context.request.method === 'OPTIONS') {
+        return {
+          [Symbol.for('headers')]: {
+            'Access-Control-Allow-Origin': origins,
+            'Access-Control-Allow-Methods': methods,
+            'Access-Control-Allow-Headers': headers
+          }
+        }
+      }
+
+      return next(context)
+    }
+  }
+}
+
+function applyXFO ({ mode = 'DENY' } = {}) {
+  return next => {
+    return async function xfo (context) {
+      const result = await next(context)
+      result[Symbol.for('headers')]['x-frame-options'] = mode
+      return result
+    }
+  }
+}
+
+// {% if jwt %}
+function authenticateJWT ({
+  scheme = 'Bearer',
+  publicKey = process.env.AUTHENTICATION_KEY,
+  algorithms=['RS256'],
+  storeAs = 'user'
+} = {}) {
+  const verifyJWT = require('jsonwebtoken').verify
+
+  return async next => {
+    const publicKeyContents = (
+      String(publicKey)[0] === '/'
+      ? await fs.readFile(publicKey).catch(err => {
+        console.error(`
+          boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
+          Is the AUTHENTICATION_KEY environment variable set correctly?
+          Is the file readable?
+        `.trim().split('\n').join(' '))
+        throw err
+      })
+      : publicKey
+    )
+
+    return async context => {
+      if (!context.headers.authorization) {
+        return next(context)
+      }
+
+      if (!context.headers.authorization.startsWith(`${scheme} `)) {
+        return next(context)
+      }
+
+      const token = context.headers.authorization.slice(scheme.length + 1)
+      let data = null
+      try {
+        data = await new Promise((resolve, reject) => {
+          verifyJWT(token, publicKeyContents, {algorithms}, (err, data) => {
+            err ? reject(err) : resolve(data)
+          })
+        })
+      } catch (err) {
+        const logger = bole('jwt')
+        logger.error(err)
+        throw Object.assign(new Error('Invalid bearer token'), {
+          [Symbol.for('status')]: 403
+        })
+      }
+
+      context[storeAs] = data
+      return next(context)
+    }
+  }
+}
+// {% endif %}
+
 function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
   level = process.env.LOG_LEVEL || 'debug',
@@ -474,18 +566,18 @@ function log ({
 
 function json (next) {
   return async request => {
-    if (request.headers['content-type'] !== 'application/json') {
-      return next(request)
+    if (String(request.headers['content-type']).split(';')[0].trim() === 'application/json') {
+      const buf = await _collect(request)
+      try {
+        return JSON.parse(String(buf))
+      } catch {
+        throw Object.assign(new Error('Could not parse request body as JSON'), {
+          [STATUS]: 422
+        })
+      }
     }
 
-    const buf = await _collect(request)
-    try {
-      return JSON.parse(String(buf))
-    } catch {
-      throw Object.assign(new Error('Could not parse request body as JSON'), {
-        [STATUS]: 422
-      })
-    }
+    return next(request)
   }
 }
 
@@ -503,7 +595,7 @@ function urlEncoded (next) {
 }
 
 // {% if honeycomb %}
-function honeycomb ({
+function trace ({
   headerSources = [TRACE_HTTP_HEADER, 'x-request-id'],
   parentRequestHeader = 'floop'
 } = {}) {
@@ -853,6 +945,11 @@ function test ({
 
   // {% if redis %}
   const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
+  middleware.push(() => next => async context => {
+    context._redisClient = redisClient
+    return next(context)
+  })
+  assert.redisClient = redisClient
   // {% endif %}
 
   // {% if postgres or redis %}
@@ -987,18 +1084,24 @@ exports.decorators = {
   },
   test
 }
+exports.middleware = {
+  authenticateJWT,
+  handleCORS,
+  applyXFO,
+}
 
 // {% if not selftest %}
 if (require.main === module) {
   main({
     middleware: [
       // {% if honeycomb %}
-      honeycomb,
+      trace,
       // {% endif %}
       // {% if ping %}
       handlePing,
       // {% endif %}
       log,
+
       // {% if redis %}
       attachRedis,
       // {% endif %}
@@ -1417,6 +1520,138 @@ if (require.main === module) {
 
     assert.equals(response.statusCode, 200)
     assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('jwt ignores requests without authorization header', async assert => {
+    let called = 0
+    const handler = await authenticateJWT()(context => {
+      ++called
+      return 'ok'
+    })
+
+    const result = await handler({headers: {}})
+
+    assert.equal(called, 1)
+    assert.equal(result, 'ok')
+  })
+
+  test('jwt ignores requests with authorization header that do not match configured scheme', async assert => {
+    let called = 0
+    const handler = await authenticateJWT()(context => {
+      ++called
+      return 'ok'
+    })
+
+    const result = await handler({
+      headers: {
+        authorization: 'Boggle asfzxcdofj' // the Boggle-based authentication scheme
+      }
+    })
+
+    assert.equal(called, 1)
+    assert.equal(result, 'ok')
+  })
+
+  test('jwt validates and attaches payload for valid jwt headers', async assert => {
+    const crypto = require('crypto')
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 4096,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem'
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      }
+    })
+
+    const jsonwebtoken = require('jsonwebtoken')
+    const blob = await new Promise((resolve, reject) => {
+      jsonwebtoken.sign({
+        ifItFits: 'iSits'
+      }, privateKey, {
+        algorithm: 'RS256',
+        noTimestamp: true
+      }, (err, data) => err ? reject(err) : resolve(data))
+    })
+
+    let called = 0
+    const handler = await authenticateJWT({publicKey})(context => {
+      ++called
+      return context.user
+    })
+
+    const result = await handler({
+      headers: {
+        authorization: `Bearer ${blob}`
+      }
+    })
+
+    assert.equal(called, 1)
+    assert.same(result, {ifItFits: 'iSits'})
+  })
+
+  test('jwt throws a 403 for valid jwt token using incorrect algo', async assert => {
+    const crypto = require('crypto')
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 4096,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem'
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      }
+    })
+
+    const jsonwebtoken = require('jsonwebtoken')
+    const blob = await new Promise((resolve, reject) => {
+      jsonwebtoken.sign({
+        ifItFits: 'iSits'
+      }, privateKey, {
+        algorithm: 'HS256'
+      }, (err, data) => err ? reject(err) : resolve(data))
+    })
+
+    let called = 0
+    const handler = await authenticateJWT({publicKey})(context => {
+      ++called
+      return context.user
+    })
+
+    try {
+      await handler({
+        headers: {
+          authorization: 'Bearer banana' // WHO WOULDN'T WANT A BANANA, I ASK YOU
+        }
+      })
+      assert.fail('expected failure, unexpected success. not cause for celebration')
+    } catch (err) {
+      assert.equal(called, 0)
+      assert.equal(err[Symbol.for('status')], 403)
+    }
+  })
+
+  test('jwt throws a 403 for invalid jwt headers', async assert => {
+    let called = 0
+    const handler = await authenticateJWT()(context => {
+      ++called
+      return 'ok'
+    })
+
+    try {
+      await handler({
+        headers: {
+          authorization: 'Bearer banana' // WHO WOULDN'T WANT A BANANA, I ASK YOU
+        }
+      })
+      assert.fail('expected failure, unexpected success. not cause for celebration')
+    } catch (err) {
+      assert.equal(called, 0)
+      assert.equal(err[Symbol.for('status')], 403)
+    }
   })
 
   test('log: logs expected keys', async assert => {

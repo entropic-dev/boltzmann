@@ -48,6 +48,9 @@ pub struct Flags {
     #[structopt(long, help = "Enable /monitor/ping liveness endpoint")]
     ping: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Enable jwt middleware")]
+    jwt: Option<Option<Flipper>>,
+
     #[structopt(long, help = "Update a git-repo destination even if there are changes")]
     force: bool, // for enemies
 
