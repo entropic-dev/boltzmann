@@ -1,0 +1,116 @@
+name: release Boltzmann
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  make-release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: create a github release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Boltzmann ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - run: |
+          echo ${{ steps.create_release.outputs.upload_url }} > upload-url.txt
+      - name: save the upload url
+        uses: actions/upload-artifact@v1
+        with:
+          name: upload-url
+          path: upload-url.txt
+
+  linux:
+    name: linux gnulibc build
+    runs-on: ubuntu-latest
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build --release
+      - name: tar it up
+        run: |
+          tar cfz boltzmann_x86_linux_gnu.tar.gz -C target/release boltzmann
+      - name: snag upload url
+        uses: actions/download-artifact@v1
+        with:
+          name: upload-url
+      - run: echo "::set-env name=UPLOAD_URL::(cat upload-url.txt)"
+      - name: upload x86 linux gnu release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.UPLOAD_URL }}
+          asset_path: ./boltzmann_x86_linux_gnu.tar.gz
+          asset_name: boltzmann_x86_linux_gnu.tar.gz
+          asset_content_type: application/gzip
+
+  darwin:
+    name: darwin
+    runs-on: macos-latest
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build --release
+      - name: tar it up
+        run: |
+          tar cfz boltzmann_x86_darwin.tar.gz -C target/release boltzmann
+      - name: snag upload url
+        uses: actions/download-artifact@v1
+        with:
+          name: upload-url
+      - run: echo "::set-env name=UPLOAD_URL::(cat upload-url.txt)"
+      - name: upload darwin release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.UPLOAD_URL }}
+          asset_path: ./boltzmann_x86_darwin.tar.gz
+          asset_name: boltzmann_x86_darwin.tar.gz
+          asset_content_type: application/gzip
+
+  windows:
+    name: windows
+    runs-on: windows-latest
+    needs: [release]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: cargo build --release
+      - name: tar it up
+        shell: bash
+        run: |
+          tar cfz boltzmann_x86_windows.tar.gz -C target/release boltzmann
+      - name: snag upload url
+        uses: actions/download-artifact@v1
+        with:
+          name: upload-url
+      - run: echo "::set-env name=UPLOAD_URL::(cat upload-url.txt)"
+      - name: upload windows release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.UPLOAD_URL }}
+          asset_path: ./boltzmann_x86_windows.tar.gz
+          asset_name: boltzmann_x86_windows.tar.gz
+          asset_content_type: application/gzip
