@@ -1,5 +1,19 @@
 ## TODO
 
+### 2020-06-05
+
+- [ ] investigate static site generators
+    - remark?
+- [ ] finish off the docs
+    - [ ] add more examples
+    - [ ] use github pages
+    - [ ] cut docs into some kind of IA
+    - [ ] lint the docs somehow
+- [ ] releasing
+    - [ ] cut a release
+    - [ ] release notes
+    - [ ] release a npx tool
+
 ### 2020-06-03
 
 - [x] write a github CI action for releases
