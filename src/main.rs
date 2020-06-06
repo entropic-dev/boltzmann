@@ -19,9 +19,9 @@ use settings::{ Flipper, Settings, When };
 
 // Darn, I had to cap-case NPM. What a shame.
 #[cfg(not(target_os = "windows"))]
-static NPM: &'static str = "npm";
+static NPM: &str = "npm";
 #[cfg(target_os = "windows")]
-static NPM: &'static str = "npm.cmd";
+static NPM: &str = "npm.cmd";
 
 #[derive(Clone, Serialize, StructOpt)]
 #[structopt(name = "boltzmann", about = "Generate or update scaffolding for a Boltzmann service.
@@ -61,13 +61,40 @@ pub struct Flags {
     destination: PathBuf
 }
 
-#[derive(Default, Deserialize, Serialize)]
+#[derive(Deserialize, Debug, Serialize)]
+struct RunScripts {
+    lint: Option<String>,
+    posttest: Option<String>,
+    start: Option<String>,
+    test: Option<String>,
+    #[serde(rename = "boltzmann:upgrade")]
+    upgrade: Option<String>,
+
+    #[serde(flatten)]
+    pub(crate) rest: HashMap<String, Value>,
+}
+
+impl Default for RunScripts {
+    fn default() -> Self {
+        RunScripts {
+            lint: Some("eslint .".to_string()),
+            posttest: Some("npm run lint".to_string()),
+            start: Some("./boltzmann.js".to_string()),
+            test: Some("tap test".to_string()),
+            upgrade: Some("npx boltzmann-cli".to_string()),
+            rest: HashMap::new()
+        }
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
 struct PackageJson {
     dependencies: Option<HashMap<String, String>>,
 
     #[serde(rename = "devDependencies")]
     dev_dependencies: Option<HashMap<String, String>>,
 
+    scripts: Option<RunScripts>,
     boltzmann: Option<Settings>,
 
     #[serde(flatten)]
@@ -194,16 +221,14 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         ..Default::default()
     };
 
-    let initial_settings = Settings {
-        ..Default::default()
-    };
-
-    let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings) {
+    let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings.clone()) {
         xs
     } else {
         initialize_package_json(&flags.destination)
             .with_context(|| format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
-        load_package_json(&flags, initial_settings).unwrap()
+        let mut package_json = load_package_json(&flags, default_settings).unwrap();
+        package_json.scripts.replace(Default::default());
+        package_json
     };
 
     if package_json.boltzmann.is_none() {
@@ -239,12 +264,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                 .map(|xs| xs.as_bool().unwrap_or(false))
                 .unwrap_or(false);
 
-            if wants_feature != used_to_have {
-                if wants_feature {
-                    target.insert(candidate.name, candidate.version);
-                } else {
-                    target.remove(&candidate.name[..]);
-                }
+            if wants_feature {
+                target.insert(candidate.name, candidate.version);
+            } else if wants_feature != used_to_have {
+                target.remove(&candidate.name[..]);
             }
         } else {
             target.insert(candidate.name, candidate.version);
