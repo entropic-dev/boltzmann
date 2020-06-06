@@ -11,9 +11,9 @@
     - [ ] use github pages
     - [ ] cut docs into some kind of IA
 - [ ] add npm run scripts
-    - [ ] start, if it doesn't exist
-    - [ ] test, if it doesn't exist
-    - [ ] boltzmann:upgrade, to upgrade the thing
+    - [x] start, if it doesn't exist
+    - [x] test, if it doesn't exist
+    - [x] boltzmann:upgrade, to upgrade the thing
 - [x] call decorators middleware
 - [x] maybe make "jwt middleware" a flag
 - [x] pick a better linter and install it by default
