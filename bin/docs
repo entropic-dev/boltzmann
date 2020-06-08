@@ -1,0 +1,108 @@
+#!/bin/bash
+
+set -e
+
+function download_zola() {
+  url=$(curl -s https://api.github.com/repos/getzola/zola/releases/latest | jq -r '.assets[].browser_download_url' | grep $(uname | tr '[:upper:]' '[:lower:]'))
+  echo -e '\x1b[33mDownloading zola from \x1b[33;4m'$url'\x1b[0m...'
+  curl -#L $url | tar xz -C bin
+  chmod +x bin/zola
+  bin/zola --version
+}
+
+function run_setup() {
+  if [ ! -e bin/zola ]; then
+    download_zola
+  fi
+
+  if [ -z "$(git branch | grep gh-pages)" ]; then
+    git fetch
+    git branch --track gh-pages origin/gh-pages
+  fi
+
+  if [ ! -e docs/output ]; then
+    git worktree add docs/output --checkout gh-pages
+  fi
+}
+help_setup=$(cat <<-EOF
+    setup                 installs zola and sets up a git worktree
+                          in docs/output. Automatically run by both
+                          build and serve.
+EOF
+)
+
+function run_build() {
+  tmpdir=$(mktemp -d)
+  cd docs
+  ../bin/zola build -o $tmpdir
+  mv $tmpdir/* ./output
+  rmdir $tmpdir
+}
+help_build=$(cat <<-EOF
+    build                 runs zola against a temporary directory and
+                          moves the output into docs/output in
+                          ready-to-commit form.
+EOF
+)
+
+
+function run_serve() {
+  cd docs
+
+  ../bin/zola serve $@
+}
+help_serve=$(cat <<-EOF
+    serve                 runs zola in serve mode, forwarding all
+                          arguments.
+EOF
+)
+
+function list_commands() {
+  typeset -f          | \
+    grep '()'         | \
+    grep 'run_*'      | \
+    grep -v 'run_all' | \
+    awk '{print $1}'  | \
+    sort              | \
+    sed -e 's/run_//g'
+}
+
+function print_help() {
+  echo "Usage: bin/docs [subcommand]"
+  echo
+  echo "Wrapper for Zola documentation generator. Intended development flow is:"
+  echo
+  echo "1. run bin/docs serve. Hack on the docs."
+  echo "2. Once you're ready, run bin/docs build."
+  echo "3. cd into docs/output, which is a gh-pages worktree. Git commit all the things!"
+  echo "4. Push your changes to github and observe that they build."
+  echo
+  echo "Available subcommands are:"
+  echo
+
+  for cmd in $(list_commands); do
+    eval $(echo 'echo -e "$'"help_$cmd"'"')
+    echo
+  done
+}
+
+case $1 in
+  "setup")
+    run_setup
+  ;;
+  "build")
+    run_setup
+    run_build
+  ;;
+  "serve")
+    shift
+    run_setup
+    run_serve $@
+  ;;
+  "list")
+    list_commands
+  ;;
+  * | "-h" | "--help" | "help")
+    print_help
+  ;;
+esac

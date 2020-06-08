@@ -64,6 +64,7 @@ function list_tests() {
     grep 'run_*'      | \
     grep -v 'run_all' | \
     awk '{print $1}'  | \
+    sort              | \
     sed -e 's/run_//g'
 }
 
