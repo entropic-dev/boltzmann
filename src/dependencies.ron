@@ -9,7 +9,7 @@
     name: "culture-ships",
     version: "^1.0.0",
     kind: Normal,
-    preconditions: Some(When(feature: Some("ping"), if_not_present: []))
+    preconditions: None
   ),
   DependencySpec(
     name: "find-my-way",

@@ -18,8 +18,9 @@ const beeline = require('honeycomb-beeline')({
 const onHeaders = require('on-headers')
 // {% endif %}
 
+const ships = require('culture-ships')
 // {% if ping %}
-const ship = require('culture-ships').random()
+const ship = ships.random()
 // {% endif %}
 const querystring = require('querystring')
 const { promisify } = require('util')
@@ -117,6 +118,7 @@ class Context {
     this._accepts = null
     this._response = response // do not touch this
     this._routed = {}
+    this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
 
     // {% if redis %}
     this._redisClient = null
@@ -1116,7 +1118,9 @@ if (require.main === module) {
       // {% endif %}
     ]
   }).then(server => {
-    server.listen(Number(process.env.PORT) || 5000)
+    server.listen(Number(process.env.PORT) || 5000, () => {
+      bole('server').info(`now listening on port ${server.address().port}`)
+    })
   }).catch(err => {
     console.error(err.stack)
     process.exit(1)
