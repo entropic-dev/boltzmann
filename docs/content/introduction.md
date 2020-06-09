@@ -1,8 +1,8 @@
 +++
 title="Boltzmann: an introduction"
+weight = 1
 [taxonomies]
 tags = ["concepts"]
-weight=1
 +++
 
 Introductory matter here.

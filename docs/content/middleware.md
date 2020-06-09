@@ -1,5 +1,5 @@
 +++
-title="Middlware and decorators"
+title="Middleware and decorators"
 weight=9
 +++
 

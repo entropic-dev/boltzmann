@@ -4,8 +4,6 @@ highlight_code = true
 build_search_index = true
 theme = "after-dark"
 
-[extra]
-# Put all your custom variables here
 taxonomies = [
     # You can enable/disable feeds
     {name = "categories", feed = true},
@@ -17,3 +15,6 @@ after_dark_menu = [
     {url = "$BASE_URL/tags", name = "Tags"},
     {url = "https://github.com/entropic-dev/boltzmann", name = "GitHub"},
 ]
+
+[extra]
+# Put all your custom variables here
