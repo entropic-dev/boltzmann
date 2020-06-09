@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="http://127.0.0.1:1111/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;entropic-dev&#x2F;boltzmann">
+                                <span itemprop="name">GitHub
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Validators</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>1 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <p>Boltzmann provides three validator decorators that rely on <a href="https://github.com/epoberezkin/ajv">the ajv schema validator</a> for you to enforce a schema for your route parameters, query params, and body.  The functions are:</p>
+<ul>
+<li><code>boltzmann.decorators.body</code>: validate the structure of an incoming body</li>
+<li><code>boltzmann.decorators.query</code>: validate parameters in the query string</li>
+<li><code>boltzmann.decorators.params</code>: validate route parameters</li>
+</ul>
+<p>Here's an example of a route parameter that must be a uuid:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">identityDetail</span><span style="color:#c0c5ce;">.route = &#39;</span><span style="color:#a3be8c;">GET /identities/identity/:id</span><span style="color:#c0c5ce;">&#39;
+</span><span style="color:#bf616a;">identityDetail</span><span style="color:#c0c5ce;">.decorators = [
+  </span><span style="color:#bf616a;">boltzmann</span><span style="color:#c0c5ce;">.decorators.</span><span style="color:#bf616a;">params</span><span style="color:#c0c5ce;">({
+    type: &#39;</span><span style="color:#a3be8c;">object</span><span style="color:#c0c5ce;">&#39;,
+    required: [&#39;</span><span style="color:#a3be8c;">id</span><span style="color:#c0c5ce;">&#39;],
+    properties: {
+      id: { type: &#39;</span><span style="color:#a3be8c;">string</span><span style="color:#c0c5ce;">&#39;, format: &#39;</span><span style="color:#a3be8c;">uuid</span><span style="color:#c0c5ce;">&#39; }
+    }
+  })
+]
+</span><span style="color:#b48ead;">async function </span><span style="color:#8fa1b3;">identityDetail </span><span style="color:#c0c5ce;">(</span><span style="color:#65737e;">/** @type {Context} */ </span><span style="color:#c0c5ce;">context) { }
+</span></code></pre>
+<p>The <code>boltzmann.decorators.params</code> function takes an ajv schema and generates a decorator that applies the schema to any route params supplied.</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+            </p>
+        </footer>
+    
+</article>
+
+
+    <script src="/livereload.js?port=1025&amp;mindelay=10"></script></body>
+
+</html>

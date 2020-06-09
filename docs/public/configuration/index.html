@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="http://127.0.0.1:1111/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;entropic-dev&#x2F;boltzmann">
+                                <span itemprop="name">GitHub
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Environment variables</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>1 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <p>Boltzmann respects the following environment variables out of the box:</p>
+<ul>
+<li><code>NODE_ENV</code>: dev(elopment), prod(uction), or test; consumed by <a href="https://github.com/chrisdickinson/are-we-dev">are-we-dev</a></li>
+<li><code>LOG_LEVEL</code>: one of error, warn, info, debug; defaults to <code>debug</code></li>
+<li><code>PORT</code>: the port to listen on; defaults to 5000; boltzmann always binds <code>0.0.0.0</code>.</li>
+<li><code>DEV_LATENCY_ERROR_MS</code>: in dev mode, the length of time a middleware is allowed to run before it's treated as hung</li>
+<li><code>DEV_LATENCY_WARNING_MS</code>: in dev mode, the length of time a middleware can run before you get a warning that it's slow</li>
+<li><code>GIT_COMMIT</code>: a bit of text labeled as the git hash for the current running service; used by the optional status endpoint</li>
+<li><code>HONEYCOMBIO_DATASET</code>: the name of your Honeycomb dataset, if you have enabled the feature</li>
+<li><code>HONEYCOMBIO_WRITE_KEY</code>: a write key, if you have enabled the Honeycomb feature</li>
+<li><code>PGURL</code> &amp; <code>PGPOOLSIZE</code>: passed to the postgres pool constructor, if postgres is enabled</li>
+<li><code>REDIS_URL</code>: passed to redis client constructor, if redis is enabled</li>
+<li><code>SERVICE_NAME</code>: the name of the service to advertise to Honeycomb and others; falls back to the name of your package in package.json</li>
+</ul>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+            </p>
+        </footer>
+    
+</article>
+
+
+    <script src="/livereload.js?port=1025&amp;mindelay=10"></script></body>
+
+</html>

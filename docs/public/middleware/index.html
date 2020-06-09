@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="http://127.0.0.1:1111/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;entropic-dev&#x2F;boltzmann">
+                                <span itemprop="name">GitHub
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Middlware and decorators</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>3 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <p>Change the behavior of your route handlers by wrapping them in <em>decorators</em>. Change the behavior of all routes by defining <em>middleware</em>. This is an important part of Boltzmann's API and a place where it differs from Express and Connect-middleware style node frameworks. We borrow some concepts from <a href="https://en.wikipedia.org/wiki/Aspect-oriented_programming">aspect-oriented programming</a> and Python <a href="https://en.wikipedia.org/wiki/Aspect-oriented_programming">decorators</a>, so if you've used frameworks like Django you'll find this approach familiar.</p>
+<p>Decorators and middleware have the same API. The difference is that &quot;middlewares&quot; are set up for the whole application: they apply to every route. Decorators are applied to only the routes that request them. Use a decorator when you want to require, for example, administrator-only access to a set of routes, or when you'd like to lookup a user object from a session cookie and put it onto your context. Use middleware to provide useful clients for external resources to all your routes, or to compress responses when the request accept headers allow.</p>
+<p>Use body middleware to parse entirely new kinds of body input.</p>
+<p>To add decorators to a route, add a <code>decorators</code> field. The <code>decorators</code> field must be an array of functions. They're called in the order you list them in the array. Your route handler is called last.</p>
+<p>To set up your server with middleware, export an array of middleware where Boltzmann can find it. Boltzmann looks for middleware exported by the following two places:</p>
+<ul>
+<li>from <code>middleware.js</code> in the same directory (good for small services)</li>
+<li>from <code>middleware/index.js</code></li>
+</ul>
+<p>The scaffolding tool gives you a working <code>middleware.js</code> file.</p>
+<p>What is this decorator/middleware api? A decorator takes a <code>next</code> parameter and returns a function that takes a single context <code>param</code>. Here's a generic Boltzmann middleware file, suitable to copy-n-paste to start yours:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#65737e;">// in middleware.js
+</span><span style="color:#b48ead;">function </span><span style="color:#8fa1b3;">setupMiddlewareFunc </span><span style="color:#c0c5ce;">(</span><span style="color:#65737e;">/* your config */</span><span style="color:#c0c5ce;">) {
+  </span><span style="color:#65737e;">// startup configuration goes here
+  </span><span style="color:#b48ead;">return function </span><span style="color:#8fa1b3;">createMiddlewareFunc </span><span style="color:#c0c5ce;">(next) {
+    </span><span style="color:#b48ead;">return async function </span><span style="color:#8fa1b3;">inner </span><span style="color:#c0c5ce;">(context) {
+      </span><span style="color:#65737e;">// do things like make objects to put on the context
+      // then give following middlewares a chance
+      // route handler runs last
+      // awaiting is optional, depending on what you&#39;re doing
+      </span><span style="color:#b48ead;">const </span><span style="color:#bf616a;">result </span><span style="color:#c0c5ce;">= </span><span style="color:#b48ead;">await </span><span style="color:#bf616a;">next</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">context</span><span style="color:#c0c5ce;">)
+      </span><span style="color:#65737e;">// do things with result here; can replace it entirely!
+      // and you&#39;re responsible for returning it
+      </span><span style="color:#b48ead;">return </span><span style="color:#bf616a;">result
+    </span><span style="color:#c0c5ce;">}
+  }
+}
+
+</span><span style="color:#bf616a;">modules</span><span style="color:#c0c5ce;">.exports = [
+    </span><span style="color:#bf616a;">setupMiddlewareFunc
+</span><span style="color:#c0c5ce;">]
+</span></code></pre>
+<p>See <code>examples/middleware/</code> for some meatier examples. Pro tip: debugging is easier if you name each of these layers instead of using anonymous functions.</p>
+<h2 id="built-in-middleware">Built-in middleware</h2>
+<p>TODO: list and describe; examples of configuration</p>
+<h2 id="built-in-body-parsers">Built-in body parsers</h2>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+            </p>
+        </footer>
+    
+</article>
+
+
+    <script src="/livereload.js?port=1025&amp;mindelay=10"></script></body>
+
+</html>

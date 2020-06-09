@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="http://127.0.0.1:1111/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;entropic-dev&#x2F;boltzmann">
+                                <span itemprop="name">GitHub
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Route handlers</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>2 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <p>Route handlers are functions with a <code>route</code> field. The route field is a <a href="https://github.com/delvedor/find-my-way">find-my-way</a> route with a little sugar. The handler is a function that takes a context object and returns a plain old Javascript object <em>or</em> throws an error.</p>
+<p>Boltzmann looks for handlers exported by the following two places:</p>
+<ul>
+<li>from <code>handlers.js</code> in the same directory (good for small services)</li>
+<li>from <code>handlers/index.js</code></li>
+</ul>
+<p>The scaffolding tool gives you a working <code>handlers.js</code> file.</p>
+<p>The route field should look like this: <code>VERB /path/with/:params</code>. The first segment of the string must be an http verb that <code>find-my-way</code> can pass to its <code>route.on()</code>. The second segment must be a path format that <code>find-my-way</code> understands.</p>
+<p>To respond to a request with data, return the data from your handler function. Boltmann will correctly set content type headers for several common response types, like <code>text/plain</code> and <code>application/json</code>.</p>
+<p>Here is a Boltzmann hello world:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">greeting</span><span style="color:#c0c5ce;">.route = &#39;</span><span style="color:#a3be8c;">GET /greeting</span><span style="color:#c0c5ce;">&#39;
+</span><span style="color:#b48ead;">function </span><span style="color:#8fa1b3;">greeting</span><span style="color:#c0c5ce;">(context) {
+    </span><span style="color:#b48ead;">return </span><span style="color:#c0c5ce;">&#39;</span><span style="color:#a3be8c;">hello world</span><span style="color:#c0c5ce;">&#39;
+}
+</span></code></pre>
+<p>To return an error, throw. Here's an example of an error response with a custom status code:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#bf616a;">throwup</span><span style="color:#c0c5ce;">.route = &#39;</span><span style="color:#a3be8c;">GET /error</span><span style="color:#c0c5ce;">&#39;
+</span><span style="color:#b48ead;">function </span><span style="color:#8fa1b3;">throwup</span><span style="color:#c0c5ce;">(context) {
+    </span><span style="color:#b48ead;">throw </span><span style="color:#ebcb8b;">Object</span><span style="color:#c0c5ce;">.</span><span style="color:#96b5b4;">assign</span><span style="color:#c0c5ce;">(new </span><span style="color:#ebcb8b;">Error</span><span style="color:#c0c5ce;">(&#39;</span><span style="color:#a3be8c;">this has not yet been implemented</span><span style="color:#c0c5ce;">&#39;), {[</span><span style="color:#ebcb8b;">Symbol</span><span style="color:#c0c5ce;">.</span><span style="color:#96b5b4;">for</span><span style="color:#c0c5ce;">(&#39;</span><span style="color:#a3be8c;">status</span><span style="color:#c0c5ce;">&#39;)]: </span><span style="color:#d08770;">501</span><span style="color:#c0c5ce;">)
+}
+</span></code></pre>
+<p>To control response headers and status, add <code>Symbol.for('status')</code> and <code>Symbol.for('headers')</code> symbols as attributes to your response object. You can do this in normal responses as well as error responses. We use symbols so we don't collide with any fields you might want to put on your response object yourself.</p>
+<p>A route can also have an optional <code>.version</code> field. A version string instructs <code>find-my-way</code> to use the accept-version header field to match incoming requests to the version of the route provided. By convention, you must use valid semver in version fields.</p>
+<p>Routes have one more meaningful optional field: <code>decorators</code>.</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+            </p>
+        </footer>
+    
+</article>
+
+
+    <script src="/livereload.js?port=1025&amp;mindelay=10"></script></body>
+
+</html>

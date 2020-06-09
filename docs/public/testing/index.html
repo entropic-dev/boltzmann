@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="http://127.0.0.1:1111/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="http:&#x2F;&#x2F;127.0.0.1:1111&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;entropic-dev&#x2F;boltzmann">
+                                <span itemprop="name">GitHub
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Testing</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>1 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <p>Boltzmann uses <a href="https://github.com/tapjs/node-tap">tap</a> for testing. It provides some convenience wrappers to make testing your route handlers easier. It provides <a href="https://github.com/hapijs/shot">shot</a> as a way to inject requests into your service. If you're using postgres, it wraps each test in a transaction so you can exercise your db code without changing state in your underlying database. We feel that databases are not behavior we want to replicate in mocks. It's more useful to test use of the db directly.</p>
+<p>Here's an example test from a real-world Boltzmann service:</p>
+<pre style="background-color:#2b303b;">
+<code><span style="color:#b48ead;">import </span><span style="color:#c0c5ce;">{ </span><span style="color:#bf616a;">decorators </span><span style="color:#c0c5ce;">} </span><span style="color:#b48ead;">from </span><span style="color:#c0c5ce;">&#39;</span><span style="color:#a3be8c;">../boltzmann.js</span><span style="color:#c0c5ce;">&#39;
+</span><span style="color:#b48ead;">import </span><span style="color:#c0c5ce;">{ </span><span style="color:#bf616a;">test </span><span style="color:#c0c5ce;">} </span><span style="color:#b48ead;">from </span><span style="color:#c0c5ce;">&#39;</span><span style="color:#a3be8c;">tap</span><span style="color:#c0c5ce;">&#39;
+
+</span><span style="color:#b48ead;">const </span><span style="color:#bf616a;">_ </span><span style="color:#c0c5ce;">= </span><span style="color:#bf616a;">decorators</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">test</span><span style="color:#c0c5ce;">({
+    </span><span style="color:#65737e;">// testing middleware would go here
+</span><span style="color:#c0c5ce;">})
+
+</span><span style="color:#65737e;">// note the use of the `_` wrapper here
+</span><span style="color:#bf616a;">test</span><span style="color:#c0c5ce;">(&#39;</span><span style="color:#a3be8c;">sessionCreate: can create a session</span><span style="color:#c0c5ce;">&#39;, </span><span style="color:#bf616a;">_</span><span style="color:#c0c5ce;">(</span><span style="color:#b48ead;">async </span><span style="color:#c0c5ce;">assert </span><span style="color:#b48ead;">=&gt; </span><span style="color:#c0c5ce;">{
+  </span><span style="color:#b48ead;">const </span><span style="color:#bf616a;">result </span><span style="color:#c0c5ce;">= </span><span style="color:#b48ead;">await </span><span style="color:#bf616a;">assert</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">request</span><span style="color:#c0c5ce;">({
+    url: &#39;</span><span style="color:#a3be8c;">/sessions</span><span style="color:#c0c5ce;">&#39;,
+    method: &#39;</span><span style="color:#a3be8c;">POST</span><span style="color:#c0c5ce;">&#39;,
+    body: { hello: &#39;</span><span style="color:#a3be8c;">world</span><span style="color:#c0c5ce;">&#39; }
+  })
+
+  </span><span style="color:#bf616a;">assert</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">equal</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">result</span><span style="color:#c0c5ce;">.statusCode, </span><span style="color:#d08770;">201</span><span style="color:#c0c5ce;">)
+  </span><span style="color:#bf616a;">assert</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">ok</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">result</span><span style="color:#c0c5ce;">.json.id.length)
+  </span><span style="color:#bf616a;">assert</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">same</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">result</span><span style="color:#c0c5ce;">.json.session.data, { hello: &#39;</span><span style="color:#a3be8c;">world</span><span style="color:#c0c5ce;">&#39; })
+  </span><span style="color:#bf616a;">assert</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">ok</span><span style="color:#c0c5ce;">(</span><span style="color:#ebcb8b;">Date</span><span style="color:#c0c5ce;">.</span><span style="color:#96b5b4;">parse</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">result</span><span style="color:#c0c5ce;">.json.session.created))
+  </span><span style="color:#bf616a;">assert</span><span style="color:#c0c5ce;">.</span><span style="color:#bf616a;">ok</span><span style="color:#c0c5ce;">(</span><span style="color:#ebcb8b;">Date</span><span style="color:#c0c5ce;">.</span><span style="color:#96b5b4;">parse</span><span style="color:#c0c5ce;">(</span><span style="color:#bf616a;">result</span><span style="color:#c0c5ce;">.json.session.updated))
+}))
+</span></code></pre>
+<p>TODO: example of setting up middleware for tests</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                
+            </p>
+        </footer>
+    
+</article>
+
+
+    <script src="/livereload.js?port=1025&amp;mindelay=10"></script></body>
+
+</html>
