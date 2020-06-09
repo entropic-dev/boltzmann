@@ -2,4 +2,4 @@ target
 tmp
 bin/zola
 docs/output
-womp
+docs/public
