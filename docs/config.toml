@@ -9,6 +9,8 @@ taxonomies = [
     {name = "categories", feed = true},
     {name = "tags", feed = true},
 ]
+
+[extra]
 after_dark_menu = [
     {url = "$BASE_URL", name = "Home"},
     {url = "$BASE_URL/categories", name = "Categories"},
@@ -16,5 +18,4 @@ after_dark_menu = [
     {url = "https://github.com/entropic-dev/boltzmann", name = "GitHub"},
 ]
 
-[extra]
-# Put all your custom variables here
+after_dark_title = "Boltzmann: A JS HTTP Framework"
