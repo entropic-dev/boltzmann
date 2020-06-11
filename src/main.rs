@@ -200,6 +200,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         std::io::stdin().read_line(&mut buffer)?;
         buffer.make_ascii_uppercase();
         match &buffer[..]{
+            "Y\r\n" => {},
+            "YES\r\n" => {},
             "Y\n" => {},
             "YES\n" => {},
             _ => {
