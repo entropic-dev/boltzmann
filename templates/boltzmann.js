@@ -41,9 +41,7 @@ const pg = require('pg')
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
-// {% if honeycomb %}
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
-// {% endif %}
 
 let ajv = null
 let ajvLoose = null
