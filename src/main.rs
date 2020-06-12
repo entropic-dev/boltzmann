@@ -56,11 +56,14 @@ pub struct Flags {
     #[structopt(long, help = "Update a git-repo destination even if there are changes")]
     force: bool, // for enemies
 
+    #[structopt(short, long, parse(from_occurrences), help = "Pass -vv or -vvv to increase verbosity")]
+    verbose: u64, // huge but this is what our logger wants
+
+    #[structopt(long, short, help = "Suppress all output except errors.")]
+    silent: bool,
+
     #[structopt(long, help = "Build for a self-test.")]
     selftest: bool, // turn on the oven in self-cleaning mode.
-
-    #[structopt(short, long, parse(from_occurrences), help = "Pass -vv or -vvv to increase verbosity.")]
-    verbose: u8,
 
     #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
     destination: PathBuf
@@ -150,20 +153,19 @@ fn check_git_status(flags: &Flags) -> Result<()> {
     }
 }
 
-fn initialize_package_json(path: &PathBuf, verbosity: u8) -> Result<()> {
+fn initialize_package_json(path: &PathBuf, verbosity: u64) -> Result<()> {
     if let Err(e) = std::fs::DirBuilder::new().create(&path) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
             return Err(e.into())
         }
     }
 
-    info!("    initializing a new NPM package...");
     let mut subproc = Exec::cmd(NPM)
         .arg("init")
         .arg("--yes")
         .cwd(&path);
 
-    subproc = if verbosity < 2 {
+    subproc = if verbosity < 3 { // only noisy for trace
         subproc
             .stdout(NullFile)
             .stderr(NullFile)
@@ -225,12 +227,18 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             }
         }
     }
+
     let cwd = std::env::current_dir()?;
     flags.destination = cwd.join(&flags.destination);
     let mut target = flags.destination.clone();
+    let verbosity: u64 = if flags.silent {
+        0
+    } else {
+        flags.verbose + 1
+    };
 
     loggerv::Logger::new()
-        .verbosity(flags.verbose as u64)
+        .verbosity(verbosity)
         .line_numbers(false)
         .module_path(false)
         .colors(true)
@@ -239,6 +247,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     check_git_status(&flags)?;
 
+    info!("Scaffolding a Boltzmann service in {}", flags.destination.to_str().unwrap().bold().blue());
     let default_settings = Settings {
         githubci: Some(true),
         status: Some(true),
@@ -247,9 +256,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     };
 
     let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings.clone()) {
+        info!("    loaded settings from existing package.json");
         xs
     } else {
-        initialize_package_json(&flags.destination, flags.verbose)
+        info!("    initializing a new NPM package...");
+        initialize_package_json(&flags.destination, verbosity)
             .with_context(|| format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
         let mut package_json = load_package_json(&flags, default_settings).unwrap();
         package_json.scripts.replace(Default::default());
@@ -263,8 +274,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let settings = package_json.boltzmann.take().unwrap();
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
     let updated_settings = settings.merge_flags(version, &flags);
-
-    info!("Scaffolding a Bolzmann service with these features: {}", updated_settings);
 
     render::scaffold(&mut target, &updated_settings)
         .context("Failed to render Boltzmann files")?;
@@ -312,7 +321,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         }
     }
 
-    package_json.boltzmann.replace(updated_settings);
+    package_json.boltzmann.replace(updated_settings.clone());
     package_json.dependencies.replace(dependencies);
     package_json.dev_dependencies.replace(devdeps);
 
@@ -327,7 +336,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         .arg("i")
         .cwd(&target);
 
-    subproc = if flags.verbose < 2 {
+    subproc = if verbosity < 2 {
         subproc
             .stdout(NullFile)
             .stderr(NullFile)
@@ -339,7 +348,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     match exit_status {
         ExitStatus::Exited(0) => {
-            info!("Success! You are now using Boltzmann {}", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0"));
+            warn!("Boltzmann at {} with {}", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").bold(), updated_settings);
             Ok(())
         },
         _ => Err(anyhow!("npm install exited with non-zero status").into())
