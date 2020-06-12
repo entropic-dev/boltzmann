@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 
 use colored::*;
-use log::debug;
+use log::trace;
 
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
@@ -75,7 +75,7 @@ impl Node {
 
 fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<String>, settings: &Settings) -> Result<Option<String>> {
 
-    debug!("    rendering {}", cwd.to_str().unwrap().blue());
+    trace!("        entering {}", cwd.to_str().unwrap().blue());
     let mut db = std::fs::DirBuilder::new();
 
     #[cfg(not(target_os = "windows"))]
@@ -117,6 +117,7 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 
         // failure to render is fatal.
         if let Some(data) = node.render(cwd, mode, parents, settings)? {
+            trace!("        rendering {}", cwd.to_str().unwrap().blue());
             let mut oo = std::fs::OpenOptions::new();
 
             oo.create(true).truncate(true).write(true);
