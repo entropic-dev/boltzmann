@@ -1,6 +1,7 @@
 #![allow(clippy::option_option)]
 
 use std::collections::HashMap;
+use std::fmt;
 
 use serde::{ Serialize, Deserialize };
 use serde_json::{ Value, self };
@@ -74,6 +75,33 @@ impl Settings {
             },
             rest: HashMap::new()
         }
+    }
+}
+
+impl fmt::Display for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut features = vec![];
+        // I'm fairly horrified by this.
+        if self.redis.unwrap_or(false) {
+            features.push("redis");
+        }
+        if self.postgres.unwrap_or(false) {
+            features.push("postgres");
+        }
+        if self.honeycomb.unwrap_or(false) {
+            features.push("honeycomb");
+        }
+        if self.githubci.unwrap_or(false) {
+            features.push("githubci");
+        }
+        if self.status.unwrap_or(false) {
+            features.push("status");
+        }
+        if self.ping.unwrap_or(false) {
+            features.push("ping");
+        }
+
+        write!(f, "{}", features.join(", "))
     }
 }
 

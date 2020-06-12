@@ -1,5 +1,8 @@
 use std::io::prelude::*;
 
+use colored::*;
+use log::debug;
+
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
 #[cfg(target_os = "windows")]
@@ -72,8 +75,7 @@ impl Node {
 
 fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<String>, settings: &Settings) -> Result<Option<String>> {
 
-    println!("entering \x1b[34m{:?}\x1b[0m;", cwd);
-
+    debug!("    rendering {}", cwd.to_str().unwrap().blue());
     let mut db = std::fs::DirBuilder::new();
 
     #[cfg(not(target_os = "windows"))]
