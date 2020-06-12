@@ -6,11 +6,13 @@ use std::path::PathBuf;
 
 use anyhow::{ anyhow, Context as ErrorContext, Result };
 use atty::Stream;
-use subprocess::{ Exec, ExitStatus, NullFile };
-use serde::{ Serialize, Deserialize };
+use colored::*;
+use log::{info, warn};
 use serde_json::{ Value, self };
-use structopt::StructOpt;
+use serde::{ Serialize, Deserialize };
 use structopt::clap::AppSettings::*;
+use structopt::StructOpt;
+use subprocess::{ Exec, ExitStatus, NullFile };
 
 mod render;
 mod settings;
@@ -56,6 +58,9 @@ pub struct Flags {
 
     #[structopt(long, help = "Build for a self-test.")]
     selftest: bool, // turn on the oven in self-cleaning mode.
+
+    #[structopt(short, long, parse(from_occurrences), help = "Pass -vv or -vvv to increase verbosity.")]
+    verbose: u8,
 
     #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
     destination: PathBuf
@@ -145,19 +150,20 @@ fn check_git_status(flags: &Flags) -> Result<()> {
     }
 }
 
-fn initialize_package_json(path: &PathBuf) -> Result<()> {
+fn initialize_package_json(path: &PathBuf, verbosity: u8) -> Result<()> {
     if let Err(e) = std::fs::DirBuilder::new().create(&path) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
             return Err(e.into())
         }
     }
 
+    info!("    initializing a new NPM package...");
     let mut subproc = Exec::cmd(NPM)
         .arg("init")
         .arg("--yes")
         .cwd(&path);
 
-    subproc = if std::env::var("DEBUG").ok().unwrap_or_else(|| "".to_string()).is_empty() {
+    subproc = if verbosity < 2 {
         subproc
             .stdout(NullFile)
             .stderr(NullFile)
@@ -180,6 +186,15 @@ enum DependencyType {
     Development
 }
 
+impl ::std::fmt::Display for DependencyType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
+        match *self {
+            DependencyType::Normal => f.write_str(""),
+            DependencyType::Development => f.write_str("(dev)"),
+        }
+    }
+}
+
 #[derive(Deserialize)]
 struct DependencySpec {
     name: String,
@@ -192,8 +207,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut flags = Flags::from_args();
     // Is this a tty? What is the user trying to do? Is there a user? What is an electron anyway?
     if flags.destination.as_os_str().is_empty() && atty::is(Stream::Stdout) {
-        println!("Scaffolding a Boltzmann service in the current working directory.");
-        println!("To see full help, run `boltzmann --help`.");
+        warn!("Scaffolding a Boltzmann service in the current working directory.");
+        info!("To see full help, run `boltzmann --help`.");
         print!("Scaffold here? (y/n): ");
         std::io::stdout().flush()?;
         let mut buffer = String::new();
@@ -205,7 +220,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             "Y\n" => {},
             "YES\n" => {},
             _ => {
-                println!("Exiting without scaffolding.");
+                warn!("Exiting without scaffolding.");
                 ::std::process::exit(0);
             }
         }
@@ -213,6 +228,14 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let cwd = std::env::current_dir()?;
     flags.destination = cwd.join(&flags.destination);
     let mut target = flags.destination.clone();
+
+    loggerv::Logger::new()
+        .verbosity(flags.verbose as u64)
+        .line_numbers(false)
+        .module_path(false)
+        .colors(true)
+        .init()
+        .unwrap();
 
     check_git_status(&flags)?;
 
@@ -226,7 +249,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings.clone()) {
         xs
     } else {
-        initialize_package_json(&flags.destination)
+        initialize_package_json(&flags.destination, flags.verbose)
             .with_context(|| format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
         let mut package_json = load_package_json(&flags, default_settings).unwrap();
         package_json.scripts.replace(Default::default());
@@ -241,6 +264,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
     let updated_settings = settings.merge_flags(version, &flags);
 
+    info!("Scaffolding a Bolzmann service with these features: {}", updated_settings);
+
     render::scaffold(&mut target, &updated_settings)
         .context("Failed to render Boltzmann files")?;
 
@@ -250,12 +275,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut dependencies = package_json.dependencies.take().unwrap_or_else(HashMap::new);
     let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(HashMap::new);
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
+    info!("    updating dependencies...");
 
     for candidate in candidates {
         let target = match candidate.kind {
             DependencyType::Normal => &mut dependencies,
             DependencyType::Development => &mut devdeps
         };
+
+        let has_dep_currently = target.contains_key(&candidate.name[..]);
 
         if let Some(preconditions) = candidate.preconditions {
             let feature = preconditions.feature.unwrap();
@@ -266,12 +294,20 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                 .map(|xs| xs.as_bool().unwrap_or(false))
                 .unwrap_or(false);
 
+            // Note that we log on a state change, but we always make the change to pick up new versions.
             if wants_feature {
+                if !has_dep_currently {
+                    info!("        adding {} @ {} ({} activated)", candidate.name.bold().magenta(), candidate.version, feature);
+                }
                 target.insert(candidate.name, candidate.version);
             } else if wants_feature != used_to_have {
+                if has_dep_currently {
+                    info!("        removing {} ({} deactivated)", candidate.name.magenta().strikethrough(), feature);
+                }
                 target.remove(&candidate.name[..]);
             }
-        } else {
+        } else if !has_dep_currently {
+            info!("        adding {} @ {} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind);
             target.insert(candidate.name, candidate.version);
         }
     }
@@ -280,19 +316,32 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     package_json.dependencies.replace(dependencies);
     package_json.dev_dependencies.replace(devdeps);
 
+    info!("    writing updated package.json...");
     target.push("package.json");
     let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&target)
         .with_context(|| format!("Failed to update {:?}", target))?;
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
     target.pop();
 
-    let exit_status = Exec::cmd(NPM)
+    let mut subproc = Exec::cmd(NPM)
         .arg("i")
-        .cwd(&target)
-        .join()?;
+        .cwd(&target);
+
+    subproc = if flags.verbose < 2 {
+        subproc
+            .stdout(NullFile)
+            .stderr(NullFile)
+    } else {
+        subproc
+    };
+    info!("    running package install...");
+    let exit_status = subproc.join()?;
 
     match exit_status {
-        ExitStatus::Exited(0) => Ok(()),
+        ExitStatus::Exited(0) => {
+            info!("Success! You are now using Boltzmann {}", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0"));
+            Ok(())
+        },
         _ => Err(anyhow!("npm install exited with non-zero status").into())
     }
 }
