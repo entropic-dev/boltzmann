@@ -129,7 +129,7 @@ jobs:
           tag=${{ github.ref }}
           bin/docs setup
           cd docs
-          ../bin/zola build --output-dir output --base-url https://www.boltzman.dev/en/docs/${tag/refs\/tags\//}
+          ../bin/zola build --output-dir output --base-url https://www.boltzmann.dev/en/docs/${tag/refs\/tags\//}
           cd ..
       - name: tar it up
         shell: bash
