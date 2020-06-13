@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 
 use colored::*;
-use log::trace;
+use log::{info, debug, trace};
 
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
@@ -92,11 +92,17 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
         if let Some(preconditions) = when {
             if let Some(feature) = preconditions.feature {
                 let mapped = serde_json::to_value(settings)?;
-                let has_feature = mapped.get(feature)
+                let has_feature = mapped.get(feature.clone())
                     .map(|xs| xs.as_bool().unwrap_or(false))
                     .unwrap_or(false);
 
                 if !has_feature {
+                    trace!("        skipping {} ({} deactivated)", basename.strikethrough().blue(), feature);
+                    let mut cloned_cwd = cwd.clone();
+                    cloned_cwd.push(&basename[..]);
+                    if cloned_cwd.as_path().exists() {
+                        info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
+                    }
                     continue
                 }
             }
@@ -117,7 +123,7 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 
         // failure to render is fatal.
         if let Some(data) = node.render(cwd, mode, parents, settings)? {
-            trace!("        rendering {}", cwd.to_str().unwrap().blue());
+            debug!("        rendering {}", basename.bold().blue());
             let mut oo = std::fs::OpenOptions::new();
 
             oo.create(true).truncate(true).write(true);
@@ -139,6 +145,7 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
 }
 
 pub fn scaffold(mut cwd: &mut PathBuf, settings: &Settings) -> Result<Option<String>> {
+    info!("    writing boltzmann files...");
     let root_node: Node = ron::de::from_str(include_str!("dirspec.ron"))?;
     let mut parents = Vec::new();
     root_node.render(&mut cwd, 0o777, &mut parents, &settings)?;
