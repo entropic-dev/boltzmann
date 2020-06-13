@@ -3,10 +3,33 @@ on:
   release:
     types: [published, edited]
 jobs:
+  docs:
+    name: publish docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: download docs
+        run: |
+          tag=${{ github.ref }}
+          download_urls=$(
+            curl -sL https://api.github.com/repos/entropic-dev/boltzmann/releases/tags/${tag/refs\/tags\//} | \
+              jq -r '.assets[] | .browser_download_url' | \
+              grep 'docs'
+          )
+          mkdir docs
+          curl -sL $url | tar zx -C docs
+          cd docs
+          aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag/refs\/tags\//}
+          cd ..
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-2
+
   release:
     name: publish npm package
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
           node-version: '12'
@@ -70,6 +93,9 @@ jobs:
           registry=https://registry.npmjs.org/
           //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
           EOF
+
+          cp README.md boltzmann-cli/
+
           cd boltzmann-cli
           npm publish
           pkg=$(cat package.json)

@@ -124,7 +124,13 @@ jobs:
     needs: [release]
     steps:
       - uses: actions/checkout@v2
-      - run: bin/docs build
+      - name: build the docs
+        run: |
+          tag=${{ github.ref }}
+          bin/docs setup
+          cd docs
+          ../bin/zola build --output-dir output --base-url https://www.boltzman.dev/en/docs/${tag/refs\/tags\//}
+          cd ..
       - name: tar it up
         shell: bash
         run: |
