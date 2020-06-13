@@ -10,13 +10,13 @@ jobs:
       - name: download docs
         run: |
           tag=${{ github.ref }}
-          download_urls=$(
+          download_url=$(
             curl -sL https://api.github.com/repos/entropic-dev/boltzmann/releases/tags/${tag/refs\/tags\//} | \
               jq -r '.assets[] | .browser_download_url' | \
               grep 'docs'
           )
           mkdir docs
-          curl -sL $url | tar zx -C docs
+          curl -sL $download_url | tar zx -C docs
           cd docs
           aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag/refs\/tags\//}
           cd ..
