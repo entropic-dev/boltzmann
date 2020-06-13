@@ -18,7 +18,7 @@ jobs:
           mkdir docs
           curl -sL $download_url | tar zx -C docs
           cd docs
-          aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag/refs\/tags\//}
+          aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag/refs\/tags\//} --acl public-read
           cd ..
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
