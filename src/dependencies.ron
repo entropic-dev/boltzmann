@@ -6,6 +6,24 @@
     preconditions:None
   ),
   DependencySpec(
+    name: "nunjucks",
+    version: "^3.2.1",
+    kind: Normal,
+    preconditions: Some(When(
+      feature: Some("template"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
+    name: "chokidar",
+    version: "^3.4.0",
+    kind: Development,
+    preconditions: Some(When(
+      feature: Some("template"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
     name: "culture-ships",
     version: "^1.0.0",
     kind: Normal,
@@ -76,6 +94,13 @@
     version: "^3.0.2",
     kind: Normal,
     preconditions:Some(When(feature: Some("redis"),if_not_present: []))
+  ),
+
+  DependencySpec(
+    name: "cookie",
+    version: "^0.4.1",
+    kind: Normal,
+    preconditions:None
   ),
 
   DependencySpec(

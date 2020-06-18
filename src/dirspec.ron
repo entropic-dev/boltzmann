@@ -10,6 +10,13 @@ Dir(DirSpec(
       if_not_present: ["handlers.js", "handlers"]
     ))),
 
+    ("templates", 0o755, Dir(DirSpec(
+      children: [],
+    )), Some(When(
+      feature: Some("template"),
+      if_not_present: []
+    ))),
+
     (".eslintrc.js", 0o644, Template(TemplateSpec(
       template_name: "eslintrc.js"
     )), Some(When(
