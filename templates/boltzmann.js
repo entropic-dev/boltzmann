@@ -41,6 +41,7 @@ const pg = require('pg')
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
+const TEMPLATE = Symbol.for('template')
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
 
 let ajv = null
@@ -48,7 +49,7 @@ let ajvLoose = null
 let ajvStrict = null
 
 async function main ({
-  middleware = _requireOr('./middleware', []),
+  middleware = _processMiddleware(_requireOr('./middleware', [])),
   bodyParsers = _requireOr('./body', [urlEncoded, json]),
   handlers = _requireOr('./handlers', {}),
 } = {}) {
@@ -62,7 +63,8 @@ async function main ({
   })
 
   server.on('request', async (req, res) => {
-    let body = await handler(new Context(req, res))
+    const context = new Context(req, res)
+    let body = await handler(context)
 
     if (body[THREW]) {
       body = {
@@ -77,8 +79,15 @@ async function main ({
     const isPipe = body && body.pipe
     const {
       [STATUS]: status,
-      [HEADERS]: headers
+      [HEADERS]: headers,
     } = body || {}
+
+    if (context._cookie) {
+      const setCookie = context._cookie.toString()
+      if (setCookie) {
+        headers['set-cookie'] = setCookie
+      }
+    }
 
     res.writeHead(status, headers || {})
     if (isPipe) {
@@ -117,6 +126,7 @@ class Context {
     this._response = response // do not touch this
     this._routed = {}
     this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
+    this._cookie = null
 
     // {% if redis %}
     this._redisClient = null
@@ -134,6 +144,11 @@ class Context {
     return this._postgresConnection
   }
   // {% endif %}
+
+  get cookie () {
+    this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
+    return this._cookie
+  }
 
   // {% if redis %}
   /** @type {redis.IHandyRedis} */
@@ -394,7 +409,7 @@ function enforceInvariants () {
 
       const {
         [STATUS]: status = error ? 500 : result ? 200 : 204,
-        [HEADERS]: headers = {}
+        [HEADERS]: headers = {},
       } = body || {}
 
       if (!headers['content-type']) {
@@ -435,6 +450,49 @@ function enforceInvariants () {
     }
   }
 }
+
+// {% if template %}
+function template ({
+  path = path.join(__dirname, 'templates'),
+  opts = {
+    watch: isDev()
+  }
+} = {}) {
+  const nunjucks = require('nunjucks')
+  nunjucks.configure(path, opts)
+
+  return next => {
+
+    return async function template (context) {
+      const response = await next(context)
+      let name = response[TEMPLATE]
+      const {
+        [STATUS]: status,
+        [HEADERS]: headers,
+        [THREW]: threw
+      } = response
+
+      if (!threw && typeof name !== 'string') {
+        return response
+      } else if (threw) {
+        name = `${Number(status)}.html`
+      }
+
+      const rendered = await new Promise((resolve, reject) => {
+        nunjucks.render(name, response, (err, result) => {
+          err ? reject(err) : resolve(result)
+        })
+      })
+
+      return Object.assign(Buffer.from(rendered, 'utf8'), {
+        [STATUS]: status,
+        [HEADERS]: headers,
+        [THREW]: threw
+      })
+    }
+  }
+}
+// {% endif %}
 
 function handleCORS ({
   origins = [],
@@ -1055,6 +1113,10 @@ async function _collect (request) {
   return Buffer.concat(acc)
 }
 
+function _processMiddleware (middleware) {
+  return [].concat(Array.isArray(middleware) ? middleware : middleware.APP_MIDDLEWARE)
+}
+
 function _requireOr (target, value) {
   try {
     return require(target)
@@ -1067,6 +1129,62 @@ function _requireOr (target, value) {
       return value
     }
     throw err
+  }
+}
+
+let _cookie = null
+class Cookie extends Map {
+  constructor(values) {
+    super(values)
+    this.changed = new Set()
+  }
+
+  set (key, value) {
+    if (this.changed) {
+      this.changed.add(key)
+    }
+
+    console.log({isDev: isDev()})
+    const defaults = {
+      sameSite: true,
+      secure: !isDev(),
+      httpOnly: true,
+    }
+    return super.set(key, typeof value === 'string' ? {
+      ...defaults,
+      value
+    } : {
+      ...defaults,
+      ...value
+    })
+  }
+
+  delete (key) {
+    this.changed.add(key)
+    return super.delete(key)
+  }
+
+  toString () {
+    const cookies = []
+    for (const key of this.changed) {
+      if (this.has(key)) {
+        const { value, ...opts } = this.get(key)
+        cookies.push(_cookie.serialize(key, value, opts))
+      } else {
+        cookies.push(_cookie.serialize(key, 'null', {
+          httpOnly: true,
+          expires: new Date(),
+          maxAge: 0
+        }))
+      }
+    }
+
+    return cookies.join(', ')
+  }
+
+  static from (string) {
+    _cookie = _cookie || require('cookie')
+    return new Cookie(Object.entries(_cookie.parse(string)))
   }
 }
 
@@ -1732,6 +1850,47 @@ if (require.main === module) {
     })
 
     assert.equal(result[STATUS], 400)
+  })
+
+  test('context.cookie contains the request cookies', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      assert.same(context.cookie.get('foo'), {
+        value: 'bar',
+        secure: true,
+        sameSite: true,
+        httpOnly: true
+      })
+
+      assert.same(context.cookie.get('hello'), {
+        value: 'world',
+        secure: true,
+        sameSite: true,
+        httpOnly: true
+      })
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'cookie': 'foo=bar; hello=world'
+      }
+    })
+
+    console.log(response.payload)
+    assert.equals(response.statusCode, 204)
+    assert.ok(!('set-cookie' in response.headers))
   })
 }
 // {% endif %}
