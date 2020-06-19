@@ -186,7 +186,7 @@ tap.test('gzip middleware works on objects', _(async assert => {
   const zlib = require('zlib')
 
   assert.equal(res.headers['content-encoding'], 'gzip')
-  assert.equal(res.headers['content-type'], 'application/json')
+  assert.equal(res.headers['content-type'], 'application/json; charset=utf-8')
   assert.equal(String(zlib.gunzipSync(res.rawPayload)), '{"ok":"then"}')
   assert.equal(res.statusCode, 203)
 }))
