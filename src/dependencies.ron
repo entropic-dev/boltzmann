@@ -10,16 +10,7 @@
     version: "^3.2.1",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("template"),
-      if_not_present: []
-    ))
-  ),
-  DependencySpec(
-    name: "chokidar",
-    version: "^3.4.0",
-    kind: Development,
-    preconditions: Some(When(
-      feature: Some("template"),
+      feature: Some("templates"),
       if_not_present: []
     ))
   ),

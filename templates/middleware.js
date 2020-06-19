@@ -1,5 +1,7 @@
 'use strict'
 
+const boltzmann = require('./boltzmann')
+
 function setupMiddlewareFunc(/* your config */) {
   // startup configuration goes here
   return function createMiddlewareFunc(next) {
@@ -16,4 +18,15 @@ function setupMiddlewareFunc(/* your config */) {
   }
 }
 
-module.exports = [setupMiddlewareFunc]
+module.exports = {
+
+  APP_MIDDLEWARE: [
+    setupMiddlewareFunc,
+    {%- if templates %}
+    [boltzmann.middleware.template, {
+      // filters: {}, // add custom template filters
+      // tags: {}     // extend nunjucks with custom tags
+    }]
+    {%- endif %}
+  ]
+}
