@@ -83,8 +83,8 @@ async function main ({
     } = body || {}
 
     if (context._cookie) {
-      const setCookie = context._cookie.toString()
-      if (setCookie) {
+      const setCookie = context._cookie.collect()
+      if (setCookie.length) {
         headers['set-cookie'] = setCookie
       }
     }
@@ -418,7 +418,15 @@ function enforceInvariants () {
         } else if (isPipe) {
           headers['content-type'] = 'application/octet-stream'
         } else {
-          headers['content-type'] = 'application/json'
+          // {% if templates %}
+          if (body && body[TEMPLATE]) {
+            headers['content-type'] = 'text/html; charset=utf-8'
+          } else {
+            headers['content-type'] = 'application/json; charset=utf-8'
+          }
+          // {% else %}
+          headers['content-type'] = 'application/json; charset=utf-8'
+          // {% endif %}
         }
       }
 
@@ -451,35 +459,70 @@ function enforceInvariants () {
   }
 }
 
-// {% if template %}
+// {% if templates %}
 function template ({
-  path = path.join(__dirname, 'templates'),
+  paths = ['templates'],
+  filters = {},
+  tags = {},
   opts = {
     watch: isDev()
   }
 } = {}) {
   const nunjucks = require('nunjucks')
-  nunjucks.configure(path, opts)
+  const path = require('path')
+  const env = new nunjucks.Environment(
+    new nunjucks.FileSystemLoader(paths.map(
+      xs => path.join(__dirname, xs)
+    ), {}),
+    opts
+  )
+
+  for (const name in filters) {
+    env.addFilter(name, (...args) => {
+      const cb = args[args.length - 1]
+      Promise.resolve(filters[name](...args.slice(0, -1))).then(
+        xs => cb(null, xs),
+        xs => cb(xs, null)
+      )
+    }, true)
+  }
+
+  for (const name in tags) {
+    env.addExtension(name, tags[name])
+  }
 
   return next => {
-
     return async function template (context) {
       const response = await next(context)
-      let name = response[TEMPLATE]
       const {
         [STATUS]: status,
         [HEADERS]: headers,
+        [TEMPLATE]: template,
         [THREW]: threw
       } = response
 
-      if (!threw && typeof name !== 'string') {
+      if (!template && !threw) {
         return response
-      } else if (threw) {
-        name = `${Number(status)}.html`
+      }
+
+      let name = template
+      if (threw) {
+        const maybeJSON = (
+          context.headers['sec-fetch-dest'] === 'none' || // fetch()
+          'x-requested-with' in context.headers ||
+          context.headers['content-type'].includes('application/json')
+        )
+
+        if (maybeJSON) {
+          return response
+        }
+
+        headers['content-type'] = 'text/html'
+        name = `${status - (status % 100)}.html`
       }
 
       const rendered = await new Promise((resolve, reject) => {
-        nunjucks.render(name, response, (err, result) => {
+        env.render(name, response, (err, result) => {
           err ? reject(err) : resolve(result)
         })
       })
@@ -516,15 +559,17 @@ function handleCORS ({
   }
 }
 
-function applyXFO ({ mode = 'DENY' } = {}) {
+function applyHeaders (headers = {}) {
   return next => {
     return async function xfo (context) {
       const result = await next(context)
-      result[Symbol.for('headers')]['x-frame-options'] = mode
+      Object.assign(result[Symbol.for('headers')], headers)
       return result
     }
   }
 }
+
+const applyXFO = (mode) => applyXFO.bind({ 'x-frame-options': mode })
 
 // {% if jwt %}
 function authenticateJWT ({
@@ -1144,7 +1189,6 @@ class Cookie extends Map {
       this.changed.add(key)
     }
 
-    console.log({isDev: isDev()})
     const defaults = {
       sameSite: true,
       secure: !isDev(),
@@ -1164,7 +1208,7 @@ class Cookie extends Map {
     return super.delete(key)
   }
 
-  toString () {
+  collect () {
     const cookies = []
     for (const key of this.changed) {
       if (this.has(key)) {
@@ -1179,7 +1223,7 @@ class Cookie extends Map {
       }
     }
 
-    return cookies.join(', ')
+    return cookies
   }
 
   static from (string) {
@@ -1206,8 +1250,12 @@ exports.middleware = {
 // {% if jwt %}
   authenticateJWT,
 // {% endif %}
+// {% if templates %}
+  template,
+// {% endif %}
   handleCORS,
   applyXFO,
+  ...exports.decorators // forwarding these here.
 }
 
 // {% if not selftest %}
@@ -1228,7 +1276,7 @@ if (require.main === module) {
       // {% if postgres %}
       attachPostgres,
       // {% endif %}
-      ..._requireOr('./middleware', []),
+      ..._processMiddleware(_requireOr('./middleware', [])),
       // {% if status %}
       ...[handleStatus]
       // {% endif %}
@@ -1318,7 +1366,7 @@ if (require.main === module) {
 
     assert.equals(response.statusCode, 200)
     const parsed = JSON.parse(response.payload)
-    assert.equals(response.headers['content-type'], 'application/json')
+    assert.equals(response.headers['content-type'], 'application/json; charset=utf-8')
     assert.same(parsed, {message: 'hello world'})
   })
 
@@ -1389,7 +1437,7 @@ if (require.main === module) {
 
     assert.equals(response.statusCode, 500)
     const parsed = JSON.parse(response.payload)
-    assert.equals(response.headers['content-type'], 'application/json')
+    assert.equals(response.headers['content-type'], 'application/json; charset=utf-8')
     assert.equals(parsed.message, 'wuh oh')
 
     if (isDev()) {
@@ -1419,7 +1467,7 @@ if (require.main === module) {
 
     assert.equals(response.statusCode, 500)
     const parsed = JSON.parse(response.payload)
-    assert.equals(response.headers['content-type'], 'application/json')
+    assert.equals(response.headers['content-type'], 'application/json; charset=utf-8')
     assert.equals(parsed.message, 'wuh oh')
 
     assert.ok(!('stack' in parsed))
@@ -1888,9 +1936,173 @@ if (require.main === module) {
       }
     })
 
-    console.log(response.payload)
     assert.equals(response.statusCode, 204)
     assert.ok(!('set-cookie' in response.headers))
+  })
+
+  test('context.cookie.set creates cookies', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      context.cookie.delete('foo')
+      context.cookie.set('zu', 'bat')
+      context.cookie.set('hello', {
+        value: 'world',
+        httpOnly: false
+      })
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'cookie': 'foo=bar; hello=world'
+      }
+    })
+
+
+    const parsed = response.headers['set-cookie'].sort()
+
+    assert.equal(parsed.length, 3)
+    assert.matches(parsed[0], /foo=null; Max-Age=0; Expires=.* GMT; HttpOnly/)
+    assert.matches(parsed[1], /hello=world; Secure; SameSite=Strict/)
+    assert.matches(parsed[2], /zu=bat; HttpOnly; Secure; SameSite=Strict/)
+  })
+
+  test('template middleware intercepts template symbol responses', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello'
+      }
+    }
+
+    await fs.writeFile(path.join(__dirname, 'templates', 'test.html'), `
+      {% raw %}{{ greeting }} world{% endraw %}
+    `.trim())
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        template
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(called, 1)
+    assert.equal(response.payload, 'hello world')
+  })
+
+  test('template middleware allows custom filters', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello'
+      }
+    }
+
+    await fs.writeFile(path.join(__dirname, 'templates', 'test.html'), `
+      {% raw %}{{ greeting|frobnify }} world{% endraw %}
+    `.trim())
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [template, {
+          filters: {
+            // explicitly async to test our munging
+            frobnify: async (xs) => xs + 'frob'
+          }
+        }]
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(called, 1)
+    assert.equal(response.payload, 'hellofrob world')
+  })
+
+  test('template middleware allows custom tags', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello'
+      }
+    }
+
+    class FrobTag {
+      tags = ['frob']
+      parse (parser, nodes, lexer) {
+        const tok = parser.nextToken()
+        const args = parser.parseSignature(null, true);
+        parser.advanceAfterBlockEnd(tok.value);
+        const body = parser.parseUntilBlocks('endfrob');
+        parser.advanceAfterBlockEnd();
+        return new nodes.CallExtension(this, 'run', args, [body]);
+      }
+
+      run (context, body) {
+        return body().split(/\s+/).join('frob ') + 'frob'
+      }
+    }
+
+    await fs.writeFile(path.join(__dirname, 'templates', 'test.html'), `
+      {% raw %}{% frob %}{{ greeting }} world{% endfrob %}{% endraw %}
+    `.trim())
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [template, {
+          tags: {
+            frob: new FrobTag()
+          }
+        }]
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(called, 1)
+    assert.equal(response.payload, 'hellofrob worldfrob')
   })
 }
 // {% endif %}

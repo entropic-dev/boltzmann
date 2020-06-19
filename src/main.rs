@@ -44,6 +44,9 @@ pub struct Flags {
     #[structopt(long, help = "Enable GitHub actions CI")]
     githubci: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Enable Nunjucks templates")]
+    templates: Option<Option<Flipper>>,
+
     #[structopt(long, help = "Enable /monitor/status healthcheck endpoint")]
     status: Option<Option<Flipper>>,
 

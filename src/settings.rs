@@ -36,6 +36,9 @@ pub struct Settings {
     pub(crate) githubci: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) templates: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) status: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -65,6 +68,7 @@ impl Settings {
             postgres: cast(&flags.postgres, &self.postgres),
             honeycomb: cast(&flags.honeycomb, &self.honeycomb),
             githubci: cast(&flags.githubci, &self.githubci),
+            templates: cast(&flags.templates, &self.templates),
             status: cast(&flags.status, &self.status),
             ping: cast(&flags.ping, &self.ping),
             jwt: cast(&flags.jwt, &self.jwt),
@@ -94,6 +98,9 @@ impl fmt::Display for Settings {
         if self.githubci.unwrap_or(false) {
             features.push("githubci");
         }
+        if self.templates.unwrap_or(false) {
+            features.push("templates");
+        }
         if self.status.unwrap_or(false) {
             features.push("status");
         }
@@ -114,6 +121,7 @@ impl Into<Context> for Settings {
         ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
         ctxt.insert("selftest", &self.selftest.unwrap_or(false));
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
+        ctxt.insert("templates", &self.templates.unwrap_or(false));
         ctxt.insert("status", &self.status.unwrap_or(false));
         ctxt.insert("ping", &self.ping.unwrap_or(false));
         ctxt.insert("jwt", &self.jwt.unwrap_or(false));

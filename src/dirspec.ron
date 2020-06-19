@@ -13,7 +13,7 @@ Dir(DirSpec(
     ("templates", 0o755, Dir(DirSpec(
       children: [],
     )), Some(When(
-      feature: Some("template"),
+      feature: Some("templates"),
       if_not_present: []
     ))),
 
