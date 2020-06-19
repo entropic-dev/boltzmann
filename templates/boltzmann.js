@@ -480,7 +480,9 @@ function template ({
   for (const name in filters) {
     env.addFilter(name, (...args) => {
       const cb = args[args.length - 1]
-      Promise.resolve(filters[name](...args.slice(0, -1))).then(
+      new Promise((resolve, reject) => {
+        resolve(filters[name](...args.slice(0, -1)))
+      }).then(
         xs => cb(null, xs),
         xs => cb(xs, null)
       )
@@ -2104,5 +2106,46 @@ if (require.main === module) {
     assert.equal(called, 1)
     assert.equal(response.payload, 'hellofrob worldfrob')
   })
+
+  test('template middleware custom filters may throw', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello'
+      }
+    }
+
+    await fs.writeFile(path.join(__dirname, 'templates', 'test.html'), `
+      {% raw %}{{ greeting|frobnify }} world{% endraw %}
+    `.trim())
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [template, {
+          filters: {
+            frobnify: (xs) => {
+              throw new Error('oops oh no')
+            }
+          }
+        }]
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(called, 1)
+    assert.matches(response.payload, /oops oh no/)
+  })
+
 }
 // {% endif %}
