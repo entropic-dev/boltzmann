@@ -220,7 +220,9 @@ function router (handlers) {
 
       const { version, middleware, decorators, ...rest } = handler
       if (Array.isArray(decorators)) {
-        handler = decorators.reduceRight((lhs, rhs) => rhs(lhs), handler)
+        handler = decorators.reduce((lhs, rhs) => {
+          return [...lhs, enforceInvariants(), rhs]
+        }, []).reduceRight((lhs, rhs) => rhs(lhs), enforceInvariants()(handler))
       }
 
       if (Array.isArray(middleware)) {
@@ -395,11 +397,13 @@ if (!isDev()) {
 
 function enforceInvariants () {
   return function invariantMiddleware (next) {
-    return async function invariant (ctx) {
+    // the "...args" here are load-bearing: this is applied between
+    // decorators _and_ middleware
+    return async function invariant (ctx, ...args) {
       let error, result
 
       try {
-        result = await next(ctx)
+        result = await next(ctx, ...args)
       } catch (err) {
         error = err
       }
@@ -1006,31 +1010,6 @@ function validateBlock(what) {
   }
 }
 
-function tupleResponse() {
-  return function mapTupleResponse (next) {
-    return async (context, ...args) => {
-      let response = null
-      try {
-        response = await next(context, ...args)
-      } catch (err) {
-        response = err
-        response[THREW] = true
-      }
-
-      if (Array.isArray(response)) {
-        const [body, status = 200, headers = {}] = response
-        body[THREW] = response[THREW]
-        body[STATUS] = status
-        body[HEADERS] = headers
-
-        return body
-      }
-
-      return response
-    }
-  }
-}
-
 let savepointId = 0
 
 function test ({
@@ -1418,6 +1397,37 @@ if (require.main === module) {
     assert.same(response.payload, '')
   })
 
+  test('decorators forward their args', async assert => {
+    let called = null
+    const handler = (context, params) => {
+      called = params
+    }
+    handler.route = 'GET /:foo/:bar'
+    handler.decorators = [
+      next => (...args) => next(...args)
+    ]
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/hello/world'
+    })
+
+    assert.same(called, {
+      foo: 'hello',
+      bar: 'world'
+    })
+    assert.equals(response.statusCode, 204)
+    assert.same(response.payload, '')
+  })
+
   test('throwing an error results in 500 internal server error', async assert => {
     const handler = () => {
       throw new Error('wuh oh')
@@ -1475,7 +1485,7 @@ if (require.main === module) {
     assert.ok(!('stack' in parsed))
   })
 
-  test('reset env', async assert => {
+  test('reset env', async _ => {
     process.env.NODE_ENV = 'test'
   })
 
