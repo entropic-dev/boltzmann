@@ -6,9 +6,9 @@ weight=9
 ## Introduction
 
 Middleware allows you to intercept, modify, or add behavior to your
-application's request handling. Boltzmann allows you to attach middleware
-to your application to modify request handling for all handlers, or to
-individual handlers.
+application's request handling. You attach middleware to Boltzmann either to
+your application, or to individual handlers. This allows you to modify request
+handling for all, or a subset of, your handlers.
 
 Middleware is useful for:
 
@@ -16,7 +16,7 @@ Middleware is useful for:
   build a pizza-ordering service, you might use middleware to attach
   `context.pizzaClient = new DominosAPIClient()`.
 - **Modifying** the response from handlers in your application. For example,
-  [we've implemented example `gzip` middleware].
+  [we've implemented example `gzip` middleware][ref-gzip].
 - **Intercepting** the request before it reaches the rest of your application,
   allowing you assert facts about request context that reaches your handlers.
   For example, you might have middleware that responds to any unauthenticated
@@ -25,10 +25,10 @@ Middleware is useful for:
 
 Middleware is Boltzmann's primary mechanism for exposing configurable behavior
 to you. It is also Boltzmann's mechanism for enabling [dependency
-injection]. It's a powerful concept! This document will cover
-how to talk about middleware and how to attach it to your application. Other
-documents cover [how to write middleware] and [what middleware boltzmann makes
-available to your application].
+injection][ref-di]. It's a powerful concept! This document will cover how to
+talk about middleware and how to attach it to your application. Other documents
+cover [how to write middleware][ref-guide] and [what middleware boltzmann makes
+available to your application][ref-reference].
 
 > :warning: This document does not cover how to parse incoming request bodies.
 > that information is available [in the body parsing] document.
@@ -133,7 +133,9 @@ module.exports = {
 }
 ```
 
-This will register the middleware application-wide.
+This will register the middleware application-wide. Application-scope attached
+middleware will execute before Boltzmann routes the request; they will execute
+even for requests that **match no corresponding route** in your application!
 
 If, on the other hand, you need logic to be applied to **many** handlers, but not
 **all**, you may wish to attach your middleware directly to handlers:
@@ -235,6 +237,13 @@ noisily at startup!
 ## Next Steps
 
 Now that you know the vocabulary for middleware, and how and when to attach it
-to your application, it's time to write some middleware. [This guide] will take
-you through writing your first middleware. You may also be interested in reviewing
-the [built-in middleware that Boltzmann makes available]. Happy hacking!
+to your application, it's time to write some middleware. [This
+guide][ref-guide] will take you through writing your first middleware. You may
+also be interested in reviewing the [built-in middleware that Boltzmann makes
+available][ref-reference]. Happy hacking!
+
+[ref-di]: https://en.wikipedia.org/wiki/Dependency_injection
+[ref-gzip]: https://github.com/entropic-dev/boltzmann/blob/latest/examples/custom-middleware/middleware/gzip.js
+[ref-guide]: @/guides/middleware.md
+[ref-reference]: @/reference/middleware.md
+[in the body parsing]: @/concepts/body-parsing.md
