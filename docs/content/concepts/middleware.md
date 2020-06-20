@@ -179,7 +179,9 @@ module.exports = {
     three
   ]
 }
+```
 
+```javascript
 // handlers.js
 module.exports = { hello }
 
@@ -210,8 +212,9 @@ module.exports = {
     three
   ]
 }
+```
 
-// handlers.js
+```javascript
 module.exports = { hello }
 
 hello.route = 'GET /'
