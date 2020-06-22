@@ -148,7 +148,7 @@ module.exports = {
   anyWords
 }
 
-palindromesOnly.route = 'GET /any/:utterance'
+anyWords.route = 'GET /any/:utterance'
 function anyWords (context, { utterance }) {
   return 'yep that seems about correct'
 }
