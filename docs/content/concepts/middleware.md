@@ -15,13 +15,13 @@ Middleware is useful for:
 - **Attaching** domain-specific attributes to request context: if you were to
   build a pizza-ordering service, you might use middleware to attach
   `context.pizzaClient = new DominosAPIClient()`.
-- **Modifying** the response from handlers in your application. For example,
-  [you could implement middleware to handle `Accept-Encoding: gzip` ][ref-gzip].
 - **Intercepting** the request before it reaches the rest of your application,
   allowing you assert facts about request context that reaches your handlers.
   For example, you might have middleware that responds to any unauthenticated
   request with a 401. As a result of this hypothetical middleware, the handlers
   in your application can rely on the fact that the user is authenticated.
+- **Modifying** the response from handlers in your application. For example,
+  [you could implement middleware to handle `Accept-Encoding: gzip` ][ref-gzip].
 
 Middleware is Boltzmann's primary mechanism for exposing configurable behavior
 to you. It is also Boltzmann's mechanism for enabling [dependency
