@@ -16,7 +16,7 @@ Middleware is useful for:
   build a pizza-ordering service, you might use middleware to attach
   `context.pizzaClient = new DominosAPIClient()`.
 - **Modifying** the response from handlers in your application. For example,
-  [we've implemented example `gzip` middleware][ref-gzip].
+  [you could implement middleware to handle `Accept-Encoding: gzip` ][ref-gzip].
 - **Intercepting** the request before it reaches the rest of your application,
   allowing you assert facts about request context that reaches your handlers.
   For example, you might have middleware that responds to any unauthenticated
