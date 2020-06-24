@@ -1,10 +1,11 @@
 +++
-title="Body parsing"
-weight=4
+title="Body Parsing"
+weight=10
 +++
 
-all about body parsing
+## Introduction
 
-<!-- more -->
-
-placeholder
+Boltzmann makes request bodies available to your application
+via [`context.body`] in the form of a JavaScript object. This
+document describes how Boltzmann takes the stream of bytes sent
+by a client and turns them into that JavaScript object.

@@ -1,6 +1,6 @@
 +++
-title="Middleware"
-weight=3
+title="Writing Middleware"
+weight=5
 +++
 
-Placeholder
+## Writing your first Boltzmann Middleware
