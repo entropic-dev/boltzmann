@@ -66,10 +66,10 @@ Do not fret if you're not comfortable reading this syntax! After the
 example each of the types will be broken down in natural language.
 
 ```typescript
-const HEADER = Symbol.for('headers')
+const HEADERS = Symbol.for('headers')
 const STATUS = Symbol.for('status')
 
-type HttpMetadata      = {[HEADER]: {[key: string]: string}} & {[STATUS]: number};
+type HttpMetadata      = {[HEADERS]: {[key: string]: string}} & {[STATUS]: number};
 type UserResponse      = string | AsyncIterable<Buffer | string> | Buffer | Object;
 type BoltzmannResponse = (AsyncIterable<Buffer | string> | Buffer | Object) & HttpMetadata;
 type Handler           = (context: Context, ...args: any[]) => UserResponse | Promise<UserResponse>;
