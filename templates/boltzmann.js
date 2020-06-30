@@ -575,7 +575,15 @@ function applyHeaders (headers = {}) {
   }
 }
 
-const applyXFO = (mode) => applyXFO.bind({ 'x-frame-options': mode })
+const applyXFO = (mode) => applyHeaders({ 'x-frame-options': mode })
+
+function applyCSRF () {
+  return next => {
+    return async function csrf (context) {
+      return next(context)
+    }
+  }
+}
 
 // {% if jwt %}
 function authenticateJWT ({
@@ -2156,6 +2164,56 @@ if (require.main === module) {
     assert.equal(called, 1)
     assert.matches(response.payload, /oops oh no/)
   })
+
+  test('applyHeaders adds requested headers', async assert => {
+    const handler = async context => {
+      return 'woot'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [applyHeaders, { currency: 'zorkmid' }
+        ]
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(response.headers.currency, 'zorkmid')
+  })
+
+  test('applyXFO adds xfo header', async assert => {
+    const handler = async context => {
+      return 'woot'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [ applyXFO, 'DENY' ],
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(response.headers['x-frame-options'], 'DENY')
+  })
+
 
 }
 // {% endif %}
