@@ -6,7 +6,7 @@ function run_selftest() {
   rm -rf tmp
   mkdir tmp
 
-  cargo run -- --selftest --jwt --templates --force tmp
+  cargo run -- --selftest --force tmp
   tmp/node_modules/.bin/tap tmp/test.js
 }
 
@@ -19,14 +19,14 @@ function run_startup() {
   echo 'running the server'
   PORT=8080 tmp/boltzmann.js &
   bg &> /dev/null || result=1
-  pid=$!
 
   sleep 2 # ha ha ha ha ha
   echo 'attempting to curl'
   result=$(curl -sL http://127.0.0.1:8080/hello/world)
 
   echo 'stopping the server'
-  kill $pid
+  pkill -f "node tmp/boltzmann.js"
+  wait
 
   if [ "$result" != "hello world" ]; then
     echo -e "expected \"hello world\", got \"$result\""
@@ -54,7 +54,7 @@ function run_examples() {
 
     popd
     git checkout $example
-    git clean -f $example
+    git clean -f -q $example
   done
 }
 
