@@ -634,7 +634,7 @@ function applyCSRF ({
       // Handlers can call this to get a token to use on relevant requests.
       // It creates a token-generating secret for the user if they don't have one
       // already, and makes a new token.
-      function csrfToken (refresh = false) {
+      function csrfToken ({refresh = false} = {}) {
         const freshSecret = fetchSecretFromCookie()
 
         // We might be coming through here more than once.
@@ -2359,7 +2359,9 @@ if (require.main === module) {
     const handler = async context => {
       const t1 = context.csrfToken()
       const t2 = context.csrfToken({ refresh: true})
+      const t3 = context.csrfToken({ refresh: false})
       assert.notEqual(t1, t2)
+      assert.equal(t2, t3)
       return "my tokens are fresh"
     }
 
