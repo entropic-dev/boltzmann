@@ -2414,7 +2414,7 @@ if (require.main === module) {
 
     const cookieSecret = 'avocados-are-delicious'
     const tokens = new CsrfTokens()
-    const userSecret = tokens.secretSync()
+    const userSecret = await tokens.secret()
     const token = tokens.create(userSecret)
     const signedUserSecret = signCookie(userSecret, cookieSecret)
 
