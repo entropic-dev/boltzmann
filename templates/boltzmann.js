@@ -593,6 +593,9 @@ function checkCookieSignature(input, secret) {
   }
   const [ message, signature ] = input.split('.', 2)
   const valid = signCookie(message, secret)
+  if (valid.length !== input.length) {
+    return false
+  }
   return crypto.timingSafeEqual(Buffer.from(input), Buffer.from(valid)) ? message : false
 }
 
@@ -628,20 +631,15 @@ function applyCSRF ({
         return checkCookieSignature(candidate.value, cookieSecret)
       }
 
-      async function findToken (context) {
-        const body = await context.body
-        return (body && body[param]) || context.headers[header]
-      }
-
       // Handlers can call this to get a token to use on relevant requests.
       // It creates a token-generating secret for the user if they don't have one
       // already, and makes a new token.
-      function csrfToken () {
+      function csrfToken (refresh = false) {
         const freshSecret = fetchSecretFromCookie()
 
         // We might be coming through here more than once.
         // Re-use the token if we can, but generate a new one if the secret in the cookie changed.
-        if (token && freshSecret === secret) {
+        if (!refresh && token && (freshSecret === secret) ) {
           return token
         }
 
@@ -666,7 +664,9 @@ function applyCSRF ({
         return next(context)
       }
 
-      const tk = await findToken(context)
+      const body = await context.body
+      const tk = (body && body[param]) || context.headers[header]
+
       if (!tokens.verify(secret, tk)) {
         throw Object.assign(new Error('Invalid CSRF token'), {
           [Symbol.for('status')]: 403
@@ -2307,6 +2307,11 @@ if (require.main === module) {
     assert.equal(response.headers['x-frame-options'], 'DENY')
   })
 
+  test('cookie signature check short-circuits on length check', async assert => {
+    const check = checkCookieSignature('womp.signature', 'not-very-secret')
+    assert.equal(check, false)
+  })
+
   test('csrf middleware requires a signing secret', async assert => {
     let server, error
     let threw = false
@@ -2345,7 +2350,32 @@ if (require.main === module) {
       method: 'GET',
       url: '/'
     })
+    assert.equal(response.statusCode, 200)
     assert.equal(typeof response.payload, 'string')
+  })
+
+  test('the token generator allows you to force a fresh token', async assert => {
+    let t
+    const handler = async context => {
+      const t1 = context.csrfToken()
+      const t2 = context.csrfToken({ refresh: true})
+      assert.notEqual(t1, t2)
+      return "my tokens are fresh"
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [ [ applyCSRF, { cookieSecret: 'not-very-secret' } ],],
+      handlers: { handler }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.payload, "my tokens are fresh")
   })
 
   test('csrf middleware enforces presence of token on mutations', async assert => {
