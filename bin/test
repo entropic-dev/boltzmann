@@ -1,48 +1,46 @@
 #!/bin/bash
 
 set -e
+set -m
 
 function run_selftest() {
   rm -rf tmp
-  mkdir tmp
-
-  cargo run -- --selftest --force tmp
-  tmp/node_modules/.bin/tap tmp/test.js
+  cargo run -- --selftest --force  --silent tmp
+  cd tmp
+  node_modules/.bin/tap test.js
+  cd ..
 }
 
 function run_startup() {
   rm -rf tmp
-  mkdir tmp
-
-  cargo run -- tmp --force
+  cargo run -- tmp --force --silent
 
   echo 'running the server'
-  PORT=8080 tmp/boltzmann.js &
-  bg &> /dev/null || result=1
+  PORT=8080 tmp/boltzmann.js --startup &
 
   sleep 2 # ha ha ha ha ha
   echo 'attempting to curl'
   result=$(curl -sL http://127.0.0.1:8080/hello/world)
 
   echo 'stopping the server'
-  pkill -f "node tmp/boltzmann.js"
+  kill %1
   wait
 
   if [ "$result" != "hello world" ]; then
     echo -e "expected \"hello world\", got \"$result\""
     exit 1
   fi
+  rm -rf tmp
 }
 
 function run_examples() {
   for example in examples/*; do
     pushd $example
-    cargo run -- . --force
+    cargo run -- . --force --silent
 
     echo "testing $example startup"
     PORT=8080 ./boltzmann.js &
-    pid=$!
-    kill $pid
+    kill %1
     wait
 
     echo "testing $example startup"
