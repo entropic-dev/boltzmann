@@ -56,6 +56,9 @@ pub struct Flags {
     #[structopt(long, help = "Enable jwt middleware")]
     jwt: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Enable csrf protection middleware")]
+    csrf: Option<Option<Flipper>>,
+
     #[structopt(long, help = "Update a git-repo destination even if there are changes")]
     force: bool, // for enemies
 

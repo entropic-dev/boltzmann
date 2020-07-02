@@ -47,6 +47,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) jwt: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) csrf: Option<bool>,
+
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
 }
@@ -54,6 +57,9 @@ pub struct Settings {
 impl Settings {
     pub fn merge_flags(&self, version: String, flags: &Flags) -> Settings {
         let cast = |xs: &Option<Option<Flipper>>, default: &Option<bool>| -> Option<bool> {
+            if flags.selftest {
+                return Some(true)
+            }
             match xs {
                 Some(None) => Some(true),                       // e.g., --postgres
                 Some(Some(Flipper::On)) => Some(true),          // e.g., --postgres=on
@@ -72,6 +78,7 @@ impl Settings {
             status: cast(&flags.status, &self.status),
             ping: cast(&flags.ping, &self.ping),
             jwt: cast(&flags.jwt, &self.jwt),
+            csrf: cast(&flags.csrf, &self.csrf),
             selftest: if flags.selftest {
                 Some(true)
             } else {
@@ -86,6 +93,9 @@ impl fmt::Display for Settings {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut features = vec![];
         // I'm fairly horrified by this.
+        if self.selftest.unwrap_or(false) {
+            features.push("selftest");
+        }
         if self.redis.unwrap_or(false) {
             features.push("redis");
         }
@@ -100,6 +110,12 @@ impl fmt::Display for Settings {
         }
         if self.templates.unwrap_or(false) {
             features.push("templates");
+        }
+        if self.jwt.unwrap_or(false) {
+            features.push("jwt");
+        }
+        if self.jwt.unwrap_or(false) {
+            features.push("csrf");
         }
         if self.status.unwrap_or(false) {
             features.push("status");
@@ -125,6 +141,7 @@ impl Into<Context> for Settings {
         ctxt.insert("status", &self.status.unwrap_or(false));
         ctxt.insert("ping", &self.ping.unwrap_or(false));
         ctxt.insert("jwt", &self.jwt.unwrap_or(false));
+        ctxt.insert("csrf", &self.csrf.unwrap_or(false));
         ctxt.insert("version", &self.version.unwrap_or_else(|| "<unknown version>".to_string())[..]);
 
         ctxt
