@@ -114,7 +114,7 @@ impl fmt::Display for Settings {
         if self.jwt.unwrap_or(false) {
             features.push("jwt");
         }
-        if self.jwt.unwrap_or(false) {
+        if self.csrf.unwrap_or(false) {
             features.push("csrf");
         }
         if self.status.unwrap_or(false) {
