@@ -6,15 +6,15 @@ theme = "after-dark"
 
 taxonomies = [
     # You can enable/disable feeds
-    {name = "categories", feed = true},
     {name = "tags", feed = true},
 ]
 
 [extra]
 after_dark_menu = [
     {url = "$BASE_URL", name = "Home"},
-    {url = "$BASE_URL/categories", name = "Categories"},
-    {url = "$BASE_URL/tags", name = "Tags"},
+    {url = "$BASE_URL/concepts", name = "Concepts"},
+    {url = "$BASE_URL/guides", name = "Guides"},
+    {url = "$BASE_URL/reference", name = "Reference"},
     {url = "https://github.com/entropic-dev/boltzmann", name = "GitHub"},
 ]
 

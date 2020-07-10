@@ -1,10 +1,11 @@
 +++
 title="Validators"
-weight=11
+weight=5
 +++
 
 
-Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  The functions are:
+Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  <!-- more -->
+The functions are:
 
 - `boltzmann.decorators.body`: validate the structure of an incoming body
 - `boltzmann.decorators.query`: validate parameters in the query string
