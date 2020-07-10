@@ -37,8 +37,7 @@ pub struct Flags {
     #[structopt(long, help = "Enable postgres")]
     postgres: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable honeycomb",
-        about = "some help text")]
+    #[structopt(long, help = "Enable honeycomb")]
     honeycomb: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable GitHub actions CI")]

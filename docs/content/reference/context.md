@@ -1,9 +1,12 @@
 +++
 title="The context object"
 weight=5
+[taxonomies]
+tags = ["reference"]
 +++
 
-Every route handler receives exactly one parameter: a context object. You should extend the context object with whatever data you find useful to preserve through the lifetime of a single request. The context exposes the following getters for data you're likely to find useful:
+Every route handler receives exactly one parameter: a context object. You should extend the context object with whatever data you find useful to preserve through the lifetime of a single request. <!-- more -->
+The context exposes the following getters for data you're likely to find useful:
 
 - `method`: the request method
 - `headers`: the request headers

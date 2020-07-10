@@ -1,12 +1,13 @@
 +++
 title="Responses"
-weight=2
+weight=3
 +++
-
-## Introduction
 
 Of course, one of the most important functions of an HTTP framework
 is providing affordances for responding to incoming requests.
+
+<!-- more -->
+
 
 Boltzmann aligns JavaScript function completion behaviors & types with HTTP
 semantics: values you return will generate 200 status codes, while

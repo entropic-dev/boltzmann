@@ -1,14 +1,14 @@
 +++
 title="Middleware"
-weight=9
+weight=6
 +++
-
-## Introduction
 
 Middleware allows you to intercept, modify, or add behavior to your
 application's request handling. You attach middleware to Boltzmann either to
 your application, or to individual handlers. This allows you to modify request
 handling for all, or a subset of, your handlers.
+
+<!-- more -->
 
 Middleware is useful for:
 
@@ -92,7 +92,7 @@ options are provided, preventing the application from starting. Middleware is
 generally called _once_ at application startup. Naming this function is useful:
 the name of the middleware will be included in Honeycomb traces if that feature
 is enabled, and it will be displayed by the development-mode debugging
-middleware if a stall happens. 
+middleware if a stall happens.
 
 Middleware returns an `Adaptor` function. The `Adaptor` function receives a
 `Next` function as an argument and returns a `Handler`. Adaptors, like the

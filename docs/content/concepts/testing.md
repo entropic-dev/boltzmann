@@ -1,9 +1,13 @@
 +++
 title="Testing"
 weight=13
+[taxonomies]
+tags = ["testing"]
 +++
 
 Boltzmann uses [tap](https://github.com/tapjs/node-tap) for testing. It provides some convenience wrappers to make testing your route handlers easier. It provides [shot](https://github.com/hapijs/shot) as a way to inject requests into your service. If you're using postgres, it wraps each test in a transaction so you can exercise your db code without changing state in your underlying database. We feel that databases are not behavior we want to replicate in mocks. It's more useful to test use of the db directly.
+
+<!-- more -->
 
 Here's an example test from a real-world Boltzmann service:
 

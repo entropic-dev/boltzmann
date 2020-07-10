@@ -1,13 +1,16 @@
 +++
 title="Middleware"
 weight=4
+[taxonomies]
+tags = ["reference"]
 +++
-
-## Introduction
 
 This document covers the built-in middleware Boltzmann makes available. Some
 middleware is automatically installed by Boltzmann when scaffolded with certain
 feature flags.
+
+<!-- more -->
+
 
 ### User-configurable middleware
 
