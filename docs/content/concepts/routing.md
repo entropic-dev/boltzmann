@@ -1,9 +1,12 @@
 +++
 title="Route handlers"
-weight=7
+weight=1
+tags = ["routing", "handlers"]
 +++
 
 Route handlers are functions with a `route` field. The route field is a [find-my-way](https://github.com/delvedor/find-my-way) route with a little sugar. The handler is a function that takes a context object and returns a plain old Javascript object *or* throws an error.
+
+<!-- more -->
 
 Boltzmann looks for handlers exported by the following two places:
 

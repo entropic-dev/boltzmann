@@ -1,7 +1,13 @@
 +++
 title="Environment variables"
 weight=3
+[taxonomies]
+tags = ["reference"]
 +++
+
+Boltzmann's built-in features are configurable using environment variables.
+
+<!-- more -->
 
 Boltzmann respects the following environment variables out of the box:
 
@@ -16,4 +22,10 @@ Boltzmann respects the following environment variables out of the box:
 - `PGURL` & `PGPOOLSIZE`: passed to the postgres pool constructor, if postgres is enabled
 - `REDIS_URL`: passed to redis client constructor, if redis is enabled
 - `SERVICE_NAME`: the name of the service to advertise to Honeycomb and others; falls back to the name of your package in package.json
+
+The framework does not express any opinions about how this environment is set up. In development you can use [dotenv](https://github.com/motdotla/dotenv) with an invocation like this:
+
+```shell
+node -r dotenv/config ./boltzmann.js
+```
 
