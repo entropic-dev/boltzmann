@@ -59,7 +59,7 @@ async function main ({
 } = {}) {
   const server = http.createServer()
 
-  const handler = await buildMiddleware(middleware, router(handlers))
+  const handler = await buildMiddleware(middleware, await router(handlers))
   Context._bodyParser = bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
     throw Object.assign(new Error('Cannot parse request body'), {
       [STATUS]: 415
@@ -211,7 +211,7 @@ Context._bodyParser = null
 // Routing
 // - - - - - - - - - - - - - - - -
 
-function router (handlers) {
+async function router (handlers) {
   const wayfinder = fmw({})
 
   for (let [key, handler] of Object.entries(handlers)) {
@@ -235,7 +235,7 @@ function router (handlers) {
       }
 
       if (Array.isArray(middleware)) {
-        handler = buildMiddleware(middleware, handler)
+        handler = await buildMiddleware(middleware, handler)
       }
 
       Object.assign(handler, {
