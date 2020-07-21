@@ -1,0 +1,43 @@
+{
+  "dependencies": {
+    "ajv": "^6.12.2",
+    "culture-ships": "^1.0.0",
+    "bole": "^4.0.0",
+    "accepts": "^1.3.7",
+    "are-we-dev": "^1.0.0",
+    "dotenv": "^8.2.0",
+    "cookie": "^0.4.1",
+    "find-my-way": "^2.2.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.1.0",
+    "@typescript-eslint/parser": "^3.1.0",
+    "tap": "^14.10.7",
+    "bistre": "^1.0.1",
+    "@typescript-eslint/eslint-plugin": "^3.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.3",
+    "prettier": "^2.0.5",
+    "@hapi/shot": "^4.1.2"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "posttest": "npm run lint",
+    "start": "./boltzmann.js",
+    "test": "tap test",
+    "boltzmann:upgrade": "npx boltzmann-cli"
+  },
+  "boltzmann": {
+    "version": "0.1.1",
+    "githubci": true,
+    "status": true,
+    "ping": true
+  },
+  "name": "attaching-middleware",
+  "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
+  "license": "MIT",
+  "description": "",
+  "keywords": [],
+  "main": "index.js",
+  "version": "1.0.0"
+}
