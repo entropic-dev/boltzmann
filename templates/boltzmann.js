@@ -179,6 +179,11 @@ class Context {
     return this._parsedUrl
   }
 
+  set url(value) {
+    this._parsedUrl = null
+    this.request.url = value
+  }
+
   get query () {
     return Object.fromEntries(this.url.searchParams)
   }
