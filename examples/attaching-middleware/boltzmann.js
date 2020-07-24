@@ -9,24 +9,24 @@ const serviceName = (
   require('./package.json').name.split('/').pop()
 )
 
-// 
+//
 
 const ships = require('culture-ships')
-// 
+//
 const ship = ships.random()
-// 
+//
 const querystring = require('querystring')
 const { promisify } = require('util')
 const isDev = require('are-we-dev')
 const fmw = require('find-my-way')
 const accepts = require('accepts')
 const fs = require('fs').promises
-// 
+//
 const http = require('http')
 const bole = require('bole')
 const os = require('os')
-// 
-// 
+//
+//
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
@@ -45,7 +45,7 @@ async function main ({
 } = {}) {
   const server = http.createServer()
 
-  const handler = await buildMiddleware(middleware, router(handlers))
+  const handler = await buildMiddleware(middleware, await router(handlers))
   Context._bodyParser = bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
     throw Object.assign(new Error('Cannot parse request body'), {
       [STATUS]: 415
@@ -118,18 +118,18 @@ class Context {
     this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
     this._cookie = null
 
-    // 
-    // 
+    //
+    //
   }
 
-  // 
+  //
 
   get cookie () {
     this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
     return this._cookie
   }
 
-  // 
+  //
 
   /** @type {string} */
   get method() {
@@ -176,7 +176,7 @@ Context._bodyParser = null
 // Routing
 // - - - - - - - - - - - - - - - -
 
-function router (handlers) {
+async function router (handlers) {
   const wayfinder = fmw({})
 
   for (let [key, handler] of Object.entries(handlers)) {
@@ -200,7 +200,7 @@ function router (handlers) {
       }
 
       if (Array.isArray(middleware)) {
-        handler = buildMiddleware(middleware, handler)
+        handler = await buildMiddleware(middleware, handler)
       }
 
       Object.assign(handler, {
@@ -245,9 +245,9 @@ function router (handlers) {
     }
     context.params = match.params
 
-    // 
+    //
       return match.handler(context, match.params, match.store, null)
-      // 
+      //
   }
 }
 
@@ -259,12 +259,12 @@ async function buildMiddleware (middleware, router) {
   const middlewareToSplice = (
     isDev()
     ? (mw) => [
-      // 
+      //
       dev(mw),
       enforceInvariants()
     ]
     : (mw) => [
-      // 
+      //
       enforceInvariants()
     ]
   )
@@ -273,7 +273,7 @@ async function buildMiddleware (middleware, router) {
     return [...lhs, ...middlewareToSplice(mw), mw(...args)]
   }, []).concat(middlewareToSplice({ name: 'router' }))
 
-  // 
+  //
   return result.reduceRight(async (lhs, rhs) => {
     return rhs(await lhs)
   }, router)
@@ -369,9 +369,9 @@ function enforceInvariants () {
         } else if (isPipe) {
           headers['content-type'] = 'application/octet-stream'
         } else {
-          // 
+          //
           headers['content-type'] = 'application/json; charset=utf-8'
-          // 
+          //
         }
       }
 
@@ -404,26 +404,39 @@ function enforceInvariants () {
   }
 }
 
-// 
+//
 
 function handleCORS ({
-  origins = [],
-  methods = [],
-  headers = []
+  origins = isDev() ? '*' : String(process.env.CORS_ALLOW_ORIGINS).split(','),
+  methods = String(process.env.CORS_ALLOW_METHODS).split(','),
+  headers = String(process.env.CORS_ALLOW_HEADERS).split(',')
 }) {
+  origins = [].concat(origins)
+  const includesStar = origins.includes('*')
+
   return next => {
-    return function cors (context) {
-      if (context.request.method === 'OPTIONS') {
-        return {
-          [Symbol.for('headers')]: {
-            'Access-Control-Allow-Origin': origins,
-            'Access-Control-Allow-Methods': methods,
-            'Access-Control-Allow-Headers': headers
-          }
-        }
+    return async function cors (context) {
+      if (!includesStar && !origins.includes(context.headers.origin)) {
+        throw Object.assign(new Error('Origin not allowed'), {
+          [Symbol.for('status')]: 400
+        })
       }
 
-      return next(context)
+      const response = (
+        context.method === 'OPTIONS'
+        ? Object.assign(Buffer.from(''), {
+            [Symbol.for('status')]: 204,
+          })
+        : await next(context)
+      )
+
+      response[Symbol.for('headers')] = {
+        'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
+        'Access-Control-Allow-Methods': [].concat(methods).join(','),
+        'Access-Control-Allow-Headers': [].concat(headers).join(',')
+      }
+
+      return response
     }
   }
 }
@@ -440,9 +453,9 @@ function applyHeaders (headers = {}) {
 
 const applyXFO = (mode) => applyHeaders({ 'x-frame-options': mode })
 
-// 
+//
 
-// 
+//
 
 function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
@@ -515,16 +528,16 @@ function urlEncoded (next) {
   }
 }
 
-// 
-// 
-// 
+//
+//
+//
 
-// 
+//
 function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = {
-    // 
-    // 
+    //
+    //
     ..._requireOr('./reachability', {})
   }
 } = {}) {
@@ -575,9 +588,9 @@ function handleStatus ({
     }
   }
 }
-// 
+//
 
-// 
+//
 function handlePing () {
   return next => context => {
     if (context.url.pathname === '/monitor/ping') {
@@ -586,12 +599,12 @@ function handlePing () {
     return next(context)
   }
 }
-// 
+//
 
-// 
-// 
+//
+//
 
-// 
+//
 
 // - - - - - - - - - - - - - - - -
 // Decorators
@@ -651,15 +664,15 @@ function test ({
   after = require('tap').teardown
 }) {
   const shot = require('@hapi/shot')
-  // 
+  //
 
-  // 
+  //
 
-  // 
+  //
 
   return inner => async assert => {
-    // 
-    // 
+    //
+    //
 
     const server = await main({ middleware, bodyParsers, handlers })
     const [onrequest] = server.listeners('request')
@@ -699,7 +712,7 @@ function test ({
     try {
       await inner(assert, request)
     } finally {
-      // 
+      //
     }
   }
 }
@@ -804,30 +817,30 @@ exports.decorators = {
   test
 }
 exports.middleware = {
-// 
-// 
+//
+//
   handleCORS,
   applyXFO,
-// 
+//
 ...exports.decorators // forwarding these here.
 }
 
-// 
+//
 if (require.main === module) {
   main({
     middleware: [
-      // 
-      // 
+      //
+      //
       handlePing,
-      // 
+      //
       log,
 
-      // 
-      // 
+      //
+      //
       ..._processMiddleware(_requireOr('./middleware', [])),
-      // 
+      //
       ...[handleStatus]
-      // 
+      //
     ]
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
@@ -838,4 +851,4 @@ if (require.main === module) {
     process.exit(1)
   })
 }
-// 
+//
