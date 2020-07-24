@@ -4,7 +4,7 @@ const { Context } = require('./boltzmann.js') // optionally pull in typescript d
 const { log } = require('./middleware')
 
 base.route = 'GET /'
-async function base(/** @type {Context} */ context) {
+async function base(/** @type {Context} */ _context) {
   return 'ok!'
 }
 
@@ -13,7 +13,7 @@ greeting.route = 'GET /hello/:name'
 // for this route.
 greeting.middleware = [
   log, // use the default params,
-  [log, { before: 'hello', after: 'goodbye' }] // or customize!
+  [log, { before: 'hello', after: 'goodbye' }], // or customize!
 ]
 async function greeting(/** @type {Context} */ context) {
   return `hello ${context.params.name}`
