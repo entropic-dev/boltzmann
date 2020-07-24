@@ -9,6 +9,7 @@ function log ({ before = 'before', after = 'after' } = {}) {
       logger.info(before)
       const response = await next(context)
       logger.info(after)
+      return response
     }
   }
 }
