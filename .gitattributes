@@ -1,1 +1,1 @@
-templates/ text eol=lf
+templates/** text eol=lf
