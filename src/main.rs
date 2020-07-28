@@ -1,6 +1,6 @@
 #![allow(clippy::option_option)]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
@@ -80,11 +80,12 @@ struct RunScripts {
     posttest: Option<String>,
     start: Option<String>,
     test: Option<String>,
-    #[serde(rename = "boltzmann:upgrade")]
-    upgrade: Option<String>,
 
     #[serde(flatten)]
-    pub(crate) rest: HashMap<String, Value>,
+    pub(crate) rest: BTreeMap<String, Value>,
+
+    #[serde(rename = "boltzmann:upgrade")]
+    upgrade: Option<String>,
 }
 
 impl RunScripts {
@@ -101,23 +102,23 @@ impl Default for RunScripts {
             start: Some("./boltzmann.js".to_string()),
             test: Some("tap test".to_string()),
             upgrade: Some(RunScripts::upgrade_string()),
-            rest: HashMap::new()
+            rest: BTreeMap::new()
         }
     }
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct PackageJson {
-    dependencies: Option<HashMap<String, String>>,
+    #[serde(flatten)]
+    pub(crate) rest: BTreeMap<String, Value>,
+
+    dependencies: Option<BTreeMap<String, String>>,
 
     #[serde(rename = "devDependencies")]
-    dev_dependencies: Option<HashMap<String, String>>,
+    dev_dependencies: Option<BTreeMap<String, String>>,
 
     scripts: Option<RunScripts>,
     boltzmann: Option<Settings>,
-
-    #[serde(flatten)]
-    pub(crate) rest: HashMap<String, Value>,
 }
 
 fn load_package_json(flags: &Flags, default_settings: Settings) -> Option<PackageJson> {
@@ -297,8 +298,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let old = serde_json::to_value(settings)?;
     let new = serde_json::to_value(&updated_settings)?;
 
-    let mut dependencies = package_json.dependencies.take().unwrap_or_else(HashMap::new);
-    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(HashMap::new);
+    let mut dependencies = package_json.dependencies.take().unwrap_or_else(BTreeMap::new);
+    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(BTreeMap::new);
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
     info!("    updating dependencies...");
 
