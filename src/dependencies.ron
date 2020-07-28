@@ -76,7 +76,7 @@
   ),
   DependencySpec(
     name: "pg",
-    version: "^8.2.1",
+    version: "^7.18.2",
     kind: Normal,
     preconditions: Some(When(  feature: Some("postgres"),if_not_present: [] ))
   ),
