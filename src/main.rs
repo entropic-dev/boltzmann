@@ -87,6 +87,12 @@ struct RunScripts {
     pub(crate) rest: HashMap<String, Value>,
 }
 
+impl RunScripts {
+    fn upgrade_string() -> String {
+        "npx boltzmann-cli".to_string()
+    }
+}
+
 impl Default for RunScripts {
     fn default() -> Self {
         RunScripts {
@@ -94,7 +100,7 @@ impl Default for RunScripts {
             posttest: Some("npm run lint".to_string()),
             start: Some("./boltzmann.js".to_string()),
             test: Some("tap test".to_string()),
-            upgrade: Some("npx boltzmann-cli".to_string()),
+            upgrade: Some(RunScripts::upgrade_string()),
             rest: HashMap::new()
         }
     }
@@ -260,9 +266,14 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         ..Default::default()
     };
 
-    let mut package_json = if let Some(xs) = load_package_json(&flags, default_settings.clone()) {
+    let mut package_json = if let Some(mut package_json) = load_package_json(&flags, default_settings.clone()) {
         info!("    loaded settings from existing package.json");
-        xs
+        package_json.scripts = package_json.scripts.map(|mut scripts| {
+            scripts.upgrade.replace(RunScripts::upgrade_string());
+            scripts
+        }).or_else(Default::default);
+
+        package_json
     } else {
         info!("    initializing a new NPM package...");
         initialize_package_json(&flags.destination, verbosity)
