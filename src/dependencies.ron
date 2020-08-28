@@ -6,6 +6,12 @@
     preconditions: None
   ),
   DependencySpec(
+    name: "uuid",
+    version: "^8.3.0",
+    kind: Normal,
+    preconditions: None
+  ),
+  DependencySpec(
     name: "nunjucks",
     version: "^3.2.1",
     kind: Normal,

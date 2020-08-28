@@ -477,8 +477,9 @@ function template ({
   paths = ['templates'],
   filters = {},
   tags = {},
+  logger = bole('BOLTZMANN:templates'),
   opts = {
-    watch: isDev()
+    noCache: isDev()
   }
 } = {}) {
   const nunjucks = require('nunjucks')
@@ -493,7 +494,7 @@ function template ({
   for (const name in filters) {
     env.addFilter(name, (...args) => {
       const cb = args[args.length - 1]
-      new Promise((resolve, reject) => {
+      new Promise((resolve, _) => {
         resolve(filters[name](...args.slice(0, -1)))
       }).then(
         xs => cb(null, xs),
@@ -506,6 +507,57 @@ function template ({
     env.addExtension(name, tags[name])
   }
 
+  // {% raw %}
+  const devErrorTemplate = new nunjucks.Template(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Boltzmann Template Error</title>
+    </head>
+    <body>
+      <aside>
+        You&#39;re seeing this page because you are in dev mode.
+        {% if context.method == "GET" %}
+        <a href="?__production=1">Click here</a> to see the production version of this error, or
+        {% endif %}
+        set the <code>NODE_ENV</code> environment variable to <code>production</code> and restart the server.
+      </aside>
+      {% if response.stack %}
+        <h1><code>{{ response.name }}</code>: <code>{{ response.message }}</code></h1>
+        <pre><code>{{ response.stack }}</code></pre>
+      {% endif %}
+
+      {% if renderError %}
+        <h1>Caught error rendering <code>{{ template }}</code>: {{ renderError.message }}</h1>
+        <pre><code>{{ renderError.stack }}</code></pre>
+        <br/>
+      {% endif %}
+
+      <details>
+          <summary>Response Data</summary>
+          <pre><code>{{ response|dump(2) }}</code></pre>
+      </details>
+
+      <br />
+      <details>
+          <summary>Response Headers</summary>
+          <pre><code>{{ headers|dump(2) }}</code></pre>
+      </details>
+
+    </body>
+    </html>
+  `, env)
+  // {% endraw %}
+
+  // development behavior: if we encounter an error rendering a template, we
+  // display a development error template explaining the error. If the error
+  // was received while handling an original error, that will be displayed as
+  // well. TODO: each stack frame should be displayed in context.
+  //
+  // production behavior: we try to render a 5xx.html template. If that's not
+  // available, return a "raw" error display -- "An error occurred" with a
+  // correlation ID.
   return next => {
     return async function template (context) {
       const response = await next(context)
@@ -520,12 +572,17 @@ function template ({
         return response
       }
 
+      let ctxt = response
       let name = template
-      if (threw) {
+      let renderingErrorTemplate = false
+      if (threw && !template) {
+        // If you threw and didn't have a template set, we have to guess at
+        // whether this response is meant for consumption by a browser or
+        // some other client.
         const maybeJSON = (
           context.headers['sec-fetch-dest'] === 'none' || // fetch()
           'x-requested-with' in context.headers ||
-          context.headers['content-type'].includes('application/json')
+          (context.headers['content-type'] || '').includes('application/json')
         )
 
         if (maybeJSON) {
@@ -533,19 +590,71 @@ function template ({
         }
 
         headers['content-type'] = 'text/html'
-        name = `${status - (status % 100)}.html`
+        name = (
+          isDev() && !('__production' in context.query)
+          ? devErrorTemplate
+          : `${String(status - (status % 100)).replace(/0/g, 'x')}.html`
+        )
+
+        renderingErrorTemplate = true
+        ctxt = {
+          context,
+          response,
+          template: name,
+          renderError: null,
+          headers,
+          status
+        }
       }
 
-      const rendered = await new Promise((resolve, reject) => {
-        env.render(name, response, (err, result) => {
-          err ? reject(err) : resolve(result)
+      let rendered = null
+      try {
+        rendered = await new Promise((resolve, reject) => {
+          env.render(name, ctxt, (err, result) => {
+            err ? reject(err) : resolve(result)
+          })
         })
-      })
+      } catch (err) {
+        const target = !renderingErrorTemplate && isDev() ? devErrorTemplate : '5xx.html'
 
+        rendered = await new Promise((resolve, _) => {
+          env.render(target, {
+            context,
+            response,
+            template: name,
+            renderError: err,
+            headers,
+            status
+          }, (err, result) => {
+            if (err) {
+              const correlation = require('uuid').v4()
+              if (response.stack) {
+                logger.error(`[${correlation} 1/2] Caught error rendering 5xx.html for original error: ${response.stack}`)
+              }
+              logger.error(`[${correlation} ${response.stack ? '2/2' : '1/1'}] Caught template error while rendering 5xx.html: ${err.stack}`)
+
+              resolve(`
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8">
+                <title></title>
+              </head>
+              <body>
+                <h1>An unexpected server error occurred (ref: <code>${correlation}</code>).</h1>
+              </body>
+              </html>`)
+            } else {
+              resolve(result)
+            }
+          })
+        })
+      }
+
+      // NB: This removes "THREW" because the template layer is handling the error.
       return Object.assign(Buffer.from(rendered, 'utf8'), {
         [STATUS]: status,
         [HEADERS]: headers,
-        [THREW]: threw
       })
     }
   }
@@ -2242,6 +2351,7 @@ if (require.main === module) {
 
   test('template middleware custom filters may throw', async assert => {
     let called = 0
+    process.env.NODE_ENV = ''
     const handler = async context => {
       ++called
       return {
@@ -2278,6 +2388,50 @@ if (require.main === module) {
 
     assert.equal(called, 1)
     assert.matches(response.payload, /oops oh no/)
+  })
+
+  test('reset env', async _ => {
+    process.env.NODE_ENV = 'test'
+  })
+
+  test('template errors are hidden in non-dev mode', async assert => {
+    let called = 0
+    const handler = async context => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello'
+      }
+    }
+
+    await fs.writeFile(path.join(__dirname, 'templates', 'test.html'), `
+      {% raw %}{{ greeting|frobnify }} world{% endraw %}
+    `.trim())
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [template, {
+          filters: {
+            frobnify: (xs) => {
+              throw new Error('oops oh no')
+            }
+          }
+        }]
+      ],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(called, 1)
+    assert.notMatch(response.payload, /oops oh no/)
   })
 
   test('applyHeaders adds requested headers', async assert => {
