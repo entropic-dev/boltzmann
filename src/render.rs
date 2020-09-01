@@ -1,6 +1,6 @@
 use std::io::prelude::*;
 
-use colored::*;
+use owo_colors::OwoColorize;
 use log::{info, debug, trace};
 
 #[cfg(not(target_os = "windows"))]
