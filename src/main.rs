@@ -6,8 +6,8 @@ use std::path::PathBuf;
 
 use anyhow::{ anyhow, Context as ErrorContext, Result };
 use atty::Stream;
-use colored::*;
 use log::{info, warn};
+use owo_colors::OwoColorize;
 use serde_json::{ Value, self };
 use serde::{ Serialize, Deserialize };
 use structopt::clap::AppSettings::*;
@@ -28,7 +28,11 @@ static NPM: &str = "npm.cmd";
 #[derive(Clone, Serialize, StructOpt)]
 #[structopt(name = "boltzmann", about = "Generate or update scaffolding for a Boltzmann service.
 To enable a feature, mention it or set the option to `on`.
-To remove a feature from an existing project, set it to `off`.")]
+To remove a feature from an existing project, set it to `off`.
+
+Examples:
+boltzmann my-project --redis --website
+boltzmann my-project --githubci=off --honeycomb --jwt")]
 #[structopt(global_setting(ColoredHelp), global_setting(ColorAuto))]
 pub struct Flags {
     #[structopt(long, help = "Enable redis")]
@@ -46,22 +50,29 @@ pub struct Flags {
     #[structopt(long, help = "Enable Nunjucks templates")]
     templates: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable /monitor/status healthcheck endpoint")]
+    #[structopt(long, help = "Enable csrf protection middleware")]
+    csrf: Option<Option<Flipper>>,
+
+    #[structopt(long, help = "Enable /monitor/status healthcheck endpoint; on by default")]
     status: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable /monitor/ping liveness endpoint")]
+    #[structopt(long, help = "Enable /monitor/ping liveness endpoint; on by default")]
     ping: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable jwt middleware")]
     jwt: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable csrf protection middleware")]
-    csrf: Option<Option<Flipper>>,
+    // Convenient option groups next. These aren't saved individually.
+    #[structopt(long, help = "Enable website feature set (templates, csrf)")]
+    website: bool,
+
+    #[structopt(long, help = "Enable everything!")]
+    all: bool,
 
     #[structopt(long, help = "Update a git-repo destination even if there are changes")]
     force: bool, // for enemies
 
-    #[structopt(short, long, parse(from_occurrences), help = "Pass -vv or -vvv to increase verbosity")]
+    #[structopt(short, long, parse(from_occurrences), help = "Pass -v or -vv to increase verbosity")]
     verbose: u64, // huge but this is what our logger wants
 
     #[structopt(long, short, help = "Suppress all output except errors.")]

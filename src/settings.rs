@@ -56,8 +56,9 @@ pub struct Settings {
 
 impl Settings {
     pub fn merge_flags(&self, version: String, flags: &Flags) -> Settings {
-        let cast = |xs: &Option<Option<Flipper>>, default: &Option<bool>| -> Option<bool> {
-            if flags.selftest {
+        // TODO: This is becoming horrifying.
+        let cast = |xs: &Option<Option<Flipper>>, default: &Option<bool>, set_by_group: bool| -> Option<bool> {
+            if flags.selftest || set_by_group {
                 return Some(true)
             }
             match xs {
@@ -70,15 +71,15 @@ impl Settings {
 
         Settings {
             version: Some(version),
-            redis: cast(&flags.redis, &self.redis),
-            postgres: cast(&flags.postgres, &self.postgres),
-            honeycomb: cast(&flags.honeycomb, &self.honeycomb),
-            githubci: cast(&flags.githubci, &self.githubci),
-            templates: cast(&flags.templates, &self.templates),
-            status: cast(&flags.status, &self.status),
-            ping: cast(&flags.ping, &self.ping),
-            jwt: cast(&flags.jwt, &self.jwt),
-            csrf: cast(&flags.csrf, &self.csrf),
+            csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
+            githubci: cast(&flags.githubci, &self.githubci, flags.all),
+            honeycomb: cast(&flags.honeycomb, &self.honeycomb, flags.all),
+            jwt: cast(&flags.jwt, &self.jwt, flags.all || flags.website),
+            ping: cast(&flags.ping, &self.ping, flags.all || flags.website),
+            postgres: cast(&flags.postgres, &self.postgres, flags.all),
+            redis: cast(&flags.redis, &self.redis, flags.all),
+            status: cast(&flags.status, &self.status, flags.all || flags.website),
+            templates: cast(&flags.templates, &self.templates, flags.all || flags.website),
             selftest: if flags.selftest {
                 Some(true)
             } else {
@@ -93,35 +94,36 @@ impl fmt::Display for Settings {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut features = vec![];
         // I'm fairly horrified by this.
-        if self.selftest.unwrap_or(false) {
-            features.push("selftest");
-        }
-        if self.redis.unwrap_or(false) {
-            features.push("redis");
-        }
-        if self.postgres.unwrap_or(false) {
-            features.push("postgres");
-        }
-        if self.honeycomb.unwrap_or(false) {
-            features.push("honeycomb");
+        if self.csrf.unwrap_or(false) {
+            features.push("csrf");
         }
         if self.githubci.unwrap_or(false) {
             features.push("githubci");
         }
-        if self.templates.unwrap_or(false) {
-            features.push("templates");
+        if self.honeycomb.unwrap_or(false) {
+            features.push("honeycomb");
         }
         if self.jwt.unwrap_or(false) {
             features.push("jwt");
         }
-        if self.csrf.unwrap_or(false) {
-            features.push("csrf");
+        if self.ping.unwrap_or(false) {
+            features.push("ping");
+        }
+        if self.postgres.unwrap_or(false) {
+            features.push("postgres");
+        }
+        if self.redis.unwrap_or(false) {
+            features.push("redis");
         }
         if self.status.unwrap_or(false) {
             features.push("status");
         }
-        if self.ping.unwrap_or(false) {
-            features.push("ping");
+        if self.templates.unwrap_or(false) {
+            features.push("templates");
+        }
+        // Oddball is last.
+        if self.selftest.unwrap_or(false) {
+            features.push("selftest");
         }
 
         write!(f, "{}", features.join(", "))
@@ -132,16 +134,16 @@ impl Into<Context> for Settings {
     fn into(self) -> Context {
         let mut ctxt = Context::new();
 
-        ctxt.insert("redis", &self.redis.unwrap_or(false));
-        ctxt.insert("postgres", &self.postgres.unwrap_or(false));
-        ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
-        ctxt.insert("selftest", &self.selftest.unwrap_or(false));
-        ctxt.insert("githubci", &self.githubci.unwrap_or(false));
-        ctxt.insert("templates", &self.templates.unwrap_or(false));
-        ctxt.insert("status", &self.status.unwrap_or(false));
-        ctxt.insert("ping", &self.ping.unwrap_or(false));
-        ctxt.insert("jwt", &self.jwt.unwrap_or(false));
         ctxt.insert("csrf", &self.csrf.unwrap_or(false));
+        ctxt.insert("githubci", &self.githubci.unwrap_or(false));
+        ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
+        ctxt.insert("jwt", &self.jwt.unwrap_or(false));
+        ctxt.insert("ping", &self.ping.unwrap_or(false));
+        ctxt.insert("postgres", &self.postgres.unwrap_or(false));
+        ctxt.insert("redis", &self.redis.unwrap_or(false));
+        ctxt.insert("status", &self.status.unwrap_or(false));
+        ctxt.insert("templates", &self.templates.unwrap_or(false));
+        ctxt.insert("selftest", &self.selftest.unwrap_or(false));
         ctxt.insert("version", &self.version.unwrap_or_else(|| "<unknown version>".to_string())[..]);
 
         ctxt
