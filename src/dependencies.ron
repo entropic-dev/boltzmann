@@ -113,6 +113,24 @@
     preconditions: None
   ),
   DependencySpec(
+    name: "stackman",
+    version: "^4.0.1",
+    kind: Development,
+    preconditions: Some(When(
+      feature: Some("templates"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
+    name: "get-function-location",
+    version: "^2.0.0",
+    kind: Development,
+    preconditions: Some(When(
+      feature: Some("templates"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
     name: "@hapi/shot",
     version: "^4.1.2",
     kind: Development,
