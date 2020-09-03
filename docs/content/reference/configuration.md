@@ -28,4 +28,3 @@ The framework does not express any opinions about how this environment is set up
 ```shell
 node -r dotenv/config ./boltzmann.js
 ```
-

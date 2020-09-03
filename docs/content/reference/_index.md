@@ -1,6 +1,7 @@
 +++
 paginate_by = 20
 sort_by = "weight"
+title = "Reference"
 +++
 
-Learn about Boltzmann's core concepts.
+Reference documentation that goes into detail about specific topics.
