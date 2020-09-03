@@ -64,31 +64,37 @@ Boltzmann at 0.1.1 with githubci, status, ping
 The current output of `npx boltzmann-cli help`:
 
 ```shell
-boltzmann 0.1.1
+boltzmann 0.1.2
 Generate or update scaffolding for a Boltzmann service.
 To enable a feature, mention it or set the option to `on`.
 To remove a feature from an existing project, set it to `off`.
+
+Examples:
+boltzmann my-project --redis --website
+boltzmann my-project --githubci=off --honeycomb --jwt
 
 USAGE:
     boltzmann [FLAGS] [OPTIONS] [destination]
 
 FLAGS:
+        --all         Enable everything!
         --force       Update a git-repo destination even if there are changes
     -h, --help        Prints help information
         --selftest    Build for a self-test.
     -s, --silent      Suppress all output except errors.
     -V, --version     Prints version information
-    -v, --verbose     Pass -vv or -vvv to increase verbosity
+    -v, --verbose     Pass -v or -vv to increase verbosity
+        --website     Enable website feature set (templates, csrf)
 
 OPTIONS:
         --csrf <csrf>              Enable csrf protection middleware
         --githubci <githubci>      Enable GitHub actions CI
         --honeycomb <honeycomb>    Enable honeycomb
         --jwt <jwt>                Enable jwt middleware
-        --ping <ping>              Enable /monitor/ping liveness endpoint
+        --ping <ping>              Enable /monitor/ping liveness endpoint; on by default
         --postgres <postgres>      Enable postgres
         --redis <redis>            Enable redis
-        --status <status>          Enable /monitor/status healthcheck endpoint
+        --status <status>          Enable /monitor/status healthcheck endpoint; on by default
         --templates <templates>    Enable Nunjucks templates
 
 ARGS:

@@ -27,7 +27,7 @@ Middleware is Boltzmann's primary mechanism for exposing configurable behavior
 to you. It is also Boltzmann's mechanism for enabling [dependency
 injection][ref-di]. It's a powerful concept! This document will cover how to
 talk about middleware and how to attach it to your application. Other documents
-cover [how to write middleware][ref-guide] and [what middleware boltzmann makes
+cover how to write middleware and [what middleware boltzmann makes
 available to your application][ref-reference].
 
 > :warning: This document does not cover how to parse incoming request bodies.
@@ -217,6 +217,7 @@ module.exports = {
 ```
 
 ```javascript
+// handlers.js
 module.exports = { hello }
 
 hello.route = 'GET /'
@@ -244,6 +245,5 @@ available][ref-reference]. Happy hacking!
 
 [ref-di]: https://en.wikipedia.org/wiki/Dependency_injection
 [ref-gzip]: https://github.com/entropic-dev/boltzmann/blob/latest/examples/custom-middleware/middleware/gzip.js
-[ref-guide]: @/guides/middleware.md
 [ref-reference]: @/reference/middleware.md
 [in the body parsing]: @/concepts/body-parsing.md

@@ -1,8 +1,10 @@
 base_url = "https://entropic-dev.github.io/boltzmann"
 compile_sass = true
 highlight_code = true
+highlight_theme = "kronuz"
 build_search_index = true
-theme = "after-dark"
+theme = "boltzie"
+title = "Boltzmann: A JS HTTP Framework"
 
 taxonomies = [
     # You can enable/disable feeds
