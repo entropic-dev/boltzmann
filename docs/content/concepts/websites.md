@@ -5,18 +5,15 @@ weight=4
 tags = ["concepts"]
 +++
 
-Boltzmann can be configured with features that give you a jumpstart with
-building websites. Specifically, you can build services that respond to route
-handlers with templated text/html responses as well as JSON responses.
+Boltzmann's defaults are good for building API servers, but it can be configured
+with features that give you a jumpstart with building websites. Specifically,
+you can build services that respond to route handlers with templated text/html
+responses as well as JSON responses.
 
 <!-- more -->
 
-Enable the built-in cross-site request forgery protection by passing `--csrf`.
-Enable the built-in template rendering by passing `--templates`. Cookie features
-are built into Boltzmann.
-
 To scaffold a service with all website-focused features, pass the `--website` option.
-
+This invocation gives you a simple website scaffold:
 
 ```shell
 > boltzmann-cli --website --silent my-website
@@ -24,9 +21,47 @@ Boltzmann at 0.1.2 with csrf, githubci, jwt, ping, status, templates
 ```
 
 Run the server with `node my-website/boltzmann.js`. Point your browser to
-`http://localhost:5000/hello/world` to see the simple example template being rendered.
+`http://localhost:5000/hello/world` to see the index template being rendered.
+
+## Cookies
+
+Cookie handling is always enabled in Boltzmann. The context object passed to
+each route handler has functions for getting and setting cookies. The underlying
+implementation of cookie parsing is from
+[jshttp/cookie](https://github.com/jshttp/cookie).
+
+The functions for examining cookies are:
+
+* `context.cookie.get(name)`: Get the named cookie; returns an object.
+* `context.cookie.set(name, value)`: Set the named cookie. Sends the passed
+  value to jshttp's cookie.serialize().
+* `context.cookie.delete(name)`: Un-sets the named cookie.
+
+## CSRF protection
+
+You can toggle the cross-site request forgery protection feature on its own by
+passing `--csrf=[on|off]`.
+
+Boltzmann uses the double-submit pattern to check that a form submission is
+valid. It stores a secret in a signed cookie for the user. On requests with HTTP
+verbs indicating mutation it verifies that a) the cookie signature is good, and
+that b) the submitted token is valid for that secret.
+
+You can configure the csrf middleware by passing an object with these fields
+to `boltzmann.middleware.applyCSRF`:
+
+- `cookieSecret`: the secret used to sign the cookie; defaults to
+  `process.env.COOKIE_SECRET`; required
+- `csrfCookie`: the name of the cookie to store the token in; defaults to
+  `_csrf`
+- `param`: a body param to look for the csrf token in; defaults to `_csrf`
+- `header`: a response header to look for the csrf token in; is consulted first
+  if both are used; defaults to `csrf-token`
 
 ## Templates
+
+You can toggle the template rendering feature on its own by passing
+`--templates=[on|off]`.
 
 Boltzmann's templates feature uses
 [Nunjucks](https://mozilla.github.io/nunjucks/) templates. Template files by
@@ -37,7 +72,7 @@ with a handler that renders it.
 To respond from a route with a rendered template, name the template file in the
 object return by the route handler, like this:
 
-```
+```js
 return {
   [Symbol.for('template')]: 'index.html',
   cats: ['Fezzik', 'Mina', 'Oswin' ],
@@ -47,13 +82,22 @@ return {
 
 Everything else in the object is passed to the template renderer as context.
 
-Boltzmann looks for error templates in the `./templates` directory. It
-follows the convention of looking for `4xx.html` for all 400-category errors,
-and `5xx.html` for all 500-category errors.
+In production mode, Boltzmann looks for error templates in the `./templates`
+directory. It follows the convention of looking for `4xx.html` for thrown
+400-category errors and `5xx.html` for 500-category errors that don't otherwise
+have a template. If you throw errors without specifying a template, Boltzmann
+responds with JSON.
+
+If you are in development mode, with NODE_ENV set to something other than
+production, Boltzmann catches errors in rendering templates and gives you a
+debugging page with as much information as it can gather about the stack. This
+includes links to source code and to Honeycomb traces if they're available.
+
+{{image_sizer(path="concepts/error-template.jpeg", width=400)}}
 
 In development mode, it has a static file server built-in, which can help you
 test static assets like images. This feature is *disabled* in production, on
-the assumption that you will be serving static assets differently. Static assets
+the assumption that you will be serving static assets from a CDN. Static assets
 are in the `static` directory by default.
 
 Here's a project layout that requires no additional configuration:
@@ -72,42 +116,3 @@ Here's a project layout that requires no additional configuration:
    ├── base.html
    └── index.html
 ```
-
-## Cookies
-
-Cookie handling is always enabled in Boltzmann. The context object passed to each route handler
-has functions for getting and setting cookies. The underlying implementation of cookie parsing is
-from [jshttp/cookie](https://github.com/jshttp/cookie).
-
-* `context.cookie.get(name)`: Get the named cookie; returns an object.
-* `context.cookie.set(name, value)`: Set the named cookie. Sends the passed
-  value to jshttp's cookie.serialize().
-* `context.cookie.delete(name)`: Un-sets the named cookie.
-
-## CSRF protection
-
-Boltzmann uses the double-submit pattern to check that a form submission is
-valid. It stores a secret in a signed cookie for the user. On requests with HTTP
-verbs indicating mutation it verifies that a) the cookie signature is good, and
-that b) the submitted token is valid for that secret.
-
-You can configure the csrf middleware in the following ways:
-
-- `cookieSecret`: the secret used to sign the cookie; defaults to
-  `process.env.COOKIE_SECRET`
-- `csrfCookie`: the name of the cookie to store the token in; defaults to
-  `_csrf`
-- `param`: a body param to look for the csrf token in; defaults to `_csrf`
-- `header`: a response header to look for the csrf token in; is consulted first
-  if both are used; defaults to `csrf-token`
-
-## Error handling in development
-
-If you are in development mode, with NODE_ENV set to something other than
-production, Boltzmann catches errors in rendering templates and gives you a
-debugging page with as much information as it can gather about the stack. This
-includes links to source code and to Honeycomb traces if they're available.
-
-{{image_sizer(path="concepts/error-template.jpeg", width=400)}}
-
-
