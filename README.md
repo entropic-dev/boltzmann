@@ -19,9 +19,11 @@ Our design goals:
 
 Boltzmann provides Typescript definitions for its exports, for your development convenience, but it does not require you to opt-in to Typescript or do any transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
 
-Who's the "we" in this document? @ceejbot and @chrisdickinson.
+## Getting started
 
-## Hello world
+For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/v0.1.2/).
+
+If you prefer to look at working example code, we've provided examples in the [`./examples`](https://github.com/entropic-dev/boltzmann/tree/latest/examples) directory of this repo.
 
 To get started with Boltzmann, run the `boltzmann` command-line tool. You can get it from [the releases page][https://github.com/entropic-dev/boltzmann/releases] or run it via `npx boltzmann-cli`. The tool is responsible for initializing a new Boltzmann project as well as keeping it up to date. You enable or disable specific Boltzmann features using the tool.
 
@@ -59,13 +61,9 @@ To respond from a Boltzmann handler, you return a value. To return an error, you
 
 To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`
 
-## Documentation
+## Team
 
-[[ Link here to the docs website. ]]
-
-## Examples
-
-If you prefer to look at working example code, we've provided examples in the [`./examples`](https://github.com/entropic-dev/boltzmann/tree/latest/examples) directory of this repo.
+Who's the "we" in this document? [@ceejbot](https://github.com/ceejbot) and [@chrisdickinson](https://github.com/chrisdickinson).
 
 ## LICENCE
 

@@ -2,6 +2,7 @@
 
 const boltzmann = require('./boltzmann')
 
+// Your app-mounted middlewares look like this.
 function setupMiddlewareFunc(/* your config */) {
   // startup configuration goes here
   return function createMiddlewareFunc(next) {
@@ -18,10 +19,28 @@ function setupMiddlewareFunc(/* your config */) {
   }
 }
 
-module.exports = {
+// Route-mounted middlewares follow exactly the same pattern.
+function routeMiddlewareFunc(/* your config */) {
+  return next => {
+    return context => {
+      return next(context)
+    }
+  }
+}
 
-  APP_MIDDLEWARE: [
+module.exports = {
+  routeMiddlewareFunc, // exported for mounting & testing
+  setupMiddlewareFunc, // exported for testing
+  APP_MIDDLEWARE: [    // and this export mounts middlwares on the app
     setupMiddlewareFunc,
+    {%- if csrf %}
+    [boltzmann.middleware.applyCSRF, {
+      // cookieSecret: process.env.COOKIE_SECRET,
+      // csrfCookie: '_csrf',
+      // param: '_csrf',
+      // header: 'csrf-token'
+    }],
+    {%- endif %}
     {%- if templates %}
     [boltzmann.middleware.template, {
       // filters: {}, // add custom template filters

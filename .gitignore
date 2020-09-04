@@ -3,3 +3,4 @@ tmp
 bin/zola
 docs/output
 docs/public
+node_modules

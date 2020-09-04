@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% block head %}
+    <link rel="stylesheet" href="https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css"/>
+  {% endblock %}
+</head>
+<body id="{% block body_id %}{% endblock %}" class="{% block body_class %}w-100 sans-serif{% endblock %}">
+  {% block body %}
+    <div id="main" class="flex justify-center">
+      {% block content %}
+        {% if name %}
+        <h1>{{ greeting }} {{ name }}!</h1>
+        {% else %}
+        <h1>{{ greeting }} unknown visitor!</h1>
+        {% endif %}
+      {% endblock %}
+    </div>
+
+    {% block foot %}
+    {% endblock %}
+  {% endblock %}
+</body>
+</html>

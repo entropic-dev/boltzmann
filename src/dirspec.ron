@@ -11,7 +11,11 @@ Dir(DirSpec(
     ))),
 
     ("templates", 0o755, Dir(DirSpec(
-      children: [],
+      children: [
+            ("index.html", 0o644, Template(TemplateSpec(
+              template_name: "index.html"
+            )), None)
+      ],
     )), Some(When(
       feature: Some("templates"),
       if_not_present: []
