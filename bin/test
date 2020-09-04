@@ -36,7 +36,7 @@ function run_startup() {
 function run_examples() {
   for example in examples/*; do
     pushd $example
-    cargo run -- . --force --silent
+    cargo run -- . --force --silent --githubci=off
 
     echo "testing $example startup"
     PORT=8080 ./boltzmann.js &

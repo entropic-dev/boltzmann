@@ -3,4 +3,6 @@ tmp
 bin/zola
 docs/output
 docs/public
+docs/static/processed_images
 node_modules
+.nyc_output
