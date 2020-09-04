@@ -1,3 +1,11 @@
+// {% if esm %}
+import { Context } from './boltzmann.js' // optionally pull in typescript definition
+
+greeting.route = 'GET /hello/:name'
+export async function greeting(/** @type {Context} */ context) {
+  return `hello ${context.params.name}`
+}
+// {% else %}
 const { Context } = require('./boltzmann.js') // optionally pull in typescript definition
 
 greeting.route = 'GET /hello/:name'
@@ -17,3 +25,4 @@ async function greeting(/** @type {Context} */ context) {
 module.exports = {
   greeting,
 }
+// {% endif %}

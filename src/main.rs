@@ -50,6 +50,9 @@ pub struct Flags {
     #[structopt(long, help = "Enable Nunjucks templates")]
     templates: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Scaffold project using ES Modules")]
+    esm: Option<Option<Flipper>>,
+
     #[structopt(long, help = "Enable csrf protection middleware")]
     csrf: Option<Option<Flipper>>,
 
@@ -130,6 +133,9 @@ struct PackageJson {
 
     #[serde(rename = "devDependencies")]
     dev_dependencies: Option<BTreeMap<String, String>>,
+
+    #[serde(rename = "type")]
+    module_type: Option<String>,
 
     scripts: Option<RunScripts>,
     boltzmann: Option<Settings>,
@@ -364,6 +370,12 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         } else if !has_dep_currently {
             info!("        adding {} @ {} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind);
             target.insert(candidate.name, candidate.version);
+        }
+    }
+
+    if let Some(esm) = updated_settings.esm {
+        if esm {
+            package_json.module_type = Some("module".to_string());
         }
     }
 

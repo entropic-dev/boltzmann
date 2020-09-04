@@ -50,6 +50,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) csrf: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) esm: Option<bool>,
+
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
 }
@@ -69,6 +72,14 @@ impl Settings {
             }
         };
 
+        // ESM is the odd one:
+        let is_esm = match &flags.esm {
+            Some(None) => true,
+            Some(Some(Flipper::On)) => true,
+            Some(Some(Flipper::Off)) => false,
+            None => self.esm.unwrap_or(false)
+        };
+
         Settings {
             version: Some(version),
             csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
@@ -78,6 +89,8 @@ impl Settings {
             ping: cast(&flags.ping, &self.ping, flags.all || flags.website),
             postgres: cast(&flags.postgres, &self.postgres, flags.all),
             redis: cast(&flags.redis, &self.redis, flags.all),
+            esm: if is_esm { Some(true) } else { None }, 
+
             status: cast(&flags.status, &self.status, flags.all || flags.website),
             templates: cast(&flags.templates, &self.templates, flags.all || flags.website),
             selftest: if flags.selftest {
@@ -121,6 +134,9 @@ impl fmt::Display for Settings {
         if self.templates.unwrap_or(false) {
             features.push("templates");
         }
+        if self.esm.unwrap_or(false) {
+            features.push("esm");
+        }
         // Oddball is last.
         if self.selftest.unwrap_or(false) {
             features.push("selftest");
@@ -137,6 +153,7 @@ impl Into<Context> for Settings {
         ctxt.insert("csrf", &self.csrf.unwrap_or(false));
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
         ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
+        ctxt.insert("esm", &self.esm.unwrap_or(false));
         ctxt.insert("jwt", &self.jwt.unwrap_or(false));
         ctxt.insert("ping", &self.ping.unwrap_or(false));
         ctxt.insert("postgres", &self.postgres.unwrap_or(false));

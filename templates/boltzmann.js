@@ -4,6 +4,20 @@
 
 'use strict'
 
+// {% if esm %}
+import { createRequire } from 'module'
+import esMain from 'es-main'
+const require = createRequire(import.meta.url)
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+// {% set EXPORTS = "export " %}
+// {% else %}
+// {% set EXPORTS = "" %}
+// {% endif %}
+
 const serviceName = (
   process.env.SERVICE_NAME ||
   require('./package.json').name.split('/').pop()
@@ -52,11 +66,17 @@ let ajv = null
 let ajvLoose = null
 let ajvStrict = null
 
-async function main ({
-  middleware = _processMiddleware(_requireOr('./middleware', [])),
+{{ EXPORTS }} async function main ({
+  middleware = _requireOr('./middleware', []).then(_processMiddleware),
   bodyParsers = _requireOr('./body', [urlEncoded, json]),
   handlers = _requireOr('./handlers', {}),
 } = {}) {
+  [middleware, bodyParsers, handlers] = await Promise.all([
+    middleware,
+    bodyParsers,
+    handlers,
+  ])
+
   const server = http.createServer()
 
   const handler = await buildMiddleware(middleware, await router(handlers))
@@ -130,7 +150,7 @@ async function main ({
 // Request Context
 // - - - - - - - - - - - - - - - -
 
-class Context {
+{{ EXPORTS }} class Context {
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
@@ -1535,10 +1555,12 @@ function handleStatus ({
     // {% if redis %}
     redisReachability,
     // {% endif %}
-    ..._requireOr('./reachability', {})
-  }
+  },
+  extraReachability = _requireOr('./reachability', {})
 } = {}) {
-  return next => {
+  return async next => {
+    reachability = { ...reachability, ...await extraReachability }
+
     const hostname = os.hostname()
     let requestCount = 0
     const statuses = {}
@@ -1685,9 +1707,13 @@ function test ({
 
   // {% if redis %}
   const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
-  middleware.push(() => next => async context => {
-    context._redisClient = redisClient
-    return next(context)
+  middleware = middleware.then(mw => {
+    mw.push(() => next => async context => {
+      context._redisClient = redisClient
+      return next(context)
+    })
+
+    return mw
   })
   assert.redisClient = redisClient
   // {% endif %}
@@ -1704,6 +1730,7 @@ function test ({
   // {% endif %}
 
   return inner => async assert => {
+    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // {% if postgres %}
     // if we're in postgres, run the test in a transaction, run
     // routes in checkpoints.
@@ -1799,7 +1826,30 @@ function _processMiddleware (middleware) {
   return [].concat(Array.isArray(middleware) ? middleware : middleware.APP_MIDDLEWARE)
 }
 
-function _requireOr (target, value) {
+// {% if esm %}
+async function _requireOr (target, value) {
+  const fs = require('fs').promises
+  const path = require('path')
+  const candidates = [
+    `./${path.join(target, 'index.mjs')}`,
+    `${target}.mjs`,
+    `./${path.join(target, 'index.js')}`,
+    `${target}.js`,
+  ]
+
+  const items = await Promise.all(
+    candidates.map(xs => fs.stat(xs).then(xs => xs.isFile(), () => false))
+  )
+  const resolved = candidates[items.findIndex(Boolean)]
+
+  if (!resolved) {
+    return value
+  }
+
+  return {...await import(resolved)}
+}
+// {% else %}
+async function _requireOr (target, value) {
   try {
     return require(target)
   } catch (err) {
@@ -1813,6 +1863,7 @@ function _requireOr (target, value) {
     throw err
   }
 }
+// {% endif %}
 
 let _cookie = null
 class Cookie extends Map {
@@ -1869,13 +1920,11 @@ class Cookie extends Map {
   }
 }
 
-exports.Context = Context
-exports.main = main
-exports.body = {
+{{ EXPORTS }} const body = {
   json,
   urlEncoded
 }
-exports.decorators = {
+{{ EXPORTS }} const decorators = {
   validate: {
     body: validateBody,
     query: validateBlock(ctx => ctx.query),
@@ -1883,7 +1932,7 @@ exports.decorators = {
   },
   test
 }
-exports.middleware = {
+{{ EXPORTS }} const middleware = {
 // {% if jwt %}
   authenticateJWT,
 // {% endif %}
@@ -1895,13 +1944,20 @@ exports.middleware = {
 // {% if csrf %}
   applyCSRF,
 // {% endif %}
-...exports.decorators // forwarding these here.
+  ...decorators // forwarding these here.
 }
 
+// {% if not esm %}
+exports.Context = Context
+exports.main = main
+exports.middleware = middleware
+exports.decorators = decorators
+// {% endif %}
+
 // {% if not selftest %}
-if (require.main === module) {
+if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %}) {
   main({
-    middleware: [
+    middleware: _requireOr('./middleware', []).then(_processMiddleware).then(mw => [
       // {% if honeycomb %}
       trace,
       // {% endif %}
@@ -1916,11 +1972,11 @@ if (require.main === module) {
       // {% if postgres %}
       attachPostgres,
       // {% endif %}
-      ..._processMiddleware(_requireOr('./middleware', [])),
+      ...mw,
       // {% if status %}
       ...[handleStatus]
       // {% endif %}
-    ]
+    ])
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
       bole('server').info(`now listening on port ${server.address().port}`)
@@ -1940,19 +1996,27 @@ if (require.main === module) {
   const path = require('path')
 
   test('_requireOr only returns default for top-level failure', async assert => {
+    // {% if esm %}
+    await fs.writeFile(path.join(__dirname, 'require-or-test.js'), 'import "./does-not-exist"')
+    // {% else %}
     await fs.writeFile(path.join(__dirname, 'require-or-test'), 'const x = require("does-not-exist")')
+    // {% endif %}
 
     try {
-      _requireOr('./require-or-test', [])
+      await _requireOr('./require-or-test', [])
       assert.fail('expected to fail with MODULE_NOT_FOUND')
     } catch (err) {
+      // {% if esm %}
+      assert.equals(err.code, 'ERR_MODULE_NOT_FOUND')
+      // {% else %}
       assert.equals(err.code, 'MODULE_NOT_FOUND')
+      // {% endif %}
     }
   })
 
   test('_requireOr returns default if toplevel require fails', async assert => {
     const expect = {}
-    assert.equals(_requireOr('./d-n-e', expect), expect)
+    assert.equals(await _requireOr('./d-n-e', expect), expect)
   })
 
   test('_collect takes a stream and returns a promise for a buffer of its content', async assert => {
@@ -2551,7 +2615,7 @@ if (require.main === module) {
   })
 
   test('validate.query decorator returns 400 on bad query param', async assert => {
-    const decor = exports.decorators.validate.query({
+    const decor = decorators.validate.query({
       type: 'object',
       required: ['param'],
       properties: {

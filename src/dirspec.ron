@@ -56,8 +56,8 @@ Dir(DirSpec(
 
     // jumper module for selftest, to trick tap into
     // reporting test coverage output for boltzmann.js
-    ("test.js", 0o644, File(FileSpec(
-      contents: "require('./boltzmann')"
+    ("test.js", 0o644, Template(TemplateSpec(
+      template_name: "selftest.js",
     )), Some(When(
       feature: Some("selftest"),
       if_not_present: []
