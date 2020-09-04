@@ -10,8 +10,10 @@ functions which you provide to Boltzmann to **handle** HTTP requests.
 Information you annotate onto your handler functions tells Boltzmann which
 requests should be routed to which handlers.
 
+<!-- more -->
+
 This document will cover how handlers are routed, how handler responses are
-interpreted, and the annotations available to you to affect the behavior of
+interpreted, and the annotations available to you to control the behavior of
 your handlers.
 
 ---
@@ -35,6 +37,7 @@ type UserResponse      = {[STATUS]?: number, [HEADERS]?: {[key: string]: string}
                          (string | AsyncIterable<Buffer | string> | Buffer | Object);
 type Handler           = {
   route?: String,
+  method?: String,
   version?: String,
   middleware?: Array<Function | [Function, any...]>
 } & (context: Context, ...args: any[]) => UserResponse | Promise<UserResponse>;
@@ -58,11 +61,13 @@ function greeting (context) {
 }
 ```
 
-TKTK
+Because the exported `greeting` function has a `.route` property, Boltzmann
+installs the route into your application. Internally, Boltzmann uses the
+powerful [`find-my-way`] router instance.
 
-This handler will be executed whenever your application receives a request like
-`GET /hello/world` or `GET /hello/mars`. The portion of the path that matched
-`:subject` is available as `context.params.subject`.
+For example, the following handler will be executed whenever your application
+receives a request like `GET /hello/world` or `GET /hello/mars`. The portion of
+the path that matched `:subject` is available as `context.params.subject`.
 
 ```javascript
 // handlers.js
@@ -77,8 +82,19 @@ function greeting (context) {
 }
 ```
 
+`find-my-way` supports multiple params in a path (`/:foo-:bar`), regexen
+(`/:foo(\\d+)`), and wildcard params (`/*`, which creates `context.params['*']`).
 
-Boltzmann's routing is provided by [`find-my-way`] under the hood.
+If you wish to install a handler for multiple methods, you can split the route
+definition like so:
+
+```javascript
+greeting.method = ['GET', 'POST']
+greeting.route = '/hello/:subject'
+function greeting (context) {
+  return `hello ${context.params.subject}!`
+}
+```
 
 [`find-my-way`]: https://github.com/delvedor/find-my-way
 
