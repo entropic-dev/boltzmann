@@ -1,6 +1,6 @@
 +++
 title="Middleware"
-weight=6
+weight=3
 +++
 
 Middleware allows you to intercept, modify, or add behavior to your
