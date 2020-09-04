@@ -13,6 +13,7 @@ tap.test(
       url: '/hello/world',
     })
 
-    assert.matches(response.payload, 'Hello, world')
+    assert.matches(response.payload, 'world')
+    assert.matches(response.payload, 'Hello, ')
   })
 )

@@ -18,7 +18,7 @@ Dir(DirSpec(
       ],
     )), Some(When(
       feature: Some("templates"),
-      if_not_present: []
+      if_not_present: [ "templates/index.html"]
     ))),
 
     (".eslintrc.js", 0o644, Template(TemplateSpec(
