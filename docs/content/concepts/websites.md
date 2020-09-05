@@ -23,6 +23,19 @@ Boltzmann at 0.1.2 with csrf, githubci, jwt, ping, status, templates
 Run the server with `node my-website/boltzmann.js`. Point your browser to
 `http://localhost:5000/hello/world` to see the index template being rendered.
 
+## Development mode vs production mode
+
+Boltzmann changes its behavior if it is running in development mode. It makes
+this decision using [are-we-dev](https://github.com/chrisdickinson/are-we-dev).
+Not setting anything in `process.env.NODE_ENV` counts as being in development mode.
+If you set `NODE_ENV` to anything that matches `staging`, `test`, or `prod`,
+Boltzmann switches out of dev mode.
+
+Logging output is pretty-printed in dev mode, and newline-delimited JSON otherwise.
+CORS headers are more relaxed in dev mode, and Boltzmann will reveal more information
+about errors. In particular, it'll render an informative error page when the templating
+feature is available; read on for details.
+
 ## Cookies
 
 Cookie handling is always enabled in Boltzmann. The context object passed to
@@ -39,7 +52,7 @@ The functions for examining cookies are:
 
 ## CSRF protection
 
-You can toggle the cross-site request forgery protection feature on its own by
+You can toggle the cross-site request forgery protection (CSRF) feature on its own by
 passing `--csrf=[on|off]`.
 
 Boltzmann uses the double-submit pattern to check that a form submission is
@@ -70,7 +83,7 @@ creates templates directory with an example `index.html` file for you, along
 with a handler that renders it.
 
 To respond from a route with a rendered template, name the template file in the
-object return by the route handler, like this:
+object return by the route handler using a symbol, like this:
 
 ```js
 return {
@@ -82,23 +95,24 @@ return {
 
 Everything else in the object is passed to the template renderer as context.
 
-In production mode, Boltzmann looks for error templates in the `./templates`
-directory. It follows the convention of looking for `4xx.html` for thrown
-400-category errors and `5xx.html` for 500-category errors that don't otherwise
-have a template. If you throw errors without specifying a template, Boltzmann
-responds with JSON.
+If your route handler throws an error and the content-type requested was JSON,
+Boltzmann responds with JSON errors. If you throw and the content-type requested
+was HTML, Boltzmann looks for `4xx.html` or `5xx.html` template files.
 
-If you are in development mode, with NODE_ENV set to something other than
-production, Boltzmann catches errors in rendering templates and gives you a
-debugging page with as much information as it can gather about the stack. This
-includes links to source code and to Honeycomb traces if they're available.
+In development mode, Boltzmann renders you a debugging page with as much
+information as it can gather about the stack. This includes links to source code
+and to Honeycomb traces if they're available. It will also catch errors in
+rendering error templates.
 
 {{image_sizer(path="concepts/error-template.jpeg", width=400)}}
 
-In development mode, it has a static file server built-in, which can help you
-test static assets like images. This feature is *disabled* in production, on
-the assumption that you will be serving static assets from a CDN. Static assets
-are in the `static` directory by default.
+Boltzmann only renders this debugging page if it was attempting to render a
+template for the route experiencing the error.
+
+Boltzmann also has a static file server built-in, which can help you test static
+assets like images. This feature is *disabled* in production, on the assumption
+that you will be serving static assets from a CDN. Static assets are in the
+`static` directory by default.
 
 Here's a project layout that requires no additional configuration:
 

@@ -2,6 +2,8 @@
 
 const boltzmann = require('./boltzmann')
 
+// All Boltzmann middleware looks like this.
+// Middleware can be attached to either the app or individual routes.
 function appMiddleware(/* your config */) {
   return function createMWFunc(next) {
     return async function inner(context) {
@@ -13,7 +15,7 @@ function appMiddleware(/* your config */) {
   }
 }
 
-// Route-mounted middlewares follow exactly the same pattern.
+// Here's a more compactly-defined middleware.
 function greetingMiddleware(/* your config */) {
   return (next) => {
     return (context) => {
@@ -26,10 +28,14 @@ function greetingMiddleware(/* your config */) {
 }
 
 module.exports = {
-  greetingMiddleware, // exported for mounting & testing
-  appMiddleware, // exported for testing
+  // You can export middleware for testing or for
+  // attaching to routes.
+  greetingMiddleware,
+  appMiddleware,
   APP_MIDDLEWARE: [
-    // and this export mounts middlwares on the app
+    // This export is special: it instructs Boltzmann to attach
+    // middlewares to the app in this order.
+    // This is also where you can configure built-in middleware.
     [
       boltzmann.middleware.applyCSRF,
       {
