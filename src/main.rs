@@ -249,7 +249,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
 
     if flags.docs {
-        let mut subproc = match std::env::consts::OS {
+        let subproc = match std::env::consts::OS {
             "windows" => Exec::cmd("cmd.exe").arg("/C").arg("start").arg(" "),
             "macos" => Exec::cmd("open"),
             // treat everything else as linux, since we don't release for bsd or phones
@@ -257,7 +257,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         };
 
         let docssite = format!("https://www.boltzmann.dev/en/docs/v{}/", version);
-        info!("Opening documentation website at {}`", docssite);
+        info!("Opening documentation website at {}", docssite.blue().bold());
         subproc.arg(docssite).join()?;
         ::std::process::exit(0);
     }
