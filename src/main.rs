@@ -234,10 +234,16 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
 
-    // If we're opening docs, hit it and quit.
     if flags.docs {
+        let cmd = match std::env::consts::OS {
+            "windows" => "start",
+            "macos" => "open",
+            // treat everything else as linux, since we don't release for bsd or phones
+            _ => "xdg-open",
+        };
+
         let docssite = format!("https://www.boltzmann.dev/en/docs/v{}/", version);
-        let subproc = Exec::cmd("open").arg(docssite);
+        let subproc = Exec::cmd(cmd).arg(docssite);
         subproc.join()?;
         ::std::process::exit(0);
     }
