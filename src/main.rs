@@ -81,6 +81,9 @@ pub struct Flags {
     #[structopt(long, help = "Build for a self-test.")]
     selftest: bool, // turn on the oven in self-cleaning mode.
 
+    #[structopt(long, help = "Open the Boltzmann documentation in a web browser.")]
+    docs: bool,
+
     #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
     destination: PathBuf
 }
@@ -228,6 +231,17 @@ struct DependencySpec {
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut flags = Flags::from_args();
+
+    let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
+
+    // If we're opening docs, hit it and quit.
+    if flags.docs {
+        let docssite = format!("https://www.boltzmann.dev/en/docs/v{}/", version);
+        let subproc = Exec::cmd("open").arg(docssite);
+        subproc.join()?;
+        ::std::process::exit(0);
+    }
+
     // Is this a tty? What is the user trying to do? Is there a user? What is an electron anyway?
     if flags.destination.as_os_str().is_empty() && atty::is(Stream::Stdout) {
         warn!("Scaffolding a Boltzmann service in the current working directory.");
@@ -298,7 +312,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let settings = package_json.boltzmann.take().unwrap();
-    let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
     let updated_settings = settings.merge_flags(version, &flags);
 
     render::scaffold(&mut target, &updated_settings)
