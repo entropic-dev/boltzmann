@@ -1,8 +1,9 @@
 +++
-title="Validators"
-weight=5
+title="Accepting input"
+weight=6
 +++
 
+TODO: body parsing.
 
 Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  <!-- more -->
 The functions are:

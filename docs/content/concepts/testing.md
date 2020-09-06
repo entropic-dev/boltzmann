@@ -1,6 +1,6 @@
 +++
 title="Testing"
-weight=13
+weight=7
 [taxonomies]
 tags = ["testing"]
 +++

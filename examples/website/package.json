@@ -1,0 +1,55 @@
+{
+  "author": "",
+  "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "website",
+  "version": "1.0.0",
+  "dependencies": {
+    "accepts": "^1.3.7",
+    "ajv": "^6.12.2",
+    "are-we-dev": "^1.0.0",
+    "bole": "^4.0.0",
+    "cookie": "^0.4.1",
+    "csrf": "^3.1.0",
+    "culture-ships": "^1.0.0",
+    "dotenv": "^8.2.0",
+    "find-my-way": "^2.2.1",
+    "honeycomb-beeline": "^2.1.1",
+    "jsonwebtoken": "^8.5.1",
+    "nunjucks": "^3.2.1",
+    "on-headers": "^1.0.2",
+    "uuid": "^8.3.0"
+  },
+  "devDependencies": {
+    "@hapi/shot": "^4.1.2",
+    "@typescript-eslint/eslint-plugin": "^3.1.0",
+    "@typescript-eslint/parser": "^3.1.0",
+    "bistre": "^1.0.1",
+    "eslint": "^7.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.3",
+    "get-function-location": "^2.0.0",
+    "prettier": "^2.0.5",
+    "stackman": "^4.0.1",
+    "tap": "^14.10.7"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "posttest": "npm run lint",
+    "start": "./boltzmann.js",
+    "test": "tap test",
+    "boltzmann:upgrade": "npx boltzmann-cli"
+  },
+  "boltzmann": {
+    "version": "0.1.2",
+    "honeycomb": true,
+    "githubci": false,
+    "templates": true,
+    "status": true,
+    "ping": true,
+    "jwt": true,
+    "csrf": true
+  }
+}

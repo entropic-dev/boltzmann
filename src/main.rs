@@ -169,10 +169,8 @@ fn check_git_status(flags: &Flags) -> Result<()> {
         ExitStatus::Exited(1) => {
           Err(anyhow!("git working directory is dirty; pass --force if you want to run anyway"))
         },
-        ExitStatus::Exited(_) => Ok(()),
-        ExitStatus::Signaled(_) => Ok(()),
-        ExitStatus::Other(_) => Ok(()),
-        ExitStatus::Undetermined => Ok(()),
+        // all other exit codes are are fine
+        _ => Ok(()),
     }
 }
 

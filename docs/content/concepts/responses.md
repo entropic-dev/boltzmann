@@ -1,6 +1,6 @@
 +++
 title="Responses"
-weight=3
+weight=4
 +++
 
 Of course, one of the most important functions of an HTTP framework
