@@ -1,6 +1,6 @@
 const { Context } = require('./boltzmann.js') // optionally pull in typescript definition
 
-greeting.route = 'GET /:name'
+greeting.route = 'GET /hello/:name'
 // {% if templates %}
 async function greeting(/** @type {Context} */ context) {
   return {
