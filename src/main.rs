@@ -81,6 +81,9 @@ pub struct Flags {
     #[structopt(long, help = "Build for a self-test.")]
     selftest: bool, // turn on the oven in self-cleaning mode.
 
+    #[structopt(long, help = "Open the Boltzmann documentation in a web browser.")]
+    docs: bool,
+
     #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
     destination: PathBuf
 }
@@ -228,6 +231,37 @@ struct DependencySpec {
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut flags = Flags::from_args();
+
+    let verbosity: u64 = if flags.silent {
+        0
+    } else {
+        flags.verbose + 1
+    };
+
+    loggerv::Logger::new()
+        .verbosity(verbosity)
+        .line_numbers(false)
+        .module_path(false)
+        .colors(true)
+        .init()
+        .unwrap();
+
+    let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
+
+    if flags.docs {
+        let subproc = match std::env::consts::OS {
+            "windows" => Exec::cmd("cmd.exe").arg("/C").arg("start").arg(" "),
+            "macos" => Exec::cmd("open"),
+            // treat everything else as linux, since we don't release for bsd or phones
+            _ => Exec::cmd("xdg-open"),
+        };
+
+        let docssite = format!("https://www.boltzmann.dev/en/docs/v{}/", version);
+        info!("Opening documentation website at {}", docssite.blue().bold());
+        subproc.arg(docssite).join()?;
+        ::std::process::exit(0);
+    }
+
     // Is this a tty? What is the user trying to do? Is there a user? What is an electron anyway?
     if flags.destination.as_os_str().is_empty() && atty::is(Stream::Stdout) {
         warn!("Scaffolding a Boltzmann service in the current working directory.");
@@ -252,19 +286,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let cwd = std::env::current_dir()?;
     flags.destination = cwd.join(&flags.destination);
     let mut target = flags.destination.clone();
-    let verbosity: u64 = if flags.silent {
-        0
-    } else {
-        flags.verbose + 1
-    };
-
-    loggerv::Logger::new()
-        .verbosity(verbosity)
-        .line_numbers(false)
-        .module_path(false)
-        .colors(true)
-        .init()
-        .unwrap();
 
     check_git_status(&flags)?;
 
@@ -298,7 +319,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let settings = package_json.boltzmann.take().unwrap();
-    let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
     let updated_settings = settings.merge_flags(version, &flags);
 
     render::scaffold(&mut target, &updated_settings)
