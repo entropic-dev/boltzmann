@@ -75,13 +75,13 @@ pub struct Flags {
     #[structopt(short, long, parse(from_occurrences), help = "Pass -v or -vv to increase verbosity")]
     verbose: u64, // huge but this is what our logger wants
 
-    #[structopt(long, short, help = "Suppress all output except errors.")]
+    #[structopt(long, short, help = "Suppress all output except errors")]
     silent: bool,
 
-    #[structopt(long, help = "Build for a self-test.")]
+    #[structopt(long, help = "Build for a self-test")]
     selftest: bool, // turn on the oven in self-cleaning mode.
 
-    #[structopt(long, help = "Open the Boltzmann documentation in a web browser.")]
+    #[structopt(long, help = "Open the Boltzmann documentation in a web browser")]
     docs: bool,
 
     #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
