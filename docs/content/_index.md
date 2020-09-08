@@ -5,40 +5,32 @@ description = "Introduction to Boltzmann"
 sort_by = "weight"
 +++
 
-# Boltzmann: an introduction
+# Getting started
 
-Boltzmann is a JavaScript framework for writing web servers. It is implemented in a single file that lives alongside your code. Boltzmann is focused on delivering a great developer experience and makes its tradeoffs with that goal in mind.
+Boltzmann is a node http server framework that uses the same building blocks as many other frameworks, using well-tested libraries like the ones from the [jshttp project](https://jshttp.github.io), which support Express. It makes some choices that are notably different from many other node frameworks, and you'll want to know about these choices even if you're an experienced node developer.
 
-Our design goals:
+The first difference you're likely to notice is that Boltzmann is not a versioned dependency of your application. It's implemented in a single file that lives alongside your code. Its dependencies are dependencies of your project. This decision makes some tradeoffs that we found useful in our projects: we can choose when to upgrade core dependencies, and aren't tied to waiting for the framework to update. We can also choose to modify Boltzmann's source code directly if the project needs this, at the cost of no longer being able to update automatically.
 
-- Make all return values from route handlers and middlewares be valid responses, mapping to http semantics.
-- Prefer zero-cost abstractions: pay for what you use and nothing more, including in installation and startup time.
-- Use global types, no special response types.
-- Only modify objects we provide; do not rely on modifications to node's request & response objects.
-- Provide pluggable behavior for body-parsing and middleware, with good defaults.
-- Use only minimal, well-vetted dependencies.
-- Bake in observability (optionally), via [Honeycomb](https://honeycomb.io) tracing.
-- Rely on a little bit of documented convention to avoid configuration.
-- Making throwing Boltzmann away if you need to move on _possible_.
+As a result, you don't install Boltzmann using a package manager like yarn. Instead, you scaffold a Boltzmann project using its templating tool. The easiest way to run this tool is to use `npx`: `npx boltzmann-cli --help`. You can also build the tool yourself from source if you have the Rust toolchain, or [install a pre-built release](https://github.com/entropic-dev/boltzmann/releases). This tool generates a single javascript file with all of Boltzmann's implementation, and some scaffolding for a full Boltzmann app if it's not already present. Passing options to the tool enables or disables specific Boltzmann features. The tool is safe to re-run, provided you are running it in a versioned git directory.
 
-Boltzmann provides Typescript definitions for its exports, for your development convenience, but it does not require you to opt-in to Typescript or do any transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
+The next major difference boltzmann has from frameworks like Express is its [approach to middleware](@/concepts/middleware.md). It doesn't use the Connect-style API and it doesn't offer lifecycle hooks. Instead, Boltzmann uses an approach borrowed from aspect-oriented programming, which you'll be familiar with if you've been using frameworks like React. Middleware is how you'll implement new behavior that can be re-used in your route handlers. You can also change Boltzmann's core behavior with custom middleware!
 
-Who's the "we" in this document? @ceejbot and @chrisdickinson.
+The third difference is in the API of Boltzmann's [route handers](@/concepts/routing.md). To respond with data from a route, return the data. Boltzmann sets content type headers based on what you return, deferring to any headers you provide in the `headers` symbol on your response. To respond with an error, throw: Boltzmann will translate to http semantics automatically. (To control how thrown errors are translated, you can write middleware!) Learn more about building responses in the [responses documentation](@/concepts/responses.md).
 
-<!-- more -->
+Boltzmann also relies on a little bit of convention to simplify configuration. For instance, it assumes that all route handlers are exported from `handlers.js` or a `handlers/` directory in the same level of the project. The same is true for middleware: you can move to exports from a `middleware/` directory if you outgrow the initial `middlware.js` file.
 
-To get started with Boltzmann, run the `boltzmann` command-line tool. You can get it from [the releases page][https://github.com/entropic-dev/boltzmann/releases] or run it via `npx boltzmann-cli`. The tool is responsible for initializing a new Boltzmann project as well as keeping it up to date. You enable or disable specific Boltzmann features using the tool.
+## Hello world
 
-For example, to scaffold with the defaults:
+Let's look at a hello-world project.
 
 ```shell
-projects|⇒ npx boltzmann-cli ./hello
-npx: installed 1 in 1.511s
-Scaffolding a Boltzmann service in ./hello
+code|⇒ npx boltzmann-cli hello
+Scaffolding a Boltzmann service in /Users/cj/code/hello
     initializing a new NPM package...
     writing boltzmann files...
     updating dependencies...
         adding are-we-dev @ ^1.0.0
+        adding uuid @ ^8.3.0
         adding culture-ships @ ^1.0.0
         adding find-my-way @ ^2.2.1
         adding bole @ ^4.0.0
@@ -57,10 +49,10 @@ Scaffolding a Boltzmann service in ./hello
         adding prettier @ ^2.0.5 (dev)
     writing updated package.json...
     running package install...
-Boltzmann at 0.1.1 with githubci, status, ping
+Boltzmann at 0.1.2 with githubci, ping, status
 ```
 
-A complete Boltzmann hello world is provided for you.
+You now have a complete hello world project in the `hello` directory, with commented source files to edit in place.
 
 ```shell
 hello|⇒ ls
@@ -84,22 +76,8 @@ module.exports = {
 
 To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`
 
-## Creating a boltzmann app
+The [context object](@/concepts/context.md) is where Boltzmann puts all data it derives from the initial request. It expects you to modify the context object in middleware: it is there to hold data you find useful through the request lifecycle. The raw node request object is available on the context object if you need it, but we suggest you avoid modifying it directly. In particular, you might break body parsing middleware.
 
-This repo includes a command-line tool, `boltzmann`, that generates a single javascript file with all of Boltzmann's implementation, and some scaffolding for a full Boltzmann app if it's not already present. The tool enables or disables specific Boltzmann features. The tool is safe to re-run, provided you are running it in a versioned git directory.
+The default scaffolded project also provides a commented `middleware.js` file to help you write your first middlewares. And finally, a linter is configured for you.
 
-To scaffold with redis and honeycomb:
-
-```sh
-npx boltzmann-cli --postgres --honeycomb todo-api
-```
-
-This creates a new project in `./todo-api` with postgres and Honeycomb integration enabled. If it finds existing code in `./todo-api`, it updates `boltzmann.js`.
-
-The scaffold currently assumes you're using node as your runtime and NPM as your package manager. It installs its dependencies for you, at the versions it needs. From this moment on, both boltzmann and its dependencies are under your management. Boltzmann is in your app repo as a *source file*, not as a dependency. You are free to make changes to the Boltzmann file, but be aware the scaffolding tool won't respect your changes if you run it again to update. You are also free to update or pin Boltzmann's dependencies.
-
-If you need to change Boltzmann's core behavior, you can either re-run the command-line tool to change features *or* write your own middleware. You'll be writing your own middleware for any reasonably complex project anyway!
-
-## The Boltzmann API
-
-If you prefer to look at working example code, we've provided examples in the [`./examples`](https://github.com/entropic-dev/boltzmann/tree/latest/examples) directory of this repo.
+To learn more about Boltzmann's fundamentals, check out the [concepts documentation](@/concepts/_index.md). If you need to deep-dive into details, see the [reference documentation](@/reference/_index.md).

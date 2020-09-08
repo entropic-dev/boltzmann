@@ -26,8 +26,8 @@ const boltzmann = require('./boltzmann')
 
 // Here's a more compactly-defined middleware.
 {% if esm %}export{% endif %} function routeMiddlewareFunc(/* your config */) {
-  return next => {
-    return context => {
+  return (next) => {
+    return (context) => {
       return next(context)
     }
   }
@@ -77,8 +77,8 @@ module.exports = {
     [boltzmann.middleware.template, {
       // filters: {}, // add custom template filters
       // tags: {}     // extend nunjucks with custom tags
-    }]
+    }],
     {%- endif %}
-  ]
+  ],
 }
 // {% endif %}

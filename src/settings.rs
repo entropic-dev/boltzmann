@@ -110,6 +110,9 @@ impl fmt::Display for Settings {
         if self.csrf.unwrap_or(false) {
             features.push("csrf");
         }
+        if self.esm.unwrap_or(false) {
+            features.push("esm");
+        }
         if self.githubci.unwrap_or(false) {
             features.push("githubci");
         }
@@ -134,9 +137,9 @@ impl fmt::Display for Settings {
         if self.templates.unwrap_or(false) {
             features.push("templates");
         }
-        if self.esm.unwrap_or(false) {
-            features.push("esm");
-        }
+        // In case we have some bad people who don't alphabetize the above.
+        features.sort_unstable();
+
         // Oddball is last.
         if self.selftest.unwrap_or(false) {
             features.push("selftest");
