@@ -25,45 +25,35 @@ For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.de
 
 If you prefer to look at working example code, we've provided examples in the [`./examples`](https://github.com/entropic-dev/boltzmann/tree/latest/examples) directory of this repo.
 
-To get started with Boltzmann, run the `boltzmann` command-line tool. You can get it from [the releases page][https://github.com/entropic-dev/boltzmann/releases] or run it via `npx boltzmann-cli`. The tool is responsible for initializing a new Boltzmann project as well as keeping it up to date. You enable or disable specific Boltzmann features using the tool.
+To scaffold a new service with Boltzmann, run the `boltzmann` command-line tool. You can get it from [the releases page][https://github.com/entropic-dev/boltzmann/releases] or run it via `npx boltzmann-cli`. (We prebuild for Mac OS, Windows, and GNU Linuxes.) The tool is responsible for initializing a new Boltzmann project as well as keeping it up to date. You enable or disable specific Boltzmann features using the tool.
 
 For example, to scaffold with the defaults:
 
 ```shell
-projects|⇒ npx boltzmann-cli ./hello
+projects|⇒ npx boltzmann-cli hello
 ```
 
-<img src="docs/content/reference/cli-example.jpg" alt="cli example" width="1000">
-
-A complete Boltzmann hello world is provided for you.
+A complete project is provided for you, with useful package run scripts and linting.
 
 ```shell
-hello|⇒ ls
-boltzmann.js*  handlers.js  middleware.js  node_modules/  package-lock.json  package.json
+code|⇒ cd hello/
+hello|⇒ ls -alF
+.rw-r--r--  427 cj  7 Sep 17:15 .eslintrc.js
+drwxr-xr-x    - cj  7 Sep 17:15 .github/
+.rw-r--r--  136 cj  7 Sep 17:15 .prettierrc.js
+.rwxr-xr-x  20k cj  7 Sep 17:15 boltzmann.js*
+.rw-r--r--  262 cj  7 Sep 17:15 handlers.js
+.rw-r--r-- 1.3k cj  7 Sep 17:15 middleware.js
+drwxr-xr-x    - cj  7 Sep 17:15 node_modules/
+.rw-r--r-- 155k cj  7 Sep 17:15 package-lock.json
+.rw-r--r--  999 cj  7 Sep 17:15 package.json
 ```
 
-Take a look at `handlers.js`:
-
-```js
-import { Context } from './boltzmann.js' // optionally pull in typescript definition
-
-greeting.route = 'GET /hello/:name'
-export async function greeting(/** @type {Context} */ context) {
-    return `hello ${context.params.name}`
-}
-
-module.exports = {
-  greeting
-}
-```
-
-To respond from a Boltzmann handler, you return a value. To return an error, you throw. Boltzmann will map values and exceptions to http semantics.
-
-To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`
+To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/v0.1.2/)
 
 ## Team
 
-Who's the "we" in this document? [@ceejbot](https://github.com/ceejbot) and [@chrisdickinson](https://github.com/chrisdickinson).
+Boltzmann is a joint venture of [@ceejbot](https://github.com/ceejbot) and [@chrisdickinson](https://github.com/chrisdickinson).
 
 ## LICENCE
 
