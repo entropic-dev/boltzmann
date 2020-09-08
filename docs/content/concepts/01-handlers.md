@@ -1,14 +1,15 @@
 +++
 title = "Request Handlers and Routing"
+slug = "handlers"
 weight = 1
 +++
 
 ## Introduction
 
-Handlers are the fundamental building block of Boltzmann applications. They are
-functions which you provide to Boltzmann to **handle** HTTP requests.
-Information you annotate onto your handler functions tells Boltzmann which
-requests should be routed to which handlers.
+Request handlers are a fundamental building block of Boltzmann applications.
+They are functions which you provide to Boltzmann to **handle** HTTP requests.
+Boltzmann examines your annotations to determine how to route requests and what
+additional behaviors should be applied to your function.
 
 <!-- more -->
 
@@ -19,7 +20,7 @@ your handlers.
 ---
 
 When your application receives an HTTP request, Boltzmann wraps it in a
-`Context` object, calls your application-scoped middleware ([covered in the
+[`Context`] object, calls your application-scoped middleware ([covered in the
 next chapter]), then routes your request to one of your handlers. A
 TypeScript definition of the types involved involved in this document is below.
 Don't worry if you're not comfortable reading this syntax! We'll covered each
@@ -96,8 +97,16 @@ function greeting (context) {
 }
 ```
 
+`.route = 'GET /foo'` is shorthand for `.route = '/foo'; .method = ['GET'];`!
+
 [`find-my-way`]: https://github.com/delvedor/find-my-way
 
-## Context and Responses
+## Context
+
+When Boltzmann receives a request, it wraps the underlying Node [request]
+and [response] objects in a [`Context`] object. This object provides cached
+convenience methods, and is intended to be open to extension.
+
+## Responses
 ## Annotations
 ## Next Steps
