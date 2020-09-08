@@ -121,6 +121,9 @@ impl fmt::Display for Settings {
         if self.templates.unwrap_or(false) {
             features.push("templates");
         }
+        // In case we have some bad people who don't alphabetize the above.
+        features.sort_unstable();
+
         // Oddball is last.
         if self.selftest.unwrap_or(false) {
             features.push("selftest");
