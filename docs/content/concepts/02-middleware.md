@@ -1,6 +1,7 @@
 +++
 title="Middleware"
-weight=3
+slug="middleware"
+weight=2
 +++
 
 Middleware allows you to intercept, modify, or add behavior to your
@@ -31,7 +32,7 @@ cover how to write middleware and [what middleware boltzmann makes
 available to your application][ref-reference].
 
 > :warning: This document does not cover how to parse incoming request bodies.
-> that information is available [in the body parsing] document.
+> that information is available [in the "handling user input"] document.
 
 ---
 
@@ -104,8 +105,8 @@ resources are unavailable.
 
 The application will not start accepting requests until the `Adaptor` returns a
 `Handler`. The `Handler` is executed whenever your application receives an HTTP
-request; it receives a [`Context` object](@/concepts/context.md) and returns a
-[UserResponse](@/concepts/responses.md). It may call the `Next` function
+request; it receives a [`Context` object](@/concepts/01-handlers.md) and returns a
+[`UserResponse`](@/concepts/01-handlers.md). It may call the `Next` function
 provided as an argument to the `Adaptor` function zero-to-many times. You can
 think of calling `next()` as making a request to the inner part of your
 application! `next()` will **never** throw, and the return value is guaranteed
@@ -246,4 +247,4 @@ available][ref-reference]. Happy hacking!
 [ref-di]: https://en.wikipedia.org/wiki/Dependency_injection
 [ref-gzip]: https://github.com/entropic-dev/boltzmann/blob/latest/examples/custom-middleware/middleware/gzip.js
 [ref-reference]: @/reference/middleware.md
-[in the body parsing]: @/concepts/body-parsing.md
+[in the "handling user input"]: @/concepts/04-accepting-input.md

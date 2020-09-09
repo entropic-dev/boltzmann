@@ -1,6 +1,7 @@
 +++
 title="Websites"
-weight=5
+weight=3
+slug="websites"
 [taxonomies]
 tags = ["concepts"]
 +++

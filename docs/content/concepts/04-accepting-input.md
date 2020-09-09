@@ -1,6 +1,7 @@
 +++
 title="Accepting input"
-weight=6
+weight=4
+slug="accepting-input"
 +++
 
 Route parameters, query parameters, body parsing, and validating them all.
