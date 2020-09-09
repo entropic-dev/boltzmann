@@ -4,24 +4,22 @@ slug = "handlers"
 weight = 1
 +++
 
-## Introduction
-
 Request handlers are a fundamental building block of Boltzmann applications.
 They are functions which you provide to Boltzmann to **handle** incoming HTTP
 requests.
-
-<!-- more -->
 
 This document will cover how to write handler functions, how to control request
 routing, how handler responses are interpreted, and how to control these
 behaviors using attributes on your exported functions.
 
+<!-- more -->
+
 ## What is a Request Handler?
 
 A request handler is any function exported from `handlers.js` (or
-`handlers/index.js`) that accepts a Boltzmann [`Context`] object. A request
-handler is called when an incoming HTTP request matches against its `.route`
-attribute.
+`handlers/index.js`) that has a `.route` property. A request handler is
+called with a [`Context`] object when an incoming HTTP request matches against
+its `.route` attribute.
 
 A TypeScript definition of the types involved is included below. Don't worry if
 you're not comfortable reading this syntax! We'll cover each of the types below
@@ -94,8 +92,7 @@ it will return the plain text string `hello world!`
 
 The router is capable of matching against provided parameters, as well. For
 example, to handle requests like `GET /hello/world` or `GET /hello/mars` with a
-single handler, you might write something like the following. The portion of
-the path that matched `:subject` will be available as `context.params.subject`.
+single handler, you might write something like the following.
 
 ```javascript
 // handlers.js
@@ -110,8 +107,16 @@ function greeting (context) {
 }
 ```
 
-`find-my-way` supports multiple params in a path (`/:foo-:bar`), regexen
-(`/:foo(\\d+)`), and wildcard params (`/*`, which creates `context.params['*']`).
+The portion of the path that matched `:subject` will be available as
+`context.params.subject`.
+
+`find-my-way` supports many different parameter behaviors:
+
+- You can define multiple params in a path: `/:foo-:bar`
+- You can include regexen as part of the parameter definition: `/:foo(\\d+)`
+- You can specify wildcard params: `/*`, which will be available at `context.params['*']`
+
+[`find-my-way`] has excellent [documentation][ref-fmw].
 
 ### Handling multiple methods with a single handler
 
@@ -126,7 +131,7 @@ function greeting (context) {
 }
 ```
 
-(`.route = 'GET /foo'` is shorthand for `.route = '/foo'; .method = ['GET'];`!)
+`.route = 'GET /foo'` is shorthand for `.route = '/foo'; .method = ['GET'];`.
 
 ### Handling different versions of the same route
 
@@ -148,11 +153,13 @@ function greeting (context) {
 }
 ```
 
-Boltzmann will introspect the incoming `Accept-Version` request header in order to
+Boltzmann will examine the incoming `Accept-Version` request header in order to
 determine which handler to dispatch the request to. Clients may specify the header in
 [semver] format. For example, you might have handlers for versions `1.0.0`, `1.2.0`, and
 `2.0.0`. A client could then request `1.x`, `^1.2.0`, or `2.0.0` and expect to be routed
 to the appropriate version.
+
+For more information on route versioning, see the [`find-my-way` docs on versioning][ref-fmw-ver].
 
 ## Responses
 
@@ -176,7 +183,7 @@ symbols on any returned or thrown value:
 Beyond control flow mapping, Boltzmann casts different return types into HTTP
 response bodies with appropriate headers:
 
-- Strings become `Buffer` instances containing UTF8 data.
+- Strings become `Buffer` instances containing [UTF8] data.
 - Node.JS [`ReadableStream`] objects will be treated as `application/octet-stream` data unless
   otherwise specified.
 - JavaScript objects and class instances will be stringified and returned as `application/json` data.
@@ -238,3 +245,7 @@ your handlers with additional behavior -- think of them as higher-order handlers
 [body parsing support]: @/concepts/04-accepting-input.md
 [in the next chapter]: @/concepts/02-middleware.md
 [In the next chapter, we'll cover middleware]: @/concepts/02-middleware.md
+[ref-fmw]: https://github.com/delvedor/find-my-way#supported-path-formats
+[ref-fmw-ver]: https://github.com/delvedor/find-my-way#semver
+[semver]: https://semver.org/
+[UTF8]: https://simple.wikipedia.org/wiki/UTF-8
