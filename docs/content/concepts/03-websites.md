@@ -96,6 +96,8 @@ return {
 
 Everything else in the object is passed to the template renderer as context.
 
+### Error templates
+
 If your route handler throws an error and the content-type requested was JSON,
 Boltzmann responds with JSON errors. If you throw and the content-type requested
 was HTML, Boltzmann looks for `4xx.html` or `5xx.html` template files.
@@ -109,6 +111,8 @@ rendering error templates.
 
 Boltzmann only renders this debugging page if it was attempting to render a
 template for the route experiencing the error.
+
+## Static asset serving
 
 Boltzmann also has a static file server built-in, which can help you test static
 assets like images. This feature is *disabled* in production, on the assumption

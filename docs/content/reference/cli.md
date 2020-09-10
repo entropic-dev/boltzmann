@@ -248,10 +248,6 @@ it the default.
 $ npx boltzmann-cli . --esm=on
 ```
 
-[`import`/`export` syntax]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
-[ECMAScript Module (ESM)]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
-[`"module"` mode]: https://nodejs.org/api/esm.html#esm_package_json_type_field
-
 #### `--githubci`
 
 Enable [GitHub actions] for [Continuous Integration (CI)]; defaults to on. The
@@ -268,8 +264,8 @@ $ npx boltzmann-cli . --githubci=off # turn it off
 
 #### `--honeycomb`
 
-Enable [Honeycomb](https://www.honeycomb.io) tracing integration for observability (o11y).
-If enabled, your application will use the following environment variables:
+Enable [Honeycomb] tracing integration for observability (o11y). If enabled,
+your application will use the following environment variables:
 
 - `HONEYCOMBIO_WRITE_KEY`
 - `HONEYCOMBIO_DATASET`
@@ -336,7 +332,7 @@ _Added in version 0.0.0._
 
 Enable postgres middleware, which will be automatically installed as
 application-attached middleware. This flag adds an automatic reachability check
-to the endpoint added by the [`--monitor`] flag, and augments the [`test`]
+to the endpoint added by the [`--status`] flag, and augments the [`test`]
 decorator. It also makes `context.postgresClient` available to application
 request handlers and middleware. For more on how the postgres functionality
 works, see ["persisting data"]. 
@@ -353,7 +349,7 @@ _Added in version 0.0.0._
 
 Enable redis middleware, which will be automatically installed as
 application-attached middleware. This flag adds an automatic reachability check
-to the endpoint added by the [`--monitor`] flag, and augments the [`test`]
+to the endpoint added by the [`--status`] flag, and augments the [`test`]
 decorator. It also makes `context.redisClient` available to application
 request handlers and middleware. For more on how the redis functionality
 works, see ["persisting data"]. 
@@ -389,7 +385,7 @@ _Added in version 0.1.2._
 Makes [Nunjucks] template middleware available. This is enabled as part of the
 [`--website`] flag. This middleware must be manually installed. For more on the
 template functionality, see ["websites"]. To learn more about configuring the
-middleware, see [the reference documentation].
+middleware, see [the reference documentation on `template`].
 
 **Example use:**
 
@@ -453,8 +449,29 @@ ARGS:
 
 ```
 
+[`test`]: #TKTKTK
+[the reference documentation on `applyCSRF`]: #TKTKTK
+[the reference documentation on `authenticateJWT`]: #TKTKTK
+[the reference documentation on `template`]: #TKTKTK
+["monitoring your application"]: #TKTKTK
+["persisting data"]: #TKTKTK
+[debug templates]: @/concepts/03-websites.md#error-templates
+[Honeycomb]: https://www.honeycomb.io
+[GitHub actions]: https://docs.github.com/en/actions
+[Continuous Integration (CI)]: https://en.wikipedia.org/wiki/Continuous_integration
+[`ping`]: #ping
+[`--website`]: #website
+[`--status`]: #status
+[`--postgres`]: #postgres
+[`--redis`]: #redis
+[Cross Site Request Forgery (CSRF)]: https://owasp.org/www-community/attacks/csrf
+[application-attached middleware]: @/concepts/02-middleware.md#attaching-configuring-middleware
 [JSON web token (JWT)]: https://jwt.io/introduction/
 [ref-none-alg]: https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#none-hashing-algorithm
 [culture]: https://en.wikipedia.org/wiki/Culture_series
 [Nunjucks]: https://mozilla.github.io/nunjucks/
 ["websites"]: @/concepts/03-websites.md
+[`import`/`export` syntax]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
+[ECMAScript Module (ESM)]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
+[`"module"` mode]: https://nodejs.org/api/esm.html#esm_package_json_type_field
+
