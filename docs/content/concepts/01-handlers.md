@@ -249,3 +249,4 @@ your handlers with additional behavior -- think of them as higher-order handlers
 [ref-fmw-ver]: https://github.com/delvedor/find-my-way#semver
 [semver]: https://semver.org/
 [UTF8]: https://simple.wikipedia.org/wiki/UTF-8
+[`--templates`]: @/reference/cli.md#templates
