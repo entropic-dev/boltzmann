@@ -232,11 +232,11 @@ your handlers with additional behavior -- think of them as higher-order handlers
 
 [request and response]: https://nodejs.org/api/http.html#http_event_request
 [reference documentation]: @/reference/_index.md
-[`Context`]: @/reference/context.md
+[`Context`]: @/reference/04-context.md
 [`200 OK`]: https://httpstatuses.com/200
 [`204 No Content`]: https://httpstatuses.com/204
 [`500 Internal Server Error`]: https://httpstatuses.com/500
-[`--templates`]: @/reference/cli.md
+[`--templates`]: @/reference/01-cli.md
 [`ReadableStream`]: https://nodejs.org/api/stream.html#stream_class_stream_readable
 [A mechanism for content-type negotiation]: https://www.npmjs.com/package/accepts
 [global Symbols]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol/for
@@ -249,4 +249,4 @@ your handlers with additional behavior -- think of them as higher-order handlers
 [ref-fmw-ver]: https://github.com/delvedor/find-my-way#semver
 [semver]: https://semver.org/
 [UTF8]: https://simple.wikipedia.org/wiki/UTF-8
-[`--templates`]: @/reference/cli.md#templates
+[`--templates`]: @/reference/01-cli.md#templates

@@ -246,5 +246,5 @@ available][ref-reference]. Happy hacking!
 
 [ref-di]: https://en.wikipedia.org/wiki/Dependency_injection
 [ref-gzip]: https://github.com/entropic-dev/boltzmann/blob/latest/examples/custom-middleware/middleware/gzip.js
-[ref-reference]: @/reference/middleware.md
+[ref-reference]: @/reference/03-middleware.md
 [in the "handling user input"]: @/concepts/04-accepting-input.md

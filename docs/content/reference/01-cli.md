@@ -1,6 +1,7 @@
 +++
 title="Command Line Options"
 weight = 1
+slug = "cli"
 [taxonomies]
 tags = ["concepts"]
 +++
