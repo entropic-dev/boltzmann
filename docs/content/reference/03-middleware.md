@@ -1,6 +1,7 @@
 +++
 title="Middleware"
-weight=4
+weight=3
+slug="middleware"
 [taxonomies]
 tags = ["reference"]
 +++
