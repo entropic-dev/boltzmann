@@ -163,16 +163,195 @@ from:
 2. `x-request-id`
 3. A generated [ship name from Iain M Bank's Culture series][culture] (e.g.: `"ROU Frank Exchange Of Views"`)
 
-TKTKTK
+**Example use:**
+
+```javascript
+const bole = require('bole')
+
+log.route = 'GET /'
+async function log(context) {
+  const logger = bole(context.id)
+  logger.info('wow what a request')
+}
+```
 
 ### `method`
+
+_Added in 0.0.0._
+
+The [HTTP verb] associated with the incoming request, forwarded from the underlying
+[node request] object.
+
+**Example use:**
+
+```javascript
+const assert = require('assert')
+
+assertion.route = 'GET /'
+async function assertion(context) {
+  assert.equal(context.method, 'GET')
+}
+```
+
+[HTTP verb]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+[node request]: https://nodejs.org/api/http.html#http_event_request
+
 ### `params`
+
+_Added in 0.0.0._
+
+`context.params` contains an object mapping URL parameter names to the resolved
+value for this request. Wildcard matches are available as `context.params['*']`.
+
+**Example use:**
+
+```javascript
+parameters.route = 'GET /:foo/bar/:baz'
+async function parameters(context) {
+  console.log(context.params) // { "foo": "something", "baz": "else" }
+}
+```
+
 ### `postgresClient`
+
+_Added in 0.0.0._ **Requires the [`--postgres`] feature.**
+
+A lazily-acquired [`Promise`] for a postgres [`Client`]. Once
+acquired the same postgres connection will be re-used on every
+subsequent access from a given `Context` object.
+
+When accessed from a handler responsible for [unsafe HTTP methods],
+the connection will automatically run as part of a transaction. For
+more, read the ["persisting data" chapter].
+
+**Example use:**
+
+```javascript
+postgres.route = 'GET /users/:name'
+async function parameters(context) {
+  const client = await context.postgresClient
+  const results = await client.query("select * from users where username=$1", [context.params.name])
+}
+```
+
+[`--postgres`]: @/reference/cli.md#postgres
+[unsafe HTTP methods]: https://developer.mozilla.org/en-US/docs/Glossary/safe
+[`Promise`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+[`Client`]: https://node-postgres.com/api/client
+["persisting data" chapter]: #TKTKTK
+
 ### `query`
+
+_Added in 0.0.0._
+
+`query` contains the URL search (or "query") parameters for the current
+request, available as a plain javascript object.
+
+If `context.url` is set to a new string, `context.query` will be re-calculated.
+
+**Warning**: Duplicated querystring keys are dropped from this
+object; only the last key/value pair will be available. If you
+need to preserve _exact_ querystring information, use
+`context.url.searchParams`, which is a [`URLSearchParams`]
+object.
+
+**Example use:**
+
+```javascript
+queries.route = 'GET /'
+async function queries(context) {
+  if (context.query.foo) {
+    // if you requested this handler with "/?foo=1&bar=gary&bar=busey",
+    // you would get "busey" as a result
+    return context.query.bar
+  }
+}
+```
+
+[`URLSearchParams`]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams
+
 ### `redisClient`
+
+_Added in 0.0.0._ **Requires the [`--redis`] feature.**
+
+A [`handy-redis`] client attached to the context by middleware. A single client is
+created for the process and shared between request contexts.
+
+**Example use:**
+
+```javascript
+redis.route = 'GET /'
+async function redis(context) {
+  const [ok, then] = await context.redisClient.hmget('wow', 'ok', 'then')
+
+  return { ok, then }
+}
+```
+
+[`--redis`]: @/reference/cli.md#redis
+[`handy-redis`]: https://github.com/mmkal/handy-redis#handy-redis
+
 ### `remote`
+
+_Added in 0.0.0._
+
+The remote IP address of the HTTP request sender. Drawn from [`request.socket.remoteAddress`],
+falling back to `request.remoteAddress`. This value only represents the immediate connecting
+socket IP address, so if the application is served through a CDN or other reverse proxy (like
+nginx) the remote address will refer to that host instead of the originating client.
+
+**Example use:**
+
+```javascript
+remote.route = 'GET /'
+async function remote(context) {
+  console.log(context.remote) // 127.0.0.1, say
+}
+```
+
+[`request.socket.remoteAddress`]: https://nodejs.org/api/net.html#net_socket_remoteaddress
+
 ### `start`
+
+_Added in 0.0.0._
+
+A `Number` representing the start of the application request processing,
+drawn from [`Date.now()`].
+
+**Example use:**
+
+```javascript
+timing.route = 'GET /'
+async function timing(context) {
+  const ms = Date.now() - context.start
+  return `routing this request took ${ms} millisecond${ms === 1 ? '' : 's'}`
+}
+```
+
+[`Date.now()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/now
+
 ### `url`
+
+_Added in 0.0.0._
+
+A [`URL`] instance populated with the `host` header & incoming request path information.
+This attribute may be set to a `String` in order to recalculate the `url` and `query`
+properties.
+
+**Example use:**
+
+```javascript
+uniformResourceLocation.route = 'GET /'
+async function uniformResourceLocation(context) {
+  console.log(context.url.pathname) // "/"
+
+  context.url = '/foo/bar?baz=blorp'
+  console.log(context.url.pathname) // "/foo/bar"
+  console.log(context.query.baz) // "blorp"
+}
+```
+
+[`URL`]: https://developer.mozilla.org/en-US/docs/Web/API/URL_API
 
 ## Response Symbols
 
