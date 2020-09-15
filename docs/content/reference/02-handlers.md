@@ -234,7 +234,7 @@ async function parameters(context) {
 }
 ```
 
-[`--postgres`]: @/reference/cli.md#postgres
+[`--postgres`]: @/reference/01-cli.md#postgres
 [unsafe HTTP methods]: https://developer.mozilla.org/en-US/docs/Glossary/safe
 [`Promise`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
 [`Client`]: https://node-postgres.com/api/client
@@ -288,7 +288,7 @@ async function redis(context) {
 }
 ```
 
-[`--redis`]: @/reference/cli.md#redis
+[`--redis`]: @/reference/01-cli.md#redis
 [`handy-redis`]: https://github.com/mmkal/handy-redis#handy-redis
 
 ### `remote`
