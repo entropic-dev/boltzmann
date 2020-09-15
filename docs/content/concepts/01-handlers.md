@@ -232,7 +232,7 @@ your handlers with additional behavior -- think of them as higher-order handlers
 
 [request and response]: https://nodejs.org/api/http.html#http_event_request
 [reference documentation]: @/reference/_index.md
-[`Context`]: @/reference/04-context.md
+[`Context`]: @/reference/02-handlers.md#context
 [`200 OK`]: https://httpstatuses.com/200
 [`204 No Content`]: https://httpstatuses.com/204
 [`500 Internal Server Error`]: https://httpstatuses.com/500
