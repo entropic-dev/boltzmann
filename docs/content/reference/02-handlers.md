@@ -42,8 +42,8 @@ function myHandler(context) {
 
 _Added in 0.0.0._
 
-A promise for the parsed contents of the request body. Will either return a
-JavaScript object on success or throw a `422 Unprocessable Entity` error when
+A promise for the parsed contents of the request body. This promise resolves to
+a JavaScript object on success or throws a `422 Unprocessable Entity` error when
 no body parser could handle the request body.
 
 See ["accepting user input"] for more.
@@ -81,14 +81,15 @@ methods.
 }
 ```
 
-This configuration information is passed to the [`cookie`] package in order to create
-[`Set-Cookie`] headers for outgoing responses.
+This configuration information is passed to the [`cookie`] package in order to
+create [`Set-Cookie`] headers for outgoing responses.
 
-The state of the cookie map is tracked; if any values are changed (or deleted), Boltzmann
-will automatically generate and attach a `Set-Cookie` header to responses.
+Boltzmann tracks the state of the cookie map; if any values change or are
+deleted, Boltzmann automatically generates and attaches a `Set-Cookie` header to
+responses.
 
-Incoming cookies don't contain enough information to recreate fields other than `.value`,
-so those values will be synthesized with defaults.
+Incoming cookies don't contain enough information to recreate fields other than
+`.value`, so those values are synthesized with defaults.
 
 **Example use:**
 
@@ -122,7 +123,7 @@ _Added in 0.0.0._
 
 The HTTP [Request Headers] as a plain JavaScript object.
 
-This forwards the [Node.JS request headers object]. All headers will be lower-cased
+This forwards the [Node.JS request headers object]. All headers are lower-cased
 and follow the concatenation rules for repeated headers listed in the linked document.
 
 **Example use:**
@@ -156,8 +157,8 @@ async function host(context) {
 
 _Added in 0.0.0._
 
-A unique string identifier for the request for tracing purposes. The value will be drawn
-from:
+A unique string identifier for the request for tracing purposes. The value is
+drawn from:
 
 1. `x-honeycomb-trace`
 2. `x-request-id`
@@ -213,13 +214,13 @@ async function parameters(context) {
 
 _Added in 0.0.0._ **Requires the [`--postgres`] feature.**
 
-A lazily-acquired [`Promise`] for a postgres [`Client`]. Once
-acquired the same postgres connection will be re-used on every
-subsequent access from a given `Context` object.
+A lazily-acquired [`Promise`] for a postgres [`Client`]. Once acquired the same
+postgres connection is re-used on every subsequent access from a given `Context`
+object.
 
-When accessed from a handler responsible for [unsafe HTTP methods],
-the connection will automatically run as part of a transaction. For
-more, read the ["persisting data" chapter].
+When accessed from a handler responsible for [unsafe HTTP methods], the
+connection automatically runs as part of a transaction. For more, read the
+["persisting data" chapter].
 
 **Example use:**
 
@@ -238,10 +239,10 @@ _Added in 0.0.0._
 `query` contains the URL search (or "query") parameters for the current
 request, available as a plain javascript object.
 
-If `context.url` is set to a new string, `context.query` will be re-calculated.
+If `context.url` is set to a new string, `context.query` is re-calculated.
 
 **Warning**: Duplicated querystring keys are dropped from this
-object; only the last key/value pair will be available. If you
+object; only the last key/value pair is available. If you
 need to preserve _exact_ querystring information, use
 `context.url.searchParams`, which is a [`URLSearchParams`]
 object.
@@ -284,7 +285,7 @@ _Added in 0.0.0._
 The remote IP address of the HTTP request sender. Drawn from [`request.socket.remoteAddress`],
 falling back to `request.remoteAddress`. This value only represents the immediate connecting
 socket IP address, so if the application is served through a CDN or other reverse proxy (like
-nginx) the remote address will refer to that host instead of the originating client.
+nginx) the remote address refers to that host instead of the originating client.
 
 **Example use:**
 
@@ -343,16 +344,16 @@ A complete list of symbols and transformations follows.
 
 _Added in 0.0.0._
 
-This symbol controls the HTTP response headers sent by Boltzmann along with
-your handler's return value. It must point at an object whose keys will be used
-as header names. The values will be used as header values.
+This symbol controls the HTTP response headers sent by Boltzmann along with your
+handler's return value. It must point to an object. Boltzmann uses the object's
+keys as header names, and the values as header values.
 
-When a response is returned by a handler (or middleware), Boltzmann will
-enforce certain invariants before passing the response back to enclosing
-middleware. In particular, if no `content-type` header is available on the
-response headers, one will be added by Boltzmann. See [response
-transforms](#response-transforms) below for details on which return types will
-produce which `content-type` values.
+When a handler or middleware returns a response, Boltzmann enforces certain
+invariants before passing that response along to the enclosing middleware. In
+particular, if no `content-type` header is available on the response headers,
+Boltzmann adds one. See the section on [response
+transforms](#response-transforms) for details on which return types produce
+which `content-type` values.
 
 **Example use:**
 
@@ -374,8 +375,8 @@ _Added in 0.0.0._
 This symbol controls the HTTP response status code sent by Boltzmann along with
 your handler's return value. It must point at an integer number.
 
-If not given, Boltzmann will infer a status code. See [response
-transforms](#response-transforms) below for details on which return types will
+If not given, Boltzmann infers a status code. See [response
+transforms](#response-transforms) below for details on which return types
 produce which status codes.
 
 **Example use:**
@@ -414,15 +415,14 @@ async function errored2(context) {
 
 _Added in 0.1.2._ **Requires the [`--templates`] feature.**
 
-This symbol selects a template file to use to render the response
-as HTML. It must refer to a string value. The [template middleware]
-will attempt to load a file from one of its configured paths. These
-paths default to `./templates` in the top level.
+This symbol selects a template file to use to render the response as HTML. It
+must refer to a string value. The [template middleware] attempts to load a file
+from one of its configured paths. These paths default to `./templates` in the
+top level.
 
-If the template cannot be found, the template middleware will
-attempt to render a `5xx.html` template. If that cannot be found,
-Boltzmann will render a fallback `500 Internal Server
-Error` response.
+If the template middleware cannot locate the requested template, it attempts to
+render a `5xx.html` template. If it cannot find that, it renders a fallback `500
+Internal Server Error` response.
 
 **Example use:**
 
@@ -440,11 +440,11 @@ async function html(context) {
 
 _Added in 0.0.0._
 
-This symbol is automatically added to thrown values by Boltzmann.
+Boltzmann automatically adds this symbol to thrown values.
 It signals that the next innermost middleware or handler threw
 the return value; middleware may change behavior based on its
-presence or absence. For example: the `postgres` middleware will
-roll back transactions if it detects that the handler threw. You
+presence or absence. For example: the `postgres` middleware
+rolls back transactions if it detects that the handler threw. You
 can read more about this behavior in the ["persisting data"
 chapter].
 
@@ -477,19 +477,18 @@ async function example(context) {
 ## Response Transforms
 
 Boltzmann has useful defaults for mapping common return types to
-HTTP semantics. All of these behaviors can be overridden using the
+HTTP semantics. You can override all of these behaviors using the
 [Boltzmann symbols](#response-symbols). These transformations happen
 between each layer of middleware, as well as between the last middleware
-and the handler. The return value of `next(context)` will always
-reflect these transformation.
+and the handler. The return value of `next(context)` always
+reflects these transformation.
 
 ### `"strings"`
 
 _Added in 0.0.0_.
 
-Strings will be turned into [`Buffer`] instances. If no
-`content-type` header was specified, one will be generated and
-set to `text/plain; charset=utf-8`.
+Boltzmann turns strings into [`Buffer`] instances. If no `content-type` header
+was specified, Boltzmann generates one set to `text/plain; charset=utf-8`.
 
 **Example:**
 
@@ -518,8 +517,8 @@ async function example(context) {
 
 _Added in 0.0.0_.
 
-Empty values will be turned into [`204 No Content`] responses.
-They will be cast into empty [`Buffer`] instances.
+Boltzmann turns empty values turned into [`204 No Content`] responses.
+They are cast into empty [`Buffer`] instances.
 
 **Example:**
 
@@ -559,11 +558,12 @@ async function example3(context) {
 
 _Added in 0.0.0_.
 
-Returning a [`Readable`] Node stream is supported. Barring any modifications
-by user-defined middleware, the stream will not be resumed until all middleware
-has executed. It will be piped directly to the Node [`response`] object.
+Handlers and middleware can return a [`Readable`] Node stream. Boltzmann does
+not resume the stream until all middleware has executed. (User-defined middleware
+might resume a stream, however.) The stream is piped directly to the Node
+[`response`] object.
 
-If no `content-type` header is present, it will be assigned a `content-type`
+If no `content-type` header is present, Boltzmann adds a `content-type`
 header value of `application/octet-stream`.
 
 **Example:**
@@ -581,16 +581,15 @@ async function example(context) {
 
 _Added in 0.0.0_.
 
-After all middleware has been executed, JavaScript object return
-values will be converted to JSON automatically before being
-written to the response stream. Note that this will call
-`.toJSON()` on any member of that object tree.
+Handlers can return JavaScript objects. After all middleware executes, Boltzmann
+turns these objects into JSON automatically, then writes them to the response
+stream. Note that this calls `.toJSON()` on any member of that object tree. To
+control serialization, provide a `.toJSON()` implementation.
 
-If no `content-type` header is detected, one will be created and
-assigned to `application/json; charset=utf-8`. If the object has
-a [`Symbol.for('template')`] attribute defined & the
-[`--templates`] flag is enabled, the content type will be set to
-`text/html; charset=utf-8`.
+If no `content-type` header is present, Boltzmann adds a `content-type` header
+value of `application/json; charset=utf-8`. If the return object has a
+[`Symbol.for('template')`] attribute defined and the [`--templates`] flag is
+enabled, the content type is `text/html; charset=utf-8`.
 
 **Example:**
 
@@ -624,15 +623,19 @@ async function example2(context) {
 
 _Added in 0.0.0_.
 
-Thrown exceptions are treated similarly to JavaScript objects. If no
-status code was provided, they will be assigned a `500 Internal
-Server Error` code.
+Handlers can throw exceptions deliberately as well as accidentally. Boltzmann
+translates exceptions to http semantics and controls what data from the
+exception is returned to the caller. In particular, in non-development modes,
+Boltzmann removes the error `stack` property from its response. Any other
+property, including `message`, is forwarded from the exception object to
+the response.
 
-In [development mode] the error `stack` will be returned. Any
-other property, including `message`, will be forwarded from the
-exception object to the response.
+Notably **`toJSON()` is not called on your exception object**.
 
-Notably **`toJSON()` will not be called on your exception object**.
+If a thrown exception does not provide a status code, Boltzmann assigns the `500
+Internal Server Error` code.
+
+In [development mode] Boltzmann does not remove the error `stack`.
 
 **Example:**
 
