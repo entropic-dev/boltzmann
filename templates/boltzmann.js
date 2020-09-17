@@ -1499,14 +1499,29 @@ function honeycombMiddlewareSpans ({name} = {}) {
 
 // {% endif %}
 
+let IN_MEMORY = new Map()
 function session ({
   cookie = process.env.SESSION_ID,
   secret = process.env.SESSION_SECRET,
-  load = async (context, id) => {},
-  save = async (context, id, session) => {},
+  load =
+// {% if redis %}
+  async (context, id) => {
+    JSON.parse(await context.redisClient.hget('sessions', id))
+  },
+// {% else %}
+  async (context, id) => JSON.parse(IN_MEMORY.get(id)),
+// {% endif %}
+  save =
+// {% if redis %}
+  async (context, id, session) => {
+    await context.redisClient.hset('sessions', id, JSON.stringify(session))
+  },
+// {% else %}
+  async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
+// {% endif %}
   iron = {},
   expirySeconds = 60 * 60 * 24 * 365
-}) {
+} = {}) {
   let _iron = null
   let _uuid = null
 
@@ -1528,9 +1543,9 @@ function session ({
           _iron = _iron || require('@hapi/iron')
           _uuid = _uuid || require('uuid')
 
-          const id = await _iron.unseal(sessid, secret, { ..._iron.defaults, ...iron })
+          const id = String(await _iron.unseal(sessid, secret, { ..._iron.defaults, ...iron }))
 
-          if (!id.startsWith('s_') || !_uuid.validate(id.slice(2))) {
+          if (!id.startsWith('s_') || !_uuid.validate(id.slice(2).split(':')[0])) {
             throw new BadSessionError()
           }
 
@@ -1552,8 +1567,10 @@ function session ({
       }
 
       const needsReissue = !_session.id || _session[REISSUE]
-      const sessid = needsReissue ? `s_${_uuid.v4()}` : _session.id
+      const issued = Date.now()
+      const sessid = needsReissue ? `s_${_uuid.v4()}:${issued}` : _session.id
 
+      session.set('modified', issued)
       await save(context, sessid, Object.fromEntries(_session.entries()))
 
       if (needsReissue) {
