@@ -61,6 +61,7 @@ const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
+const REISSUE = Symbol('reissue-session')
 
 let ajv = null
 let ajvLoose = null
@@ -1497,6 +1498,81 @@ function honeycombMiddlewareSpans ({name} = {}) {
 }
 
 // {% endif %}
+
+function session ({
+  cookie = process.env.SESSION_ID,
+  secret = process.env.SESSION_SECRET,
+  load = async (context, id) => {},
+  save = async (context, id, session) => {},
+  iron = {},
+  expirySeconds = 60 * 60 * 24 * 365
+}) {
+  let _iron = null
+  let _uuid = null
+
+  return next => {
+    return context => {
+      let _session = null
+      Object.defineProperty(context, 'session', {
+        async get () {
+          if (_session) {
+            return _session
+          }
+
+          const sessid = context.cookie.get(cookie)
+          if (!sessid) {
+            _session = new Session([['created', Date.now()]])
+            return _session
+          }
+
+          _iron = _iron || require('@hapi/iron')
+          _uuid = _uuid || require('uuid')
+
+          const id = await _iron.unseal(sessid, secret, { ..._iron.defaults, ...iron })
+
+          if (!id.startsWith('s_') || !_uuid.validate(id.slice(2))) {
+            throw new BadSessionError()
+          }
+
+          const sessionData = await load(context, id)
+          _session = new Session(id, Object.entries(sessionData))
+
+          return _session
+        }
+      })
+
+      const response = await next(context)
+
+      if (!_session) {
+        return response
+      }
+
+      if (!_session.dirty) {
+        return response
+      }
+
+      const needsReissue = !_session.id || _session[REISSUE]
+      const sessid = needsReissue ? `s_${_uuid.v4()}` : _session.id
+
+      await save(context, sessid, Object.fromEntries(_session.entries()))
+
+      if (needsReissue) {
+        const sealed = await _iron.seal(sessid, secret, { ..._iron.defaults, ...iron })
+
+        context.cookie.set(cookie, {
+          value: sealed,
+          httpOnly: true,
+          sameSite: true,
+          maxAge: expirySeconds,
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+        })
+      }
+
+      return response
+    }
+  }
+}
+
 // {% if redis %}
 function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   return next => {
@@ -1920,6 +1996,39 @@ class Cookie extends Map {
   }
 }
 
+class BadSessionErrror extends Error {
+  [STATUS] = 400
+}
+
+class Session extends Map {
+  constructor(id, ...args) {
+    super(...args)
+    this.dirty = false
+    this.id = id
+  }
+
+  reissue() {
+    this[REISSUE] = true
+  }
+
+  set(key, value) {
+    const old = this.get(key)
+    if (value === old) {
+      return super.set(key, value)
+    }
+    this.dirty = true
+    return super.set(key, value)
+  }
+
+  delete(key) {
+    if (!this.has(key)) {
+      return super.delete(key)
+    }
+    this.dirty = true
+    return super.delete(key)
+  }
+}
+
 {{ EXPORTS }} const body = {
   json,
   urlEncoded
@@ -1938,6 +2047,8 @@ class Cookie extends Map {
 // {% endif %}
 // {% if templates %}
   template,
+  templateContext,
+  devStatic,
 // {% endif %}
   handleCORS,
   applyXFO,
