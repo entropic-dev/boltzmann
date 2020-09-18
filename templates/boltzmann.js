@@ -1058,7 +1058,7 @@ function templateContext(extraContext = {}) {
         result.STATIC_URL = process.env.STATIC_URL || '/static'
 
         for (const [key, fn] of Object.entries(extraContext)) {
-          result[key] = typeof fn === 'function' ? fn(context) : fn
+          result[key] = await (typeof fn === 'function' ? fn(context) : fn)
         }
       }
 
@@ -1501,20 +1501,18 @@ function honeycombMiddlewareSpans ({name} = {}) {
 
 let IN_MEMORY = new Map()
 function session ({
-  cookie = process.env.SESSION_ID,
+  cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   load =
 // {% if redis %}
-  async (context, id) => {
-    JSON.parse(await context.redisClient.hget('sessions', id))
-  },
+  async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
 // {% else %}
   async (context, id) => JSON.parse(IN_MEMORY.get(id)),
 // {% endif %}
   save =
 // {% if redis %}
   async (context, id, session) => {
-    await context.redisClient.hset('sessions', id, JSON.stringify(session))
+    await context.redisClient.setex(id, expirySeconds, JSON.stringify(session))
   },
 // {% else %}
   async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
@@ -1526,7 +1524,7 @@ function session ({
   let _uuid = null
 
   return next => {
-    return context => {
+    return async context => {
       let _session = null
       Object.defineProperty(context, 'session', {
         async get () {
@@ -1536,14 +1534,14 @@ function session ({
 
           const sessid = context.cookie.get(cookie)
           if (!sessid) {
-            _session = new Session([['created', Date.now()]])
+            _session = new Session(null, [['created', Date.now()]])
             return _session
           }
 
           _iron = _iron || require('@hapi/iron')
           _uuid = _uuid || require('uuid')
 
-          const id = String(await _iron.unseal(sessid, secret, { ..._iron.defaults, ...iron }))
+          const id = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
 
           if (!id.startsWith('s_') || !_uuid.validate(id.slice(2).split(':')[0])) {
             throw new BadSessionError()
@@ -1566,14 +1564,18 @@ function session ({
         return response
       }
 
+      _uuid = _uuid || require('uuid')
+
       const needsReissue = !_session.id || _session[REISSUE]
       const issued = Date.now()
       const sessid = needsReissue ? `s_${_uuid.v4()}:${issued}` : _session.id
 
-      session.set('modified', issued)
+      _session.set('modified', issued)
       await save(context, sessid, Object.fromEntries(_session.entries()))
 
       if (needsReissue) {
+        _iron = _iron || require('@hapi/iron')
+
         const sealed = await _iron.seal(sessid, secret, { ..._iron.defaults, ...iron })
 
         context.cookie.set(cookie, {
@@ -2069,6 +2071,7 @@ class Session extends Map {
 // {% endif %}
   handleCORS,
   applyXFO,
+  session,
 // {% if csrf %}
   applyCSRF,
 // {% endif %}
