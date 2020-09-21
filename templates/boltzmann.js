@@ -42,8 +42,8 @@ const isDev = require('are-we-dev')
 const fmw = require('find-my-way')
 const accepts = require('accepts')
 const fs = require('fs').promises
-// {% if csrf %}
 const crypto = require('crypto')
+// {% if csrf %}
 const CsrfTokens = require('csrf')
 // {% endif %}
 const http = require('http')
@@ -169,6 +169,9 @@ let ajvStrict = null
     this._routed = {}
     this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
     this._cookie = null
+    this._loadSession = async () => {
+      throw new Error('To use context.session, attach session middleware to your app')
+    }
 
     // {% if redis %}
     this._redisClient = null
@@ -190,6 +193,11 @@ let ajvStrict = null
   get cookie () {
     this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
     return this._cookie
+  }
+
+  /** @type {Promise<Session>} */
+  get session () {
+    return this._loadSession()
   }
 
   // {% if redis %}
@@ -1497,6 +1505,122 @@ function honeycombMiddlewareSpans ({name} = {}) {
 }
 
 // {% endif %}
+
+let IN_MEMORY = new Map()
+function session ({
+  cookie = process.env.SESSION_ID || 'sid',
+  secret = process.env.SESSION_SECRET,
+  salt = process.env.SESSION_SALT,
+  load =
+// {% if redis %}
+  async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
+// {% else %}
+  async (context, id) => JSON.parse(IN_MEMORY.get(id)),
+// {% endif %}
+  save =
+// {% if redis %}
+  async (context, id, session) => {
+    // Add 5 seconds of lag 
+    await context.redisClient.setex(id, expirySeconds + 5000, JSON.stringify(session))
+  },
+// {% else %}
+  async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
+// {% endif %}
+  iron = {},
+  expirySeconds = 60 * 60 * 24 * 365
+} = {}) {
+  let _iron = null
+  let _uuid = null
+
+  expirySeconds = Number(expirySeconds) || 0
+  if (typeof load !== 'function') {
+    throw new TypeError('`load` must be a function, got ' + typeof load)
+  }
+
+  if (typeof save !== 'function') {
+    throw new TypeError('`save` must be a function, got ' + typeof save)
+  }
+
+  secret = Buffer.isBuffer(secret) ? secret : String(secret)
+  if (secret.length < 32) {
+    throw new RangeError('`secret` must be a string or buffer at least 32 units long')
+  }
+
+  salt = Buffer.isBuffer(salt) ? salt : String(salt)
+  if (salt.length == 0) {
+    throw new RangeError('`salt` must be a string or buffer at least 1 unit long; preferably more')
+  }
+
+  return next => {
+    return async context => {
+      let _session = null
+      context._loadSession = async () => {
+        if (_session) {
+          return _session
+        }
+
+        const sessid = context.cookie.get(cookie)
+        if (!sessid) {
+          _session = new Session(null, [['created', Date.now()]])
+          return _session
+        }
+
+        _iron = _iron || require('@hapi/iron')
+        _uuid = _uuid || require('uuid')
+
+        const clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+
+        if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
+          throw new BadSessionError()
+        }
+
+        const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
+
+        const sessionData = await load(context, id)
+        _session = new Session(id, Object.entries(sessionData))
+
+        return _session
+      }
+
+      const response = await next(context)
+
+      if (!_session) {
+        return response
+      }
+
+      if (!_session.dirty) {
+        return response
+      }
+
+      _uuid = _uuid || require('uuid')
+
+      const needsReissue = !_session.id || _session[REISSUE]
+      const issued = Date.now()
+      const clientId = needsReissue ? `s_${_uuid.v4()}:${issued}` : _session.id
+      const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
+
+      _session.set('modified', issued)
+      await save(context, id, Object.fromEntries(_session.entries()))
+
+      if (needsReissue) {
+        _iron = _iron || require('@hapi/iron')
+
+        const sealed = await _iron.seal(clientId, secret, { ..._iron.defaults, ...iron })
+
+        context.cookie.set(cookie, {
+          value: sealed,
+          httpOnly: true,
+          sameSite: true,
+          maxAge: expirySeconds,
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+        })
+      }
+
+      return response
+    }
+  }
+}
+
 // {% if redis %}
 function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   return next => {
