@@ -313,6 +313,46 @@ async function timing(context) {
 }
 ```
 
+### `session`
+
+_Added in 0.1.4._
+
+A [`Promise`] for a `Session` object. `Session` objects are subclasses of the built-in
+[`Map`] class. `Session` objects provide all of the built-in `Map` methods, and additionally offers:
+
+- `.reissue()`: For existing sessions, regenerates the session id and issues it to the client. Has no
+  effect for new sessions (the session id does not exist to be regenerated.) Use this when authentication
+  levels change for a session: logging a user in or out should reissue the session cookie.
+
+You can store any JavaScript object in session storage. **However,** session storage is serialized as
+JSON, so rich type information will be lost.
+
+**Example use:**
+
+```javascript
+sessions.route = 'GET /'
+async function sessions(context) {
+  const session = await context.session
+  const username = session.get('user')
+
+  return username ? 'wow, you are very logged in' : 'not extremely online'
+}
+
+logout.route = 'POST /logout'
+async function logout(context) {
+  const session = await context.session
+  session.delete('user')
+  session.reissue() // The user is no longer authenticated. Switch the session storage to a new ID.
+
+  return Object.assign(Buffer.from([]), {
+    [Symbol.for('status')]: 301,
+    [Symbol.for('headers')]: {
+      'location': '/'
+    }
+  })
+}
+```
+
 ### `url`
 
 _Added in 0.0.0._

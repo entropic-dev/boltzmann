@@ -61,6 +61,7 @@ const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
+const REISSUE = Symbol('reissue-session')
 
 let ajv = null
 let ajvLoose = null
@@ -1057,7 +1058,7 @@ function templateContext(extraContext = {}) {
         result.STATIC_URL = process.env.STATIC_URL || '/static'
 
         for (const [key, fn] of Object.entries(extraContext)) {
-          result[key] = typeof fn === 'function' ? fn(context) : fn
+          result[key] = await (typeof fn === 'function' ? fn(context) : fn)
         }
       }
 
@@ -1497,6 +1498,100 @@ function honeycombMiddlewareSpans ({name} = {}) {
 }
 
 // {% endif %}
+
+let IN_MEMORY = new Map()
+function session ({
+  cookie = process.env.SESSION_ID || 'sid',
+  secret = process.env.SESSION_SECRET,
+  load =
+// {% if redis %}
+  async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
+// {% else %}
+  async (context, id) => JSON.parse(IN_MEMORY.get(id)),
+// {% endif %}
+  save =
+// {% if redis %}
+  async (context, id, session) => {
+    await context.redisClient.setex(id, expirySeconds, JSON.stringify(session))
+  },
+// {% else %}
+  async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
+// {% endif %}
+  iron = {},
+  expirySeconds = 60 * 60 * 24 * 365
+} = {}) {
+  let _iron = null
+  let _uuid = null
+
+  return next => {
+    return async context => {
+      let _session = null
+      Object.defineProperty(context, 'session', {
+        async get () {
+          if (_session) {
+            return _session
+          }
+
+          const sessid = context.cookie.get(cookie)
+          if (!sessid) {
+            _session = new Session(null, [['created', Date.now()]])
+            return _session
+          }
+
+          _iron = _iron || require('@hapi/iron')
+          _uuid = _uuid || require('uuid')
+
+          const id = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+
+          if (!id.startsWith('s_') || !_uuid.validate(id.slice(2).split(':')[0])) {
+            throw new BadSessionError()
+          }
+
+          const sessionData = await load(context, id)
+          _session = new Session(id, Object.entries(sessionData))
+
+          return _session
+        }
+      })
+
+      const response = await next(context)
+
+      if (!_session) {
+        return response
+      }
+
+      if (!_session.dirty) {
+        return response
+      }
+
+      _uuid = _uuid || require('uuid')
+
+      const needsReissue = !_session.id || _session[REISSUE]
+      const issued = Date.now()
+      const sessid = needsReissue ? `s_${_uuid.v4()}:${issued}` : _session.id
+
+      _session.set('modified', issued)
+      await save(context, sessid, Object.fromEntries(_session.entries()))
+
+      if (needsReissue) {
+        _iron = _iron || require('@hapi/iron')
+
+        const sealed = await _iron.seal(sessid, secret, { ..._iron.defaults, ...iron })
+
+        context.cookie.set(cookie, {
+          value: sealed,
+          httpOnly: true,
+          sameSite: true,
+          maxAge: expirySeconds,
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+        })
+      }
+
+      return response
+    }
+  }
+}
+
 // {% if redis %}
 function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   return next => {
@@ -1920,6 +2015,39 @@ class Cookie extends Map {
   }
 }
 
+class BadSessionErrror extends Error {
+  [STATUS] = 400
+}
+
+class Session extends Map {
+  constructor(id, ...args) {
+    super(...args)
+    this.dirty = false
+    this.id = id
+  }
+
+  reissue() {
+    this[REISSUE] = true
+  }
+
+  set(key, value) {
+    const old = this.get(key)
+    if (value === old) {
+      return super.set(key, value)
+    }
+    this.dirty = true
+    return super.set(key, value)
+  }
+
+  delete(key) {
+    if (!this.has(key)) {
+      return super.delete(key)
+    }
+    this.dirty = true
+    return super.delete(key)
+  }
+}
+
 {{ EXPORTS }} const body = {
   json,
   urlEncoded
@@ -1938,9 +2066,12 @@ class Cookie extends Map {
 // {% endif %}
 // {% if templates %}
   template,
+  templateContext,
+  devStatic,
 // {% endif %}
   handleCORS,
   applyXFO,
+  session,
 // {% if csrf %}
   applyCSRF,
 // {% endif %}
