@@ -56,25 +56,38 @@ export const APP_MIDDLEWARE = [
 ]
 // {% else %}
 module.exports = {
-  // You can export middleware for testing or for
-  // attaching to routes.
+  // You can export middleware for testing or for attaching to routes.
   routeMiddlewareFunc,
   setupMiddlewareFunc,
   APP_MIDDLEWARE: [
-    // This export is special: it instructs Boltzmann to attach
-    // middlewares to the app in this order.
-    // This is also where you can configure built-in middleware.
+    // This export is special: it instructs Boltzmann to attach middlewares to the app in this
+    // order. This is also where you can configure built-in middleware.
     setupMiddlewareFunc,
+    // Must be one of DENY or SAMEORIGIN; uncomment to enable
+    // [boltzmann.middleware.applyXFO, 'SAMEORIGIN'],
+    {%- if jwt %}
+    /* Provide a path to a file containing your public key & uncomment to enable
+    [boltzmann.middleware.authenticateJWT, {
+      // scheme: 'Bearer',
+      // publicKey: process.env.AUTHENTICATION_KEY, // path to a file containing a key
+      // algorithms: ['RS256'],
+      // storeAs: 'user'
+    }],
+    */
+    {%- endif %}
     {%- if csrf %}
+    /* Provide a cookie secret & uncomment to enable
     [boltzmann.middleware.applyCSRF, {
       // cookieSecret: process.env.COOKIE_SECRET,
       // csrfCookie: '_csrf',
       // param: '_csrf',
       // header: 'csrf-token'
     }],
+    */
     {%- endif %}
     {%- if templates %}
     [boltzmann.middleware.template, {
+      // paths: ['templates'], // change template file locations
       // filters: {}, // add custom template filters
       // tags: {}     // extend nunjucks with custom tags
     }],

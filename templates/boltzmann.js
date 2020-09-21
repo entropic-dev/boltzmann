@@ -553,6 +553,13 @@ function template ({
 } = {}) {
   const nunjucks = require('nunjucks')
   const path = require('path')
+  if (!Array.isArray(paths)) {
+    if (typeof paths == 'string') {
+      paths = [paths]
+    } else {
+      throw new TypeError('the paths option for template() must be an array of path strings')
+    }
+  }
 
   paths = paths.slice().map(
     xs => path.join(__dirname, xs)
@@ -1157,7 +1164,12 @@ function applyHeaders (headers = {}) {
   }
 }
 
-const applyXFO = (mode) => applyHeaders({ 'x-frame-options': mode })
+const applyXFO = (mode) => {
+  if (!['DENY', 'SAMEORIGIN'].includes(mode)) {
+    throw new Error('applyXFO(): Allowed x-frame-options directives are DENY and SAMEORIGIN.')
+  }
+  return applyHeaders({ 'x-frame-options': mode })
+}
 
 // {% if csrf %}
 // csrf protection middleware
@@ -1264,6 +1276,19 @@ function authenticateJWT ({
   algorithms=['RS256'],
   storeAs = 'user'
 } = {}) {
+  if (!Array.isArray(algorithms)) {
+    if (typeof algorithms == 'string') {
+      algorithms = [algorithms]
+    } else {
+      throw new TypeError('The `algorithms` config option for JWTs must be an array of strings')
+    }
+  }
+  if (!publicKey) {
+    throw new Error(
+      `To authenticate JWTs you must pass the path to a public key file in either
+the environment variable "AUTHENTICATION_KEY" or the publicKey config field
+      `.trim().split('\n').join(' '))
+  }
   const verifyJWT = require('jsonwebtoken').verify
 
   return async next => {
@@ -2553,7 +2578,7 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
 
   test('jwt ignores requests without authorization header', async assert => {
     let called = 0
-    const handler = await authenticateJWT()(context => {
+    const handler = await authenticateJWT({ publicKey: 'unused' })(context => {
       ++called
       return 'ok'
     })
@@ -2566,7 +2591,7 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
 
   test('jwt ignores requests with authorization header that do not match configured scheme', async assert => {
     let called = 0
-    const handler = await authenticateJWT()(context => {
+    const handler = await authenticateJWT({ publicKey: 'unused' })(context => {
       ++called
       return 'ok'
     })
@@ -2665,7 +2690,7 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
 
   test('jwt throws a 403 for invalid jwt headers', async assert => {
     let called = 0
-    const handler = await authenticateJWT()(context => {
+    const handler = await authenticateJWT({ publicKey: 'unused' })(context => {
       ++called
       return 'ok'
     })
@@ -2681,6 +2706,22 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
       assert.equal(called, 0)
       assert.equal(err[Symbol.for('status')], 403)
     }
+  })
+
+  test('authenticateJWT() ensures `algorithms` is an array', async assert => {
+    let caught = 0
+    try {
+      authenticateJWT({ publicKey: 'unused', algorithms: { object: 'Object' } })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      authenticateJWT({ publicKey: 'unused', algorithms: 'foo' })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
   })
 
   test('log: logs expected keys', async assert => {
@@ -3330,6 +3371,52 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
     assert.ok(/Invalid CSRF token/.test(response.payload))
     assert.equal(called, 0)
   })
+
+  test('applyXFO() ensures its option is DENY or SAMEORIGIN', async assert => {
+    let caught = 0
+    try {
+      applyXFO('BADSTRING')
+    } catch (_) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      applyXFO('DENY')
+    } catch (_) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      applyXFO('SAMEORIGIN')
+    } catch (_) {
+      caught++
+    }
+    assert.equal(caught, 1)
+  })
+
+  test('template() ensures `paths` is an array', async assert => {
+    let caught = 0
+    try {
+      template({ paths: { foo: 'bar' } })
+    } catch (err) {
+      assert.match(err.message, /must be an array/)
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      template({ paths: 'foo' })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      template({ paths: ['foo', 'bar'] })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+  })
+
 
 }
 // {% endif %}
