@@ -63,25 +63,24 @@ module.exports = {
     // This export is special: it instructs Boltzmann to attach middlewares to the app in this
     // order. This is also where you can configure built-in middleware.
     setupMiddlewareFunc,
-    // Must be one of DENY or SAMEORIGIN; uncomment to enable
-    // [boltzmann.middleware.applyXFO, 'SAMEORIGIN'],
+    // [boltzmann.middleware.applyXFO, 'SAMEORIGIN'], // Must be one of DENY or SAMEORIGIN; uncomment to enable
     {%- if jwt %}
     /* Provide a path to a file containing your public key & uncomment to enable
     [boltzmann.middleware.authenticateJWT, {
-      // scheme: 'Bearer',
-      // publicKey: process.env.AUTHENTICATION_KEY, // path to a file containing a key
-      // algorithms: ['RS256'],
-      // storeAs: 'user'
+      // scheme: 'Bearer',      // Default; uncomment & edit to use another value.
+      // publicKey: process.env.AUTHENTICATION_KEY, // Set env var OR this key to path to a file containing a key
+      // algorithms: ['RS256'], // Default; uncomment & edit to use another value.
+      // storeAs: 'user'        // Default; uncomment & edit to use another value.
     }],
     */
     {%- endif %}
     {%- if csrf %}
-    /* Provide a cookie secret & uncomment to enable
+    /* Provide a cookie secret & uncomment to enable.
     [boltzmann.middleware.applyCSRF, {
-      // cookieSecret: process.env.COOKIE_SECRET,
-      // csrfCookie: '_csrf',
-      // param: '_csrf',
-      // header: 'csrf-token'
+      // cookieSecret: process.env.COOKIE_SECRET, //  Set the env var to change.
+      // csrfCookie: '_csrf',  // Default; uncomment & edit to use another value.
+      // param: '_csrf',       // Default; uncomment & edit to use another value.
+      // header: 'csrf-token'  // Default; uncomment & edit to use another value.
     }],
     */
     {%- endif %}
