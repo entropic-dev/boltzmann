@@ -553,12 +553,12 @@ function template ({
 } = {}) {
   const nunjucks = require('nunjucks')
   const path = require('path')
-  if (!Array.isArray(paths)) {
-    if (typeof paths == 'string') {
-      paths = [paths]
-    } else {
-      throw new TypeError('the paths option for template() must be an array of path strings')
-    }
+  paths = [].concat(paths)
+  try {
+    const assert = require('assert')
+    paths.forEach(xs => assert(typeof xs == 'string'))
+  } catch (_c) {
+    throw new TypeError('The `paths` option for template() must be an array of path strings')
   }
 
   paths = paths.slice().map(
@@ -1276,18 +1276,19 @@ function authenticateJWT ({
   algorithms=['RS256'],
   storeAs = 'user'
 } = {}) {
-  if (!Array.isArray(algorithms)) {
-    if (typeof algorithms == 'string') {
-      algorithms = [algorithms]
-    } else {
-      throw new TypeError('The `algorithms` config option for JWTs must be an array of strings')
-    }
+  algorithms = [].concat(algorithms)
+  try {
+    const assert = require('assert')
+    algorithms.forEach(xs => assert(typeof xs == 'string'))
+  } catch (_c) {
+    throw new TypeError('The `algorithms` config option for JWTs must be an array of strings')
   }
   if (!publicKey) {
     throw new Error(
       `To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-      `.trim().split('\n').join(' '))
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authenticatejwt
+`.trim().split('\n').join(' '))
   }
   const verifyJWT = require('jsonwebtoken').verify
 
@@ -1299,6 +1300,7 @@ the environment variable "AUTHENTICATION_KEY" or the publicKey config field
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
+          https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '))
         throw err
       })

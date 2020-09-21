@@ -89,7 +89,7 @@ impl Settings {
             ping: cast(&flags.ping, &self.ping, flags.all || flags.website),
             postgres: cast(&flags.postgres, &self.postgres, flags.all),
             redis: cast(&flags.redis, &self.redis, flags.all),
-            esm: if is_esm { Some(true) } else { None }, 
+            esm: if is_esm { Some(true) } else { None },
 
             status: cast(&flags.status, &self.status, flags.all || flags.website),
             templates: cast(&flags.templates, &self.templates, flags.all || flags.website),
