@@ -103,11 +103,18 @@ struct RunScripts {
 
     #[serde(rename = "boltzmann:upgrade")]
     upgrade: Option<String>,
+
+    #[serde(rename = "boltzmann:routes")]
+    routes: Option<String>,
 }
 
 impl RunScripts {
     fn upgrade_string() -> String {
         "npx boltzmann-cli".to_string()
+    }
+
+    fn routes_string() -> String {
+        "node -e 'require(\"./boltzmann\").printRoutes()'".to_string()
     }
 }
 
@@ -119,6 +126,7 @@ impl Default for RunScripts {
             start: Some("./boltzmann.js".to_string()),
             test: Some("tap test".to_string()),
             upgrade: Some(RunScripts::upgrade_string()),
+            routes: Some(RunScripts::routes_string()),
             rest: BTreeMap::new()
         }
     }
@@ -307,6 +315,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         info!("    loaded settings from existing package.json");
         package_json.scripts = package_json.scripts.map(|mut scripts| {
             scripts.upgrade.replace(RunScripts::upgrade_string());
+            scripts.routes.replace(RunScripts::routes_string());
             scripts
         }).or_else(Default::default);
 

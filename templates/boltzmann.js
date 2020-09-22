@@ -266,13 +266,108 @@ class NoMatchError extends Error {
   }
 }
 
+{{ EXPORTS }} async function routes (handlers = _requireOr('./handlers')) {
+  handlers = await handlers
+
+  const routes = []
+  for (let [key, handler] of Object.entries(handlers)) {
+    if (typeof handler.route === 'string') {
+      let [method, ...route] = handler.route.split(' ')
+      route = route.join(' ')
+      if (route.length === 0) {
+        route = method
+        method = (handler.method || 'GET')
+      }
+
+      const { version, middleware, decorators, ...rest } = handler
+
+      let location = null
+      let link = null
+
+      if (isDev()) {
+        const getFunctionLocation = require('get-function-location')
+        location = await getFunctionLocation(handler)
+        link = `${location.source.replace('file://', 'vscode://file')}:${location.line}:${location.column}`
+      }
+
+      routes.push({
+        key,
+        location,
+        link,
+        method,
+        route,
+        version,
+        middleware,
+        handler,
+        props: rest
+      })
+    }
+  }
+
+  return routes
+}
+
+{{ EXPORTS }} async function printRoutes () {
+  const metadata = await routes()
+
+  const maxRouteLen = metadata.reduce((acc, { route }) => Math.max(acc, route.length), 0)
+  const maxHandlerLen = metadata.reduce((acc, { handler, key }) => Math.max(acc, (handler.name || key).length), 0)
+  const maxMethodLen = metadata
+    .map(({method}) => [].concat(method))
+    .flat()
+    .reduce((acc, method) => Math.max(acc, method.length), 0)
+
+  const map = {
+    'GET': '\x1b[32;1m',
+    'DELETE': '\x1b[31m',
+    'POST': '\x1b[33;1m',
+    'PATCH': '\x1b[33;1m',
+    'PUT': '\x1b[35;1m',
+    '*': '\x1b[36;1m'
+  }
+
+  const ansi = require('ansi-escapes')
+  const supportsHyperlinks = require('supports-hyperlinks')
+
+  for (const meta of metadata) {
+    for (let method of [].concat(meta.method)) {
+      const originalMethod = method.toUpperCase().trim()
+      method = `${(map[originalMethod] || map['*'])}${originalMethod}\x1b[0m`
+      method = method + ' '.repeat(Math.max(0, maxMethodLen - originalMethod.length + 1))
+
+      const rlen = meta.route.trim().length
+      const route = meta.route.trim().replace(/:([^\/-]+)/g, (a, m) => {
+        return `\x1b[4m:${m}\x1b[0m`
+      }) + ' '.repeat(Math.max(0, maxRouteLen - rlen) + 1)
+
+      const handler = (meta.handler.name || meta.key).padEnd(maxHandlerLen + 1)
+
+      const source = meta.location.source.replace(`file://${process.cwd()}`, '.')
+      let filename = `${source}:${meta.location.line}:${meta.location.column}`
+      filename = (
+        supportsHyperlinks.stdout
+        ? ansi.link(filename, meta.link)
+        : filename
+      )
+
+      console.log(`  ${method}${route}${handler} \x1b[38;5;8m(\x1b[4m${filename}\x1b[0m\x1b[38;5;8m)\x1b[0m`)
+    }
+  }
+
+  if (supportsHyperlinks.stdout) {
+    console.log()
+    console.log('(hold ⌘ and click on any filename above to open in VSCode)')
+  }
+  console.log()
+}
+
 async function router (handlers) {
   const wayfinder = fmw({})
 
   for (let [key, handler] of Object.entries(handlers)) {
     if (typeof handler.route === 'string') {
       let [method, ...route] = handler.route.split(' ')
-      route = route.join('')
+      route = route.join(' ')
       if (route.length === 0) {
         route = method
         method = (handler.method || 'GET')
@@ -1387,7 +1482,13 @@ function json (next) {
       try {
         return JSON.parse(String(buf))
       } catch {
-        throw Object.assign(new Error('Could not parse request body as JSON'), {
+        const message = (
+          isDev()
+          ? 'Could not parse request body as JSON (Did the request include a `Content-Type: application/json` header?)'
+          : 'Could not parse request body as JSON'
+        )
+
+        throw Object.assign(new Error(message), {
           [STATUS]: 422
         })
       }
@@ -2103,6 +2204,8 @@ exports.Context = Context
 exports.main = main
 exports.middleware = middleware
 exports.decorators = decorators
+exports.routes = routes
+exports.printRoutes = printRoutes
 // {% endif %}
 
 // {% if not selftest %}

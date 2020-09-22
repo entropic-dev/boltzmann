@@ -137,13 +137,22 @@
     ))
   ),
   DependencySpec(
+    name: "ansi-escapes",
+    version: "^4.3.1",
+    kind: Development,
+    preconditions: None
+  ),
+  DependencySpec(
+    name: "supports-hyperlinks",
+    version: "^2.1.0",
+    kind: Development,
+    preconditions: None
+  ),
+  DependencySpec(
     name: "get-function-location",
     version: "^2.0.0",
     kind: Development,
-    preconditions: Some(When(
-      feature: Some("templates"),
-      if_not_present: []
-    ))
+    preconditions: None
   ),
   DependencySpec(
     name: "@hapi/shot",
