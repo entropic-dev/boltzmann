@@ -433,6 +433,7 @@ async function router (handlers) {
     } = match.handler
 
     context._routed = {
+      handler: match.handler,
       method,
       route,
       decorators,
