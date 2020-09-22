@@ -1648,7 +1648,7 @@ function session ({
   save =
 // {% if redis %}
   async (context, id, session) => {
-    // Add 5 seconds of lag 
+    // Add 5 seconds of lag
     await context.redisClient.setex(id, expirySeconds + 5000, JSON.stringify(session))
   },
 // {% else %}
@@ -2189,10 +2189,13 @@ class Cookie extends Map {
   authenticateJWT,
 // {% endif %}
 // {% if templates %}
+  devStatic,
   template,
+  templateContext,
 // {% endif %}
-  handleCORS,
   applyXFO,
+  handleCORS,
+  session,
 // {% if csrf %}
   applyCSRF,
 // {% endif %}
