@@ -63,7 +63,6 @@ module.exports = {
     // This export is special: it instructs Boltzmann to attach middlewares to the app in this
     // order. This is also where you can configure built-in middleware.
     setupMiddlewareFunc,
-    // [boltzmann.middleware.applyXFO, 'SAMEORIGIN'], // Must be one of DENY or SAMEORIGIN; uncomment to enable
     {%- if jwt %}
     /* Provide a path to a file containing your public key & uncomment to enable
     [boltzmann.middleware.authenticateJWT, {
@@ -85,6 +84,7 @@ module.exports = {
     */
     {%- endif %}
     {%- if templates %}
+    [boltzmann.middleware.applyXFO, 'SAMEORIGIN'], // Must be one of DENY or SAMEORIGIN
     [boltzmann.middleware.template, {
       // paths: ['templates'], // change template file locations
       // filters: {}, // add custom template filters
