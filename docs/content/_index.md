@@ -55,7 +55,7 @@ Boltzmann also relies on a little bit of convention to simplify configuration.
 For instance, it assumes that all route handlers are exported from
 `handlers.js` or a `handlers/` directory in the same level of the project. The
 same is true for middleware: you can move to exports from a `middleware/`
-directory if you outgrow the initial `middlware.js` file.
+directory if you outgrow the initial `middleware.js` file.
 
 ## Hello world
 

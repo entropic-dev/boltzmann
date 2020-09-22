@@ -43,7 +43,7 @@
   ),
   DependencySpec(
     name: "find-my-way",
-    version: "^2.2.1",
+    version: "^3.0.4",
     kind: Normal,
     preconditions: None
   ),
@@ -97,7 +97,7 @@
   ),
   DependencySpec(
     name: "pg",
-    version: "^7.18.2",
+    version: "^8.3.3",
     kind: Normal,
     preconditions: Some(When(  feature: Some("postgres"),if_not_present: [] ))
   ),
