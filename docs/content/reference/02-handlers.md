@@ -353,6 +353,29 @@ async function logout(context) {
 }
 ```
 
+### `traceURL`
+
+_Added in 0.1.4._ **Requires the [`--honeycomb`] feature.**
+
+A URL `string` suitable for navigating to the [Honeycomb] user interface and displaying the trace
+from the current request.
+
+**Example use:**
+
+```javascript
+example.route = 'GET /'
+async function example(context) {
+  await someComplicatedBusinessLogic()
+
+  console.log(
+    'Click on the following URL for details & timings on this request!'
+  )
+
+  console.log(context.traceURL) // https://ui.honeycomb.io/trace?some=query&params
+  return { some: 'complicated result' }
+}
+```
+
 ### `url`
 
 _Added in 0.0.0._
@@ -724,9 +747,11 @@ async function example2(context) {
 ["persisting data" chapter]: #TKTKTK
 [`URLSearchParams`]: https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams
 [`--redis`]: @/reference/01-cli.md#redis
+[`--honeycomb`]: @/reference/01-cli.md#honeycomb
 [`handy-redis`]: https://github.com/mmkal/handy-redis#handy-redis
 [`request.socket.remoteAddress`]: https://nodejs.org/api/net.html#net_socket_remoteaddress
 [`Date.now()`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/now
 [`URL`]: https://developer.mozilla.org/en-US/docs/Web/API/URL_API
 [chapter on "handlers"]: @/concepts/01-handlers.md#responses
 [symbols]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol
+[`Honeycomb`]: https://honeycomb.io
