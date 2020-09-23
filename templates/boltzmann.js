@@ -1986,11 +1986,11 @@ function test ({
   // {% endif %}
 
   return inner => async assert => {
+    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // {% if redis %}
     assert.redisClient = redisClient
     // {% endif %}
 
-    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // {% if postgres %}
     // if we're in postgres, run the test in a transaction, run
     // routes in checkpoints.

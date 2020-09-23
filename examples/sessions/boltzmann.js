@@ -1840,11 +1840,11 @@ function test ({
   // 
 
   return inner => async assert => {
+    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
     assert.redisClient = redisClient
     // 
 
-    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
     // 
     await redisClient.flushdb()
