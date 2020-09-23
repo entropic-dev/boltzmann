@@ -58,6 +58,7 @@ const pg = require('pg')
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
+const REISSUE = Symbol.for('reissue')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
@@ -1168,7 +1169,7 @@ function templateContext(extraContext = {}) {
         result.STATIC_URL = process.env.STATIC_URL || '/static'
 
         for (const [key, fn] of Object.entries(extraContext)) {
-          result[key] = typeof fn === 'function' ? fn(context) : fn
+          result[key] = typeof fn === 'function' ? await fn(context) : fn
         }
       }
 
@@ -1706,7 +1707,7 @@ function session ({
         const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
 
         const sessionData = await load(context, id)
-        _session = new Session(id, Object.entries(sessionData))
+        _session = new Session(clientId, Object.entries(sessionData))
 
         return _session
       }
