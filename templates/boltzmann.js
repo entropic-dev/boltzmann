@@ -87,23 +87,26 @@ let ajvStrict = null
     })
   })
 
+  let _middleware = []
+  if (isDev()) {
+    const getFunctionLocation = require('get-function-location')
+    _middleware = await Promise.all(middleware.map(async xs => {
+      const fn = (Array.isArray(xs) ? xs[0] : xs)
+      const loc = await getFunctionLocation(fn)
+      return {
+        name: fn.name,
+        location: `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
+      }
+    }))
+  }
+
   server.on('request', async (req, res) => {
     const context = new Context(req, res)
 
     // {% if templates %}
     if (isDev()) {
       context._handlers = handlers
-      const getFunctionLocation = require('get-function-location')
-
-      context._handlers = handlers
-      context._middleware = await Promise.all(middleware.map(async xs => {
-        const fn = (Array.isArray(xs) ? xs[0] : xs)
-        const loc = await getFunctionLocation(fn)
-        return {
-          name: fn.name,
-          location: `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
-        }
-      }))
+      context._middleware = _middleware
     }
     // {% endif %}
 
@@ -1185,7 +1188,7 @@ function devStatic({ prefix = 'static', dir = 'static', fs = require('fs') } = {
 
   const path = require('path')
   const mime = require('mime')
-  dir = path.join(__dirname, dir)
+  dir = path.isAbsolute(dir) ? dir : path.join(__dirname, dir)
 
   return next => {
     return async context => {
