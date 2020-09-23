@@ -4,28 +4,28 @@
 
 'use strict'
 
-//
-//
-//
+// 
+// 
+// 
 
 const serviceName = (
   process.env.SERVICE_NAME ||
   require('./package.json').name.split('/').pop()
 )
 
-//
+// 
 const beeline = require('honeycomb-beeline')({
   writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
   dataset: process.env.HONEYCOMBIO_DATASET,
   serviceName
 })
 const onHeaders = require('on-headers')
-//
+// 
 
 const ships = require('culture-ships')
-//
+// 
 const ship = ships.random()
-//
+// 
 const querystring = require('querystring')
 const { promisify } = require('util')
 const isDev = require('are-we-dev')
@@ -33,16 +33,16 @@ const fmw = require('find-my-way')
 const accepts = require('accepts')
 const fs = require('fs').promises
 const crypto = require('crypto')
-//
+// 
 const CsrfTokens = require('csrf')
-//
+// 
 const http = require('http')
 const bole = require('bole')
 const os = require('os')
-//
+// 
 const redis = require('handy-redis')
-//
-//
+// 
+// 
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
@@ -91,12 +91,12 @@ let ajvStrict = null
   server.on('request', async (req, res) => {
     const context = new Context(req, res)
 
-    //
+    // 
     if (isDev()) {
       context._handlers = handlers
       context._middleware = _middleware
     }
-    //
+    // 
 
     let body = await handler(context)
 
@@ -165,13 +165,13 @@ let ajvStrict = null
       throw new Error('To use context.session, attach session middleware to your app')
     }
 
-    //
+    // 
     this._redisClient = null
-    //
-    //
+    // 
+    // 
   }
 
-  //
+  // 
 
   get cookie () {
     this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
@@ -183,12 +183,12 @@ let ajvStrict = null
     return this._loadSession()
   }
 
-  //
+  // 
   /** @type {redis.IHandyRedis} */
   get redisClient () {
     return this._redisClient
   }
-  //
+  // 
 
   /** @type {string} */
   get method() {
@@ -363,13 +363,13 @@ async function router (handlers) {
       const { version, middleware, decorators, ...rest } = handler
 
       let location = null
-      //
+      // 
       if (isDev()) {
         const getFunctionLocation = require('get-function-location')
         const loc = await getFunctionLocation(handler)
         location = `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
       }
-      //
+      // 
 
       if (Array.isArray(decorators)) {
         handler = decorators.reduce((lhs, rhs) => {
@@ -428,7 +428,7 @@ async function router (handlers) {
     }
     context.params = match.params
 
-    //
+    // 
     let span = null
     if (process.env.HONEYCOMBIO_WRITE_KEY) {
       span = beeline.startSpan({
@@ -442,15 +442,15 @@ async function router (handlers) {
     }
 
     try {
-      //
+      // 
       return match.handler(context, match.params, match.store, null)
-      //
+      // 
     } finally {
       if (process.env.HONEYCOMBIO_WRITE_KEY) {
         beeline.finishSpan(span)
       }
     }
-    //
+    // 
   }
 }
 
@@ -462,16 +462,16 @@ async function buildMiddleware (middleware, router) {
   const middlewareToSplice = (
     isDev()
     ? (mw) => [
-      //
+      // 
       honeycombMiddlewareSpans(mw),
-      //
+      // 
       dev(mw),
       enforceInvariants()
     ]
     : (mw) => [
-      //
+      // 
       honeycombMiddlewareSpans(mw),
-      //
+      // 
       enforceInvariants()
     ]
   )
@@ -480,10 +480,10 @@ async function buildMiddleware (middleware, router) {
     return [...lhs, ...middlewareToSplice(mw), mw(...args)]
   }, []).concat(middlewareToSplice({ name: 'router' }))
 
-  //
+  // 
   // drop the outermost honeycombMiddlewareSpans mw.
   result.shift()
-  //
+  // 
   return result.reduceRight(async (lhs, rhs) => {
     return rhs(await lhs)
   }, router)
@@ -579,13 +579,13 @@ function enforceInvariants () {
         } else if (isPipe) {
           headers['content-type'] = 'application/octet-stream'
         } else {
-          //
+          // 
           if (body && body[TEMPLATE]) {
             headers['content-type'] = 'text/html; charset=utf-8'
           } else {
             headers['content-type'] = 'application/json; charset=utf-8'
           }
-          //
+          // 
         }
       }
 
@@ -618,7 +618,7 @@ function enforceInvariants () {
   }
 }
 
-//
+// 
 function template ({
   paths = ['templates'],
   filters = {},
@@ -662,7 +662,7 @@ function template ({
     env.addExtension(name, tags[name])
   }
 
-  //
+  // 
   const devErrorTemplate = new nunjucks.Template(`
     <!DOCTYPE html>
     <html lang="en">
@@ -1007,7 +1007,7 @@ function template ({
     </body>
     </html>
   `, env)
-  //
+  // 
 
   // development behavior: if we encounter an error rendering a template, we
   // display a development error template explaining the error. If the error
@@ -1194,7 +1194,7 @@ function devStatic({ prefix = 'static', dir = 'static', fs = require('fs') } = {
     }
   }
 }
-//
+// 
 
 function handleCORS ({
   origins = isDev() ? '*' : String(process.env.CORS_ALLOW_ORIGINS).split(','),
@@ -1248,7 +1248,7 @@ const applyXFO = (mode) => {
   return applyHeaders({ 'x-frame-options': mode })
 }
 
-//
+// 
 // csrf protection middleware
 function signCookie(value, secret) {
   return `${value}.${crypto.createHmac('sha256', secret).update(value).digest('base64')}`
@@ -1344,9 +1344,9 @@ function applyCSRF ({
     }
   }
 }
-//
+// 
 
-//
+// 
 
 function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
@@ -1425,7 +1425,7 @@ function urlEncoded (next) {
   }
 }
 
-//
+// 
 function trace ({
   headerSources = [TRACE_HTTP_HEADER, 'x-request-id'],
   parentRequestHeader = 'floop'
@@ -1546,7 +1546,7 @@ function honeycombMiddlewareSpans ({name} = {}) {
   }
 }
 
-//
+// 
 
 let IN_MEMORY = new Map()
 function session ({
@@ -1554,16 +1554,16 @@ function session ({
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
   load =
-//
+// 
   async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
-//
+// 
   save =
-//
+// 
   async (context, id, session) => {
     // Add 5 seconds of lag
     await context.redisClient.setex(id, expirySeconds + 5000, JSON.stringify(session))
   },
-//
+// 
   iron = {},
   expirySeconds = 60 * 60 * 24 * 365
 } = {}) {
@@ -1659,7 +1659,7 @@ function session ({
   }
 }
 
-//
+// 
 function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   return next => {
     const client = redis.createHandyClient({ url })
@@ -1669,17 +1669,17 @@ function attachRedis ({ url = process.env.REDIS_URL } = {}) {
     }
   }
 }
-//
-//
+// 
+// 
 
-//
+// 
 function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = {
-    //
-    //
+    // 
+    // 
     redisReachability,
-    //
+    // 
   },
   extraReachability = _requireOr('./reachability', {})
 } = {}) {
@@ -1732,9 +1732,9 @@ function handleStatus ({
     }
   }
 }
-//
+// 
 
-//
+// 
 function handlePing () {
   return next => context => {
     if (context.url.pathname === '/monitor/ping') {
@@ -1743,20 +1743,20 @@ function handlePing () {
     return next(context)
   }
 }
-//
+// 
 
-//
+// 
 // - - - - - - - - - - - - - - - -
 // Reachability Checks
 // - - - - - - - - - - - - - - - -
-//
-//
+// 
+// 
 
-//
+// 
 async function redisReachability (context, meta) {
   await context.redisClient.ping()
 }
-//
+// 
 
 // - - - - - - - - - - - - - - - -
 // Decorators
@@ -1816,9 +1816,9 @@ function test ({
   after = require('tap').teardown
 }) {
   const shot = require('@hapi/shot')
-  //
+  // 
 
-  //
+  // 
   const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
   middleware = Promise.resolve(middleware).then(mw => {
     mw.push(() => next => async context => {
@@ -1828,29 +1828,32 @@ function test ({
 
     return mw
   })
-  assert.redisClient = redisClient
-  //
+  // 
 
-  //
+  // 
   after(() => {
-    //
-    //
+    // 
+    // 
     redisClient.end()
-    //
+    // 
   })
-  //
+  // 
 
   return inner => async assert => {
+    // 
+    assert.redisClient = redisClient
+    // 
+
     [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
-    //
-    //
+    // 
+    // 
     await redisClient.flushdb()
     middleware.push(() => next => async context => {
       context._redisClient = redisClient
       return next(context)
     })
     assert.redisClient = redisClient
-    //
+    // 
 
     const server = await main({ middleware, bodyParsers, handlers })
     const [onrequest] = server.listeners('request')
@@ -1890,7 +1893,7 @@ function test ({
     try {
       await inner(assert, request)
     } finally {
-      //
+      // 
     }
   }
 }
@@ -1910,7 +1913,7 @@ function _processMiddleware (middleware) {
   return [].concat(Array.isArray(middleware) ? middleware : middleware.APP_MIDDLEWARE)
 }
 
-//
+// 
 async function _requireOr (target, value) {
   try {
     return require(target)
@@ -1925,7 +1928,7 @@ async function _requireOr (target, value) {
     throw err
   }
 }
-//
+// 
 
 let _cookie = null
 class Cookie extends Map {
@@ -2028,50 +2031,50 @@ class Session extends Map {
   test
 }
  const middleware = {
-//
-//
+// 
+// 
   devStatic,
   template,
   templateContext,
-//
+// 
   applyXFO,
   handleCORS,
   session,
-//
+// 
   applyCSRF,
-//
+// 
   ...decorators // forwarding these here.
 }
 
-//
+// 
 exports.Context = Context
 exports.main = main
 exports.middleware = middleware
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
-//
+// 
 
-//
+// 
 if (require.main === module) {
   main({
     middleware: _requireOr('./middleware', []).then(_processMiddleware).then(mw => [
-      //
+      // 
       trace,
-      //
-      //
+      // 
+      // 
       handlePing,
-      //
+      // 
       log,
 
-      //
+      // 
       attachRedis,
-      //
-      //
+      // 
+      // 
       ...mw,
-      //
+      // 
       ...[handleStatus]
-      //
+      // 
     ])
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
@@ -2082,4 +2085,4 @@ if (require.main === module) {
     process.exit(1)
   })
 }
-//
+// 

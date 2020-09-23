@@ -7,6 +7,7 @@
   "name": "website",
   "version": "1.0.0",
   "dependencies": {
+    "@hapi/iron": "^6.0.0",
     "accepts": "^1.3.7",
     "ajv": "^6.12.2",
     "are-we-dev": "^1.0.0",
@@ -26,6 +27,7 @@
     "@hapi/shot": "^4.1.2",
     "@typescript-eslint/eslint-plugin": "^3.1.0",
     "@typescript-eslint/parser": "^3.1.0",
+    "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
     "eslint": "^7.1.0",
     "eslint-config-prettier": "^6.11.0",
@@ -33,17 +35,20 @@
     "get-function-location": "^2.0.0",
     "prettier": "^2.0.5",
     "stackman": "^4.0.1",
+    "supports-hyperlinks": "^2.1.0",
     "tap": "^14.10.7"
   },
+  "type": null,
   "scripts": {
     "lint": "eslint .",
     "posttest": "npm run lint",
     "start": "./boltzmann.js",
     "test": "tap test",
-    "boltzmann:upgrade": "npx boltzmann-cli"
+    "boltzmann:upgrade": "npx boltzmann-cli",
+    "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'"
   },
   "boltzmann": {
-    "version": "0.1.2",
+    "version": "0.1.3",
     "honeycomb": true,
     "githubci": false,
     "templates": true,

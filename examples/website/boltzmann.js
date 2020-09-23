@@ -4,6 +4,10 @@
 
 'use strict'
 
+// 
+// 
+// 
+
 const serviceName = (
   process.env.SERVICE_NAME ||
   require('./package.json').name.split('/').pop()
@@ -28,8 +32,8 @@ const isDev = require('are-we-dev')
 const fmw = require('find-my-way')
 const accepts = require('accepts')
 const fs = require('fs').promises
-// 
 const crypto = require('crypto')
+// 
 const CsrfTokens = require('csrf')
 // 
 const http = require('http')
@@ -40,6 +44,7 @@ const os = require('os')
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
+const REISSUE = Symbol.for('reissue')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
@@ -48,11 +53,17 @@ let ajv = null
 let ajvLoose = null
 let ajvStrict = null
 
-async function main ({
-  middleware = _processMiddleware(_requireOr('./middleware', [])),
+ async function main ({
+  middleware = _requireOr('./middleware', []).then(_processMiddleware),
   bodyParsers = _requireOr('./body', [urlEncoded, json]),
   handlers = _requireOr('./handlers', {}),
 } = {}) {
+  [middleware, bodyParsers, handlers] = await Promise.all([
+    middleware,
+    bodyParsers,
+    handlers,
+  ])
+
   const server = http.createServer()
 
   const handler = await buildMiddleware(middleware, await router(handlers))
@@ -62,23 +73,26 @@ async function main ({
     })
   })
 
+  let _middleware = []
+  if (isDev()) {
+    const getFunctionLocation = require('get-function-location')
+    _middleware = await Promise.all(middleware.map(async xs => {
+      const fn = (Array.isArray(xs) ? xs[0] : xs)
+      const loc = await getFunctionLocation(fn)
+      return {
+        name: fn.name,
+        location: `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
+      }
+    }))
+  }
+
   server.on('request', async (req, res) => {
     const context = new Context(req, res)
 
     // 
     if (isDev()) {
       context._handlers = handlers
-      const getFunctionLocation = require('get-function-location')
-
-      context._handlers = handlers
-      context._middleware = await Promise.all(middleware.map(async xs => {
-        const fn = (Array.isArray(xs) ? xs[0] : xs)
-        const loc = await getFunctionLocation(fn)
-        return {
-          name: fn.name,
-          location: `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
-        }
-      }))
+      context._middleware = _middleware
     }
     // 
 
@@ -126,7 +140,7 @@ async function main ({
 // Request Context
 // - - - - - - - - - - - - - - - -
 
-class Context {
+ class Context {
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
@@ -145,6 +159,9 @@ class Context {
     this._routed = {}
     this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
     this._cookie = null
+    this._loadSession = async () => {
+      throw new Error('To use context.session, attach session middleware to your app')
+    }
 
     // 
     // 
@@ -155,6 +172,11 @@ class Context {
   get cookie () {
     this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
     return this._cookie
+  }
+
+  /** @type {Promise<Session>} */
+  get session () {
+    return this._loadSession()
   }
 
   // 
@@ -218,13 +240,108 @@ class NoMatchError extends Error {
   }
 }
 
+ async function routes (handlers = _requireOr('./handlers')) {
+  handlers = await handlers
+
+  const routes = []
+  for (let [key, handler] of Object.entries(handlers)) {
+    if (typeof handler.route === 'string') {
+      let [method, ...route] = handler.route.split(' ')
+      route = route.join(' ')
+      if (route.length === 0) {
+        route = method
+        method = (handler.method || 'GET')
+      }
+
+      const { version, middleware, decorators, ...rest } = handler
+
+      let location = null
+      let link = null
+
+      if (isDev()) {
+        const getFunctionLocation = require('get-function-location')
+        location = await getFunctionLocation(handler)
+        link = `${location.source.replace('file://', 'vscode://file')}:${location.line}:${location.column}`
+      }
+
+      routes.push({
+        key,
+        location,
+        link,
+        method,
+        route,
+        version,
+        middleware,
+        handler,
+        props: rest
+      })
+    }
+  }
+
+  return routes
+}
+
+ async function printRoutes () {
+  const metadata = await routes()
+
+  const maxRouteLen = metadata.reduce((acc, { route }) => Math.max(acc, route.length), 0)
+  const maxHandlerLen = metadata.reduce((acc, { handler, key }) => Math.max(acc, (handler.name || key).length), 0)
+  const maxMethodLen = metadata
+    .map(({method}) => [].concat(method))
+    .flat()
+    .reduce((acc, method) => Math.max(acc, method.length), 0)
+
+  const map = {
+    'GET': '\x1b[32;1m',
+    'DELETE': '\x1b[31m',
+    'POST': '\x1b[33;1m',
+    'PATCH': '\x1b[33;1m',
+    'PUT': '\x1b[35;1m',
+    '*': '\x1b[36;1m'
+  }
+
+  const ansi = require('ansi-escapes')
+  const supportsHyperlinks = require('supports-hyperlinks')
+
+  for (const meta of metadata) {
+    for (let method of [].concat(meta.method)) {
+      const originalMethod = method.toUpperCase().trim()
+      method = `${(map[originalMethod] || map['*'])}${originalMethod}\x1b[0m`
+      method = method + ' '.repeat(Math.max(0, maxMethodLen - originalMethod.length + 1))
+
+      const rlen = meta.route.trim().length
+      const route = meta.route.trim().replace(/:([^\/-]+)/g, (a, m) => {
+        return `\x1b[4m:${m}\x1b[0m`
+      }) + ' '.repeat(Math.max(0, maxRouteLen - rlen) + 1)
+
+      const handler = (meta.handler.name || meta.key).padEnd(maxHandlerLen + 1)
+
+      const source = meta.location.source.replace(`file://${process.cwd()}`, '.')
+      let filename = `${source}:${meta.location.line}:${meta.location.column}`
+      filename = (
+        supportsHyperlinks.stdout
+        ? ansi.link(filename, meta.link)
+        : filename
+      )
+
+      console.log(`  ${method}${route}${handler} \x1b[38;5;8m(\x1b[4m${filename}\x1b[0m\x1b[38;5;8m)\x1b[0m`)
+    }
+  }
+
+  if (supportsHyperlinks.stdout) {
+    console.log()
+    console.log('(hold ⌘ and click on any filename above to open in VSCode)')
+  }
+  console.log()
+}
+
 async function router (handlers) {
   const wayfinder = fmw({})
 
   for (let [key, handler] of Object.entries(handlers)) {
     if (typeof handler.route === 'string') {
       let [method, ...route] = handler.route.split(' ')
-      route = route.join('')
+      route = route.join(' ')
       if (route.length === 0) {
         route = method
         method = (handler.method || 'GET')
@@ -290,6 +407,7 @@ async function router (handlers) {
     } = match.handler
 
     context._routed = {
+      handler: match.handler,
       method,
       route,
       decorators,
@@ -503,6 +621,13 @@ function template ({
 } = {}) {
   const nunjucks = require('nunjucks')
   const path = require('path')
+  paths = [].concat(paths)
+  try {
+    const assert = require('assert')
+    paths.forEach(xs => assert(typeof xs == 'string'))
+  } catch (_c) {
+    throw new TypeError('The `paths` option for template() must be an array of path strings')
+  }
 
   paths = paths.slice().map(
     xs => path.join(__dirname, xs)
@@ -1015,7 +1140,7 @@ function templateContext(extraContext = {}) {
         result.STATIC_URL = process.env.STATIC_URL || '/static'
 
         for (const [key, fn] of Object.entries(extraContext)) {
-          result[key] = typeof fn === 'function' ? fn(context) : fn
+          result[key] = typeof fn === 'function' ? await fn(context) : fn
         }
       }
 
@@ -1031,7 +1156,7 @@ function devStatic({ prefix = 'static', dir = 'static', fs = require('fs') } = {
 
   const path = require('path')
   const mime = require('mime')
-  dir = path.join(__dirname, dir)
+  dir = path.isAbsolute(dir) ? dir : path.join(__dirname, dir)
 
   return next => {
     return async context => {
@@ -1107,7 +1232,12 @@ function applyHeaders (headers = {}) {
   }
 }
 
-const applyXFO = (mode) => applyHeaders({ 'x-frame-options': mode })
+const applyXFO = (mode) => {
+  if (!['DENY', 'SAMEORIGIN'].includes(mode)) {
+    throw new Error('applyXFO(): Allowed x-frame-options directives are DENY and SAMEORIGIN.')
+  }
+  return applyHeaders({ 'x-frame-options': mode })
+}
 
 // 
 // csrf protection middleware
@@ -1214,6 +1344,20 @@ function authenticateJWT ({
   algorithms=['RS256'],
   storeAs = 'user'
 } = {}) {
+  algorithms = [].concat(algorithms)
+  try {
+    const assert = require('assert')
+    algorithms.forEach(xs => assert(typeof xs == 'string'))
+  } catch (_c) {
+    throw new TypeError('The `algorithms` config option for JWTs must be an array of strings')
+  }
+  if (!publicKey) {
+    throw new Error(
+      `To authenticate JWTs you must pass the path to a public key file in either
+the environment variable "AUTHENTICATION_KEY" or the publicKey config field
+https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
+`.trim().split('\n').join(' '))
+  }
   const verifyJWT = require('jsonwebtoken').verify
 
   return async next => {
@@ -1224,6 +1368,7 @@ function authenticateJWT ({
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
+          https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '))
         throw err
       })
@@ -1310,7 +1455,13 @@ function json (next) {
       try {
         return JSON.parse(String(buf))
       } catch {
-        throw Object.assign(new Error('Could not parse request body as JSON'), {
+        const message = (
+          isDev()
+          ? 'Could not parse request body as JSON (Did the request include a `Content-Type: application/json` header?)'
+          : 'Could not parse request body as JSON'
+        )
+
+        throw Object.assign(new Error(message), {
           [STATUS]: 422
         })
       }
@@ -1455,6 +1606,115 @@ function honeycombMiddlewareSpans ({name} = {}) {
 }
 
 // 
+
+let IN_MEMORY = new Map()
+function session ({
+  cookie = process.env.SESSION_ID || 'sid',
+  secret = process.env.SESSION_SECRET,
+  salt = process.env.SESSION_SALT,
+  load =
+// 
+  async (context, id) => JSON.parse(IN_MEMORY.get(id)),
+// 
+  save =
+// 
+  async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
+// 
+  iron = {},
+  expirySeconds = 60 * 60 * 24 * 365
+} = {}) {
+  let _iron = null
+  let _uuid = null
+
+  expirySeconds = Number(expirySeconds) || 0
+  if (typeof load !== 'function') {
+    throw new TypeError('`load` must be a function, got ' + typeof load)
+  }
+
+  if (typeof save !== 'function') {
+    throw new TypeError('`save` must be a function, got ' + typeof save)
+  }
+
+  secret = Buffer.isBuffer(secret) ? secret : String(secret)
+  if (secret.length < 32) {
+    throw new RangeError('`secret` must be a string or buffer at least 32 units long')
+  }
+
+  salt = Buffer.isBuffer(salt) ? salt : String(salt)
+  if (salt.length == 0) {
+    throw new RangeError('`salt` must be a string or buffer at least 1 unit long; preferably more')
+  }
+
+  return next => {
+    return async context => {
+      let _session = null
+      context._loadSession = async () => {
+        if (_session) {
+          return _session
+        }
+
+        const sessid = context.cookie.get(cookie)
+        if (!sessid) {
+          _session = new Session(null, [['created', Date.now()]])
+          return _session
+        }
+
+        _iron = _iron || require('@hapi/iron')
+        _uuid = _uuid || require('uuid')
+
+        const clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+
+        if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
+          throw new BadSessionError()
+        }
+
+        const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
+
+        const sessionData = await load(context, id)
+        _session = new Session(clientId, Object.entries(sessionData))
+
+        return _session
+      }
+
+      const response = await next(context)
+
+      if (!_session) {
+        return response
+      }
+
+      if (!_session.dirty) {
+        return response
+      }
+
+      _uuid = _uuid || require('uuid')
+
+      const needsReissue = !_session.id || _session[REISSUE]
+      const issued = Date.now()
+      const clientId = needsReissue ? `s_${_uuid.v4()}:${issued}` : _session.id
+      const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
+
+      _session.set('modified', issued)
+      await save(context, id, Object.fromEntries(_session.entries()))
+
+      if (needsReissue) {
+        _iron = _iron || require('@hapi/iron')
+
+        const sealed = await _iron.seal(clientId, secret, { ..._iron.defaults, ...iron })
+
+        context.cookie.set(cookie, {
+          value: sealed,
+          httpOnly: true,
+          sameSite: true,
+          maxAge: expirySeconds,
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+        })
+      }
+
+      return response
+    }
+  }
+}
+
 // 
 // 
 
@@ -1464,10 +1724,12 @@ function handleStatus ({
   reachability = {
     // 
     // 
-    ..._requireOr('./reachability', {})
-  }
+  },
+  extraReachability = _requireOr('./reachability', {})
 } = {}) {
-  return next => {
+  return async next => {
+    reachability = { ...reachability, ...await extraReachability }
+
     const hostname = os.hostname()
     let requestCount = 0
     const statuses = {}
@@ -1598,6 +1860,9 @@ function test ({
 
   return inner => async assert => {
     // 
+
+    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
+    // 
     // 
 
     const server = await main({ middleware, bodyParsers, handlers })
@@ -1658,7 +1923,8 @@ function _processMiddleware (middleware) {
   return [].concat(Array.isArray(middleware) ? middleware : middleware.APP_MIDDLEWARE)
 }
 
-function _requireOr (target, value) {
+// 
+async function _requireOr (target, value) {
   try {
     return require(target)
   } catch (err) {
@@ -1672,6 +1938,7 @@ function _requireOr (target, value) {
     throw err
   }
 }
+// 
 
 let _cookie = null
 class Cookie extends Map {
@@ -1728,13 +1995,44 @@ class Cookie extends Map {
   }
 }
 
-exports.Context = Context
-exports.main = main
-exports.body = {
+class BadSessionErrror extends Error {
+  [STATUS] = 400
+}
+
+class Session extends Map {
+  constructor(id, ...args) {
+    super(...args)
+    this.dirty = false
+    this.id = id
+  }
+
+  reissue() {
+    this[REISSUE] = true
+  }
+
+  set(key, value) {
+    const old = this.get(key)
+    if (value === old) {
+      return super.set(key, value)
+    }
+    this.dirty = true
+    return super.set(key, value)
+  }
+
+  delete(key) {
+    if (!this.has(key)) {
+      return super.delete(key)
+    }
+    this.dirty = true
+    return super.delete(key)
+  }
+}
+
+ const body = {
   json,
   urlEncoded
 }
-exports.decorators = {
+ const decorators = {
   validate: {
     body: validateBody,
     query: validateBlock(ctx => ctx.query),
@@ -1742,25 +2040,37 @@ exports.decorators = {
   },
   test
 }
-exports.middleware = {
+ const middleware = {
 // 
   authenticateJWT,
 // 
 // 
+  devStatic,
   template,
+  templateContext,
 // 
-  handleCORS,
   applyXFO,
+  handleCORS,
+  session,
 // 
   applyCSRF,
 // 
-...exports.decorators // forwarding these here.
+  ...decorators // forwarding these here.
 }
+
+// 
+exports.Context = Context
+exports.main = main
+exports.middleware = middleware
+exports.decorators = decorators
+exports.routes = routes
+exports.printRoutes = printRoutes
+// 
 
 // 
 if (require.main === module) {
   main({
-    middleware: [
+    middleware: _requireOr('./middleware', []).then(_processMiddleware).then(mw => [
       // 
       trace,
       // 
@@ -1771,11 +2081,11 @@ if (require.main === module) {
 
       // 
       // 
-      ..._processMiddleware(_requireOr('./middleware', [])),
+      ...mw,
       // 
       ...[handleStatus]
       // 
-    ]
+    ])
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
       bole('server').info(`now listening on port ${server.address().port}`)
