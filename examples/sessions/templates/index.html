@@ -9,6 +9,9 @@
   <body class="sans-serif">
     <div id="main" class="center mw7 center">
       <h1>Boltzmann sessions example</h1>
+      <!-- `user` is added to the template context by middleware: see the use
+           of `boltzmann.middleware.templateContext` in middleware.js.
+      -->
       {% if user %}
       <p>Hello, {{ user.username }}! You are logged in.</p>
       <p>You can only do one thing on this website.</p>
