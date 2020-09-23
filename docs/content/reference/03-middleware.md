@@ -65,14 +65,14 @@ module.exports = {
   APP_MIDDLEWARE: [
     middleware.session
   ]
-}
+};
 
 // A simple configuration, hard-coding the values. Don't actually do this.
 module.exports = {
   APP_MIDDLEWARE: [
     [middleware.session, { secret: 'wow a great secret, just amazing'.repeat(2), salt: 'salty' }],
   ]
-}
+};
 
 // A complicated example, where you store sessions on the filesystem, because
 // the filesystem is a database.
@@ -94,7 +94,7 @@ module.exports = {
 }
 ```
 
-[`--redis`]: @/reference/cli.md#redis
+[`--redis`]: @/reference/01-cli.md#redis
 [`@hapi/iron`]: https://github.com/hapijs/iron
 [HTTP session support]: https://en.wikipedia.org/wiki/Session_(computer_science)#HTTP_session_token
 [cookies]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies
