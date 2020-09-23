@@ -1980,7 +1980,7 @@ function test ({
     postgresClient.end()
     // {% endif %}
     // {% if redis %}
-    redisClient.end()
+    redisClient.quit()
     // {% endif %}
   })
   // {% endif %}

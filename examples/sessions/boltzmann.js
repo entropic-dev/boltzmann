@@ -1834,7 +1834,7 @@ function test ({
   after(() => {
     // 
     // 
-    redisClient.end()
+    redisClient.quit()
     // 
   })
   // 
