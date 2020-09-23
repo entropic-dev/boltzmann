@@ -221,6 +221,15 @@ let ajvStrict = null
     return this.request.headers
   }
 
+  // {% if honeycomb %}
+  get traceURL () {
+    const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace`)
+    url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
+    url.searchParams.set('trace_start_ts', Math.floor(this._honeycombTrace.startTime/1000 - 1))
+    return String(url)
+  }
+  // {% endif %}
+
   get url() {
     if (this._parsedUrl) {
       return this._parsedUrl
@@ -747,7 +756,7 @@ function template ({
               <td class="tr white-80 v-top pr2">Honeycomb Trace</td>
               <td>
                 {% if context._honeycombTrace %}
-                  <a class="link underline washed-blue dim" target="_blank" rel="noreferrer noopener" href="http://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace?trace_id={{ context._honeycombTrace.payload['trace.trace_id'] }}&trace_start_ts={{ (context._honeycombTrace.startTime/1000 - 1)|round }}">
+                  <a class="link underline washed-blue dim" target="_blank" rel="noreferrer noopener" href="{{ context.traceURL }}">
                     Available
                   </a>
                 {% else %}
