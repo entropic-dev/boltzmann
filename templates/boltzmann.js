@@ -1964,7 +1964,7 @@ function test ({
 
   // {% if redis %}
   const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
-  middleware = middleware.then(mw => {
+  middleware = Promise.resolve(middleware).then(mw => {
     mw.push(() => next => async context => {
       context._redisClient = redisClient
       return next(context)
