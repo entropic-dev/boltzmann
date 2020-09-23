@@ -1972,7 +1972,6 @@ function test ({
 
     return mw
   })
-  assert.redisClient = redisClient
   // {% endif %}
 
   // {% if postgres or redis %}
@@ -1981,13 +1980,17 @@ function test ({
     postgresClient.end()
     // {% endif %}
     // {% if redis %}
-    redisClient.end()
+    redisClient.quit()
     // {% endif %}
   })
   // {% endif %}
 
   return inner => async assert => {
     [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
+    // {% if redis %}
+    assert.redisClient = redisClient
+    // {% endif %}
+
     // {% if postgres %}
     // if we're in postgres, run the test in a transaction, run
     // routes in checkpoints.

@@ -40,6 +40,8 @@ const http = require('http')
 const bole = require('bole')
 const os = require('os')
 // 
+const redis = require('handy-redis')
+// 
 // 
 
 const THREW = Symbol.for('threw')
@@ -164,6 +166,8 @@ let ajvStrict = null
     }
 
     // 
+    this._redisClient = null
+    // 
     // 
   }
 
@@ -179,6 +183,11 @@ let ajvStrict = null
     return this._loadSession()
   }
 
+  // 
+  /** @type {redis.IHandyRedis} */
+  get redisClient () {
+    return this._redisClient
+  }
   // 
 
   /** @type {string} */
@@ -1338,74 +1347,6 @@ function applyCSRF ({
 // 
 
 // 
-function authenticateJWT ({
-  scheme = 'Bearer',
-  publicKey = process.env.AUTHENTICATION_KEY,
-  algorithms=['RS256'],
-  storeAs = 'user'
-} = {}) {
-  algorithms = [].concat(algorithms)
-  try {
-    const assert = require('assert')
-    algorithms.forEach(xs => assert(typeof xs == 'string'))
-  } catch (_c) {
-    throw new TypeError('The `algorithms` config option for JWTs must be an array of strings')
-  }
-  if (!publicKey) {
-    throw new Error(
-      `To authenticate JWTs you must pass the path to a public key file in either
-the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
-`.trim().split('\n').join(' '))
-  }
-  const verifyJWT = require('jsonwebtoken').verify
-
-  return async next => {
-    const publicKeyContents = (
-      String(publicKey)[0] === '/'
-      ? await fs.readFile(publicKey).catch(err => {
-        console.error(`
-          boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
-          Is the AUTHENTICATION_KEY environment variable set correctly?
-          Is the file readable?
-          https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
-        `.trim().split('\n').join(' '))
-        throw err
-      })
-      : publicKey
-    )
-
-    return async context => {
-      if (!context.headers.authorization) {
-        return next(context)
-      }
-
-      if (!context.headers.authorization.startsWith(`${scheme} `)) {
-        return next(context)
-      }
-
-      const token = context.headers.authorization.slice(scheme.length + 1)
-      let data = null
-      try {
-        data = await new Promise((resolve, reject) => {
-          verifyJWT(token, publicKeyContents, {algorithms}, (err, data) => {
-            err ? reject(err) : resolve(data)
-          })
-        })
-      } catch (err) {
-        const logger = bole('jwt')
-        logger.error(err)
-        throw Object.assign(new Error('Invalid bearer token'), {
-          [Symbol.for('status')]: 403
-        })
-      }
-
-      context[storeAs] = data
-      return next(context)
-    }
-  }
-}
-// 
 
 function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
@@ -1614,11 +1555,14 @@ function session ({
   salt = process.env.SESSION_SALT,
   load =
 // 
-  async (context, id) => JSON.parse(IN_MEMORY.get(id)),
+  async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
 // 
   save =
 // 
-  async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
+  async (context, id, session) => {
+    // Add 5 seconds of lag
+    await context.redisClient.setex(id, expirySeconds + 5000, JSON.stringify(session))
+  },
 // 
   iron = {},
   expirySeconds = 60 * 60 * 24 * 365
@@ -1716,6 +1660,16 @@ function session ({
 }
 
 // 
+function attachRedis ({ url = process.env.REDIS_URL } = {}) {
+  return next => {
+    const client = redis.createHandyClient({ url })
+    return async function redis (context) {
+      context._redisClient = client
+      return next(context)
+    }
+  }
+}
+// 
 // 
 
 // 
@@ -1723,6 +1677,8 @@ function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = {
     // 
+    // 
+    redisReachability,
     // 
   },
   extraReachability = _requireOr('./reachability', {})
@@ -1790,8 +1746,16 @@ function handlePing () {
 // 
 
 // 
+// - - - - - - - - - - - - - - - -
+// Reachability Checks
+// - - - - - - - - - - - - - - - -
+// 
 // 
 
+// 
+async function redisReachability (context, meta) {
+  await context.redisClient.ping()
+}
 // 
 
 // - - - - - - - - - - - - - - - -
@@ -1855,14 +1819,40 @@ function test ({
   // 
 
   // 
+  const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
+  middleware = Promise.resolve(middleware).then(mw => {
+    mw.push(() => next => async context => {
+      context._redisClient = redisClient
+      return next(context)
+    })
 
+    return mw
+  })
+  // 
+
+  // 
+  after(() => {
+    // 
+    // 
+    redisClient.quit()
+    // 
+  })
   // 
 
   return inner => async assert => {
-    // 
-
     [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
+    assert.redisClient = redisClient
+    // 
+
+    // 
+    // 
+    await redisClient.flushdb()
+    middleware.push(() => next => async context => {
+      context._redisClient = redisClient
+      return next(context)
+    })
+    assert.redisClient = redisClient
     // 
 
     const server = await main({ middleware, bodyParsers, handlers })
@@ -2042,8 +2032,6 @@ class Session extends Map {
 }
  const middleware = {
 // 
-  authenticateJWT,
-// 
 // 
   devStatic,
   template,
@@ -2079,6 +2067,8 @@ if (require.main === module) {
       // 
       log,
 
+      // 
+      attachRedis,
       // 
       // 
       ...mw,
