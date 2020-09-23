@@ -1,0 +1,63 @@
+{
+  "author": "C J Silverio <ceejceej@gmail.com>",
+  "description": "An example of using Boltzmann's sessions feature",
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "sessions",
+  "version": "1.0.0",
+  "dependencies": {
+    "@hapi/iron": "^6.0.0",
+    "accepts": "^1.3.7",
+    "ajv": "^6.12.2",
+    "are-we-dev": "^1.0.0",
+    "bole": "^4.0.0",
+    "cookie": "^0.4.1",
+    "csrf": "^3.1.0",
+    "culture-ships": "^1.0.0",
+    "dotenv": "^8.2.0",
+    "find-my-way": "^3.0.4",
+    "handy-redis": "^1.8.1",
+    "honeycomb-beeline": "^2.1.1",
+    "nunjucks": "^3.2.1",
+    "on-headers": "^1.0.2",
+    "redis": "^3.0.2",
+    "uuid": "^8.3.0"
+  },
+  "devDependencies": {
+    "@hapi/shot": "^5.0.4",
+    "@typescript-eslint/eslint-plugin": "^3.1.0",
+    "@typescript-eslint/parser": "^3.1.0",
+    "ansi-escapes": "^4.3.1",
+    "bistre": "^1.0.1",
+    "eslint": "^7.1.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.3",
+    "get-function-location": "^2.0.0",
+    "nodemon": "^2.0.4",
+    "prettier": "^2.0.5",
+    "stackman": "^4.0.1",
+    "supports-hyperlinks": "^2.1.0",
+    "tap": "^14.10.7"
+  },
+  "type": null,
+  "scripts": {
+    "lint": "eslint .",
+    "posttest": "npm run lint",
+    "start": "nodemon --ignore static/ --ignore tests/ -e js,html ./boltzmann.js",
+    "test": "tap test",
+    "boltzmann:upgrade": "npx boltzmann-cli",
+    "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'"
+  },
+  "boltzmann": {
+    "version": "0.1.3",
+    "redis": true,
+    "honeycomb": true,
+    "githubci": false,
+    "templates": true,
+    "status": true,
+    "ping": true,
+    "jwt": false,
+    "csrf": true
+  }
+}

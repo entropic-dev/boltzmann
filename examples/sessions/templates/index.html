@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% block head %}
+    <link rel="stylesheet" href="https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css"/>
+  {% endblock %}
+</head>
+<body class="sans-serif">
+  {% block body %}
+    <div id="main" class="center mw7 center">
+        <h1>Boltzmann sessions example</h1>
+        {% if user %}
+        <p>Hello, {{ user.username }}! You are logged in.</p>
+        <p>You can only do one thing on this website.</p>
+        <form action="/logout" method="POST">
+          <input type="hidden" name="_csrf" id="_csrf" value="{{ token }}">
+          <input type="submit" value="log out" />
+        </form>
+
+        {% else %}
+        <p>You are not logged in!</p>
+        <p>This example allows you to "log in" with any user name you like. Your password has to be
+        <code>CATSROOL</code> or you can't log in. That's how you know it's secure.</p>
+          <form class="measure" method="POST" action="/login">
+            <input type="hidden" name="_csrf" id="_csrf" value="{{ token }}">
+            {% for error in errors %}
+            <p class="dark-red">{{ error }}</p>
+            {% endfor %}
+            <fieldset id="sign_up" class="ba b--transparent ph0 mh0">
+              <legend class="f4 fw6 ph0 mh0">Log in</legend>
+              <div class="mt3">
+                <label class="db fw6 lh-copy f6" for="form_username">Username</label>
+                <input class="pa2 input-reset ba bg-transparent hover-bg-black hover-white w-100" type="text" name="form_username"  id="form_username">
+              </div>
+              <div class="mv3">
+                <label class="db fw6 lh-copy f6" for="form_password">Password</label>
+                <input class="b pa2 input-reset ba bg-transparent hover-bg-black hover-white w-100" type="password" name="form_password"  id="form_password">
+              </div>
+            </fieldset>
+            <div class="">
+              <input class="b ph3 pv2 input-reset ba b--black bg-transparent grow pointer f6 dib" type="submit" value="Log me in, Scotty">
+            </div>
+          </form>
+
+        {% endif %}
+    </div>
+    {% block foot %}
+    {% endblock %}
+  {% endblock %}
+</body>
+</html>
