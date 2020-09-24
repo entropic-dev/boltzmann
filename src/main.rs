@@ -123,7 +123,7 @@ impl Default for RunScripts {
         RunScripts {
             lint: Some("eslint .".to_string()),
             posttest: Some("npm run lint".to_string()),
-            start: Some("./boltzmann.js".to_string()),
+            start: Some("nodemon ./boltzmann.js".to_string()),
             test: Some("tap test".to_string()),
             upgrade: Some(RunScripts::upgrade_string()),
             routes: Some(RunScripts::routes_string()),
