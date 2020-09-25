@@ -33,12 +33,6 @@ Dir(DirSpec(
       if_not_present: [".prettierrc.js", ".prettierrc" ]
     ))),
 
-    ("nodemon.json", 0o644, Template(TemplateSpec(
-      template_name: "nodemon.json"
-    )), Some(When(
-      if_not_present: ["nodemon.json"]
-    ))),
-
     ("middleware.js", 0o644, Template(TemplateSpec(
       template_name: "middleware.js",
     )), Some(When(
