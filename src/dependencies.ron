@@ -202,5 +202,11 @@
     kind: Development,
     preconditions: None
   ),
+  DependencySpec(
+    name: "nodemon",
+    version: "^2.0.4",
+    kind: Development,
+    preconditions: None
+  ),
 
 ]
