@@ -21,7 +21,7 @@ Boltzmann provides Typescript definitions for its exports, for your development 
 
 ## Getting started
 
-For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/v0.1.3/).
+For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/v0.1.4/).
 
 If you prefer to look at working example code, we've provided examples in the [`./examples`](https://github.com/entropic-dev/boltzmann/tree/latest/examples) directory of this repo.
 
@@ -49,7 +49,7 @@ drwxr-xr-x    - cj  7 Sep 17:15 node_modules/
 .rw-r--r--  999 cj  7 Sep 17:15 package.json
 ```
 
-To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/v0.1.3/)
+To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/v0.1.4/)
 
 ## Team
 
