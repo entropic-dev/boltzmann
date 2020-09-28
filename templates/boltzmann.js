@@ -2256,6 +2256,7 @@ class Session extends Map {
 exports.Context = Context
 exports.main = main
 exports.middleware = middleware
+exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
