@@ -1938,7 +1938,7 @@ function validateBlock(what) {
     const validator = ajvLoose.compile(schema)
     return function validate (next) {
       return async (context, params, ...args) => {
-        const subject = what(context, params)
+        const subject = what(context)
         const valid = validator(subject)
         if (!valid) {
           return Object.assign(new Error('Bad request'), {
@@ -2230,7 +2230,7 @@ class Session extends Map {
   validate: {
     body: validateBody,
     query: validateBlock(ctx => ctx.query),
-    params: validateBlock((_, params) => params)
+    params: validateBlock(ctx => ctx.params)
   },
   test
 }
