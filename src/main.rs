@@ -379,6 +379,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         } else if !has_dep_currently {
             info!("        adding {} @ {} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind);
             target.insert(candidate.name, candidate.version);
+        } else if let Some(current_value) = target.get(&candidate.name[..]) {
+            if current_value.as_str() != candidate.version.as_str() {
+                info!("        updating {} @ {} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind);
+                target.insert(candidate.name, candidate.version);
+            }
         }
     }
 
