@@ -87,8 +87,9 @@ let ajvStrict = null
     })
   })
 
+  // {% if templates %}
   let _middleware = []
-  if (isDev()) {
+  if (isDev() && !process.env.TAP) {
     const getFunctionLocation = require('get-function-location')
     _middleware = await Promise.all(middleware.map(async xs => {
       const fn = (Array.isArray(xs) ? xs[0] : xs)
@@ -99,6 +100,7 @@ let ajvStrict = null
       }
     }))
   }
+  // {% endif %}
 
   server.on('request', async (req, res) => {
     const context = new Context(req, res)
