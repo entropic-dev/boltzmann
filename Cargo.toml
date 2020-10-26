@@ -2,7 +2,7 @@
 authors = ["C J Silverio <ceejceej@gmail.com>", "Chris Dickinson <chris@neversaw.us>"]
 edition = "2018"
 name = "boltzmann"
-version = "0.1.8"
+version = "0.1.9"
 
 [dependencies]
 anyhow = "1.0.32"
