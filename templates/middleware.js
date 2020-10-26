@@ -40,7 +40,7 @@ const boltzmann = require('./boltzmann')
 export const APP_MIDDLEWARE = [
   setupMiddlewareFunc,
   {%- if csrf %}
-  [boltzmann.middleware.applyCSRF, {
+  [middleware.applyCSRF, {
     // cookieSecret: process.env.COOKIE_SECRET,
     // csrfCookie: '_csrf',
     // param: '_csrf',
