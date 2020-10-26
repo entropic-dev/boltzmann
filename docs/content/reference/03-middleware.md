@@ -94,10 +94,10 @@ module.exports = {
   ]
 }
 
-// A configuration that sets "same-site" to "lax", suitable for sites that require cookies
-// to be sent when redirecting from an external site. E.g., sites that use OAuth-style login
-// flows.
 module.exports = {
+  // A configuration that sets "same-site" to "lax", suitable for sites that require cookies
+  // to be sent when redirecting from an external site. E.g., sites that use OAuth-style login
+  // flows.
   APP_MIDDLEWARE: [
     [middleware.session, { cookieOptions: { sameSite: 'lax' } }],
   ]
