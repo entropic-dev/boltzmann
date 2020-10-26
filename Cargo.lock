@@ -85,7 +85,7 @@ dependencies = [
 
 [[package]]
 name = "boltzmann"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "atty",
