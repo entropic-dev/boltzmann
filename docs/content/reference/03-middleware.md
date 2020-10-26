@@ -49,6 +49,7 @@ _Added in 0.1.4_.
 - `iron`: Extra options for [`@hapi/iron`], which is used to seal the client session id for transport in
   a cookie.
 - `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
+- `cookieOptions`: An object containing options passed to the [`cookie`] package when serializing a session id.
 
 You can import session middleware with `require('./boltzmann').middleware.session`. The session middleware
 provides [HTTP session support] using sealed http-only [cookies]. You can read more about Boltzmann's session
@@ -92,6 +93,15 @@ module.exports = {
     }]
   ]
 }
+
+// A configuration that sets "same-site" to "lax", suitable for sites that require cookies
+// to be sent when redirecting from an external site. E.g., sites that use OAuth-style login
+// flows.
+module.exports = {
+  APP_MIDDLEWARE: [
+    [middleware.session, { cookieOptions: { sameSite: 'lax' } }],
+  ]
+};
 ```
 
 [`--redis`]: @/reference/01-cli.md#redis
@@ -99,6 +109,7 @@ module.exports = {
 [HTTP session support]: https://en.wikipedia.org/wiki/Session_(computer_science)#HTTP_session_token
 [cookies]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies
 ["storage" chapter]: #TKTKTK
+[`cookie`]: https://www.npmjs.com/package/cookie#options-1
 
 ---
 
