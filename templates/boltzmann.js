@@ -1669,6 +1669,7 @@ function session ({
   async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
 // {% endif %}
   iron = {},
+  cookieOptions = {},
   expirySeconds = 60 * 60 * 24 * 365
 } = {}) {
   let _iron = null
@@ -1754,7 +1755,8 @@ function session ({
           httpOnly: true,
           sameSite: true,
           maxAge: expirySeconds,
-          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)}),
+          ...cookieOptions
         })
       }
 
