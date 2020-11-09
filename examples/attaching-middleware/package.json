@@ -15,7 +15,7 @@
     "cookie": "^0.4.1",
     "culture-ships": "^1.0.0",
     "dotenv": "^8.2.0",
-    "find-my-way": "^2.2.1",
+    "find-my-way": "^2.2.5",
     "uuid": "^8.3.0"
   },
   "devDependencies": {
