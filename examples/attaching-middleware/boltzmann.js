@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* eslint-disable */
 /* istanbul ignore file */
-
 'use strict'
+// Boltzmann v0.1.9
 
 // 
 // 
@@ -29,6 +29,7 @@ const crypto = require('crypto')
 // 
 const http = require('http')
 const bole = require('bole')
+const path = require('path')
 const os = require('os')
 // 
 // 
@@ -64,18 +65,7 @@ let ajvStrict = null
     })
   })
 
-  let _middleware = []
-  if (isDev()) {
-    const getFunctionLocation = require('get-function-location')
-    _middleware = await Promise.all(middleware.map(async xs => {
-      const fn = (Array.isArray(xs) ? xs[0] : xs)
-      const loc = await getFunctionLocation(fn)
-      return {
-        name: fn.name,
-        location: `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
-      }
-    }))
-  }
+  // 
 
   server.on('request', async (req, res) => {
     const context = new Context(req, res)
@@ -177,6 +167,8 @@ let ajvStrict = null
     return this.request.headers
   }
 
+  // 
+
   get url() {
     if (this._parsedUrl) {
       return this._parsedUrl
@@ -266,6 +258,8 @@ class NoMatchError extends Error {
 
   return routes
 }
+
+// 
 
  async function printRoutes () {
   const metadata = await routes()
@@ -560,6 +554,28 @@ function enforceInvariants () {
 
 // 
 
+function templateContext(extraContext = {}) {
+  return next => {
+    return async context => {
+      const result = await next(context)
+
+      if (Symbol.for('template') in result) {
+        result.STATIC_URL = process.env.STATIC_URL || '/static'
+
+        for (const [key, fn] of Object.entries(extraContext)) {
+          result[key] = typeof fn === 'function' ? await fn(context) : fn
+        }
+      }
+
+      return result
+    }
+  }
+}
+
+// 
+
+// 
+
 function handleCORS ({
   origins = isDev() ? '*' : String(process.env.CORS_ALLOW_ORIGINS).split(','),
   methods = String(process.env.CORS_ALLOW_METHODS).split(','),
@@ -616,19 +632,23 @@ const applyXFO = (mode) => {
 
 // 
 
+// 
+
+// 
+
 function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout
 } = {}) {
-  return function logMiddleware (next) {
-    if (isDev()) {
-      const pretty = require('bistre')({ time: true })
-      pretty.pipe(stream)
-      stream = pretty
-    }
-    bole.output({ level, stream })
+  if (isDev()) {
+    const pretty = require('bistre')({ time: true })
+    pretty.pipe(stream)
+    stream = pretty
+  }
+  bole.output({ level, stream })
 
+  return function logMiddleware (next) {
     return async function inner (context) {
       const result = await next(context)
 
@@ -695,6 +715,7 @@ function urlEncoded (next) {
 
 // 
 
+let _uuid = null
 let IN_MEMORY = new Map()
 function session ({
   cookie = process.env.SESSION_ID || 'sid',
@@ -709,10 +730,10 @@ function session ({
   async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
 // 
   iron = {},
+  cookieOptions = {},
   expirySeconds = 60 * 60 * 24 * 365
 } = {}) {
   let _iron = null
-  let _uuid = null
 
   expirySeconds = Number(expirySeconds) || 0
   if (typeof load !== 'function') {
@@ -794,7 +815,8 @@ function session ({
           httpOnly: true,
           sameSite: true,
           maxAge: expirySeconds,
-          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)}),
+          ...cookieOptions
         })
       }
 
@@ -915,7 +937,7 @@ function validateBlock(what) {
     const validator = ajvLoose.compile(schema)
     return function validate (next) {
       return async (context, params, ...args) => {
-        const subject = what(context, params)
+        const subject = what(context)
         const valid = validator(subject)
         if (!valid) {
           return Object.assign(new Error('Bad request'), {
@@ -947,9 +969,9 @@ function test ({
   // 
 
   return inner => async assert => {
+    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
 
-    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
     // 
 
@@ -1124,12 +1146,17 @@ class Session extends Map {
   validate: {
     body: validateBody,
     query: validateBlock(ctx => ctx.query),
-    params: validateBlock((_, params) => params)
+    params: validateBlock(ctx => ctx.params)
   },
   test
 }
  const middleware = {
 // 
+
+// 
+// 
+// 
+
 // 
   applyXFO,
   handleCORS,
@@ -1142,11 +1169,14 @@ class Session extends Map {
 exports.Context = Context
 exports.main = main
 exports.middleware = middleware
+exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
+exports.buildAssets = buildAssets
 // 
 
+// 
 // 
 if (require.main === module) {
   main({
@@ -1154,6 +1184,7 @@ if (require.main === module) {
       // 
       // 
       handlePing,
+      // 
       // 
       log,
 
@@ -1163,7 +1194,7 @@ if (require.main === module) {
       // 
       ...[handleStatus]
       // 
-    ])
+    ].filter(Boolean))
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
       bole('server').info(`now listening on port ${server.address().port}`)

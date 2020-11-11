@@ -21,6 +21,17 @@ Dir(DirSpec(
       if_not_present: [ "templates/index.html"]
     ))),
 
+    ("client", 0o755, Dir(DirSpec(
+      children: [
+            ("greeting.js", 0o644, Template(TemplateSpec(
+              template_name: "greeting.js"
+            )), None)
+      ],
+    )), Some(When(
+      feature: Some("staticfiles"),
+      if_not_present: [ "client/greeting.js"]
+    ))),
+
     (".eslintrc.js", 0o644, Template(TemplateSpec(
       template_name: "eslintrc.js"
     )), Some(When(

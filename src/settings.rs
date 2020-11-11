@@ -21,37 +21,49 @@ pub struct Settings {
     pub(crate) version: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) redis: Option<bool>,
+    pub(crate) csrf: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) postgres: Option<bool>,
+    pub(crate) staticfiles: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) honeycomb: Option<bool>,
+    pub(crate) esbuild: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) selftest: Option<bool>,
+    pub(crate) esm: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) githubci: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) templates: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) status: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) ping: Option<bool>,
+    pub(crate) honeycomb: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) jwt: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) csrf: Option<bool>,
+    pub(crate) livereload: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) esm: Option<bool>,
+    pub(crate) oauth: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) ping: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) postgres: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) redis: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) selftest: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) status: Option<bool>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) templates: Option<bool>,
 
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
@@ -81,18 +93,27 @@ impl Settings {
         };
 
         Settings {
-            version: Some(version),
+            // website features, grouped
             csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
-            githubci: cast(&flags.githubci, &self.githubci, flags.all),
-            honeycomb: cast(&flags.honeycomb, &self.honeycomb, flags.all),
+            staticfiles: cast(&flags.staticfiles, &self.staticfiles, flags.all || flags.website),
+            esbuild: cast(&flags.esbuild, &self.esbuild, flags.all || flags.website),
             jwt: cast(&flags.jwt, &self.jwt, flags.all || flags.website),
+            livereload: cast(&flags.livereload, &self.livereload, flags.all || flags.website),
+            oauth: cast(&flags.oauth, &self.oauth, flags.all || flags.website),
             ping: cast(&flags.ping, &self.ping, flags.all || flags.website),
-            postgres: cast(&flags.postgres, &self.postgres, flags.all),
-            redis: cast(&flags.redis, &self.redis, flags.all),
-            esm: if is_esm { Some(true) } else { None },
-
             status: cast(&flags.status, &self.status, flags.all || flags.website),
             templates: cast(&flags.templates, &self.templates, flags.all || flags.website),
+
+            // non-website features
+            githubci: cast(&flags.githubci, &self.githubci, flags.all),
+            honeycomb: cast(&flags.honeycomb, &self.honeycomb, flags.all),
+            postgres: cast(&flags.postgres, &self.postgres, flags.all),
+            redis: cast(&flags.redis, &self.redis, flags.all),
+
+            // oddballs:
+            version: Some(version),
+            esm: if is_esm { Some(true) } else { None },
+
             selftest: if flags.selftest {
                 Some(true)
             } else {
@@ -110,6 +131,12 @@ impl fmt::Display for Settings {
         if self.csrf.unwrap_or(false) {
             features.push("csrf");
         }
+        if self.staticfiles.unwrap_or(false) {
+            features.push("staticfiles");
+        }
+        if self.esbuild.unwrap_or(false) {
+            features.push("esbuild");
+        }
         if self.esm.unwrap_or(false) {
             features.push("esm");
         }
@@ -121,6 +148,12 @@ impl fmt::Display for Settings {
         }
         if self.jwt.unwrap_or(false) {
             features.push("jwt");
+        }
+        if self.livereload.unwrap_or(false) {
+            features.push("livereload");
+        }
+        if self.oauth.unwrap_or(false) {
+            features.push("oauth");
         }
         if self.ping.unwrap_or(false) {
             features.push("ping");
@@ -153,11 +186,15 @@ impl Into<Context> for Settings {
     fn into(self) -> Context {
         let mut ctxt = Context::new();
 
+        ctxt.insert("staticfiles", &self.staticfiles.unwrap_or(false));
         ctxt.insert("csrf", &self.csrf.unwrap_or(false));
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
         ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
+        ctxt.insert("esbuild", &self.esbuild.unwrap_or(false));
         ctxt.insert("esm", &self.esm.unwrap_or(false));
         ctxt.insert("jwt", &self.jwt.unwrap_or(false));
+        ctxt.insert("livereload", &self.livereload.unwrap_or(false));
+        ctxt.insert("oauth", &self.oauth.unwrap_or(false));
         ctxt.insert("ping", &self.ping.unwrap_or(false));
         ctxt.insert("postgres", &self.postgres.unwrap_or(false));
         ctxt.insert("redis", &self.redis.unwrap_or(false));

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 {% if not selftest %}/* eslint-disable */{% endif %}
 {% if not selftest %}/* istanbul ignore file */{% endif %}
-
 'use strict'
+// Boltzmann v{{ version }}
 
 // {% if esm %}
 import { createRequire } from 'module'
@@ -48,6 +48,7 @@ const CsrfTokens = require('csrf')
 // {% endif %}
 const http = require('http')
 const bole = require('bole')
+const path = require('path')
 const os = require('os')
 // {% if redis %}
 const redis = require('handy-redis')
@@ -321,6 +322,75 @@ class NoMatchError extends Error {
 
   return routes
 }
+
+// {% if esbuild %}
+async function _findESBuildEntries (source) {
+  const routeMetadata = await routes()
+
+  const entries = new Map()
+  for (const route of routeMetadata) {
+    if (![].concat(route.props.method).some(xs => xs === 'GET' || xs === 'POST')) {
+      continue
+    }
+
+    const basename = route.props.entry || route.handler.name || route.key
+    const filepath = path.join(source, basename)
+    for (const suffix of ['.js', '.jsx', '.ts', '.tsx']) {
+      const entrypoint = `${filepath}${suffix}`
+      const stats = await fs.stat(entrypoint).catch(_ => null)
+      if (stats && stats.isFile()) {
+        entries.set(route.handler, `${basename}${suffix}`)
+        break
+      }
+    }
+  }
+
+  return entries
+}
+
+{{ EXPORTS }} async function buildAssets (
+  destination = 'build',
+  middleware = _requireOr('./middleware', []).then(_processMiddleware),
+  handlers = _requireOr('./handlers', {})
+) {
+  middleware = await middleware
+  let [, config = {}] = [].concat(middleware.find(xs => esbuild === (Array.isArray(xs) ? xs[0] : xs)))
+
+  config = {
+    source: 'client',
+    prefix: '_assets',
+    staticUrl: process.env.STATIC_URL,
+    destination,
+    options: {},
+    ...config,
+  }
+
+  // XXX(CD): at the time of writing, router desugars handler properties into their canonical attributes.
+  // Eventually the `routes()` function should do this, and the main function should rely on routes().
+  await router(await handlers)
+
+  const entries = await _findESBuildEntries(config.source)
+
+  const esbuildConfig = {
+    sourcemap: 'external',
+    define: {
+      'process.env': 'false',
+    },
+    minify: true,
+    format: 'esm',
+    splitting: true,
+    bundle: true,
+    ...config.options,
+    entryPoints: [...new Set(entries.values())].map((value) => path.join(config.source, value)),
+    outdir: destination,
+  }
+
+  if (entries.size > 0) {
+    _build = _build || require('esbuild').build
+    await _build(esbuildConfig)
+  }
+}
+// {% endif %}
 
 {{ EXPORTS }} async function printRoutes () {
   const metadata = await routes()
@@ -663,7 +733,6 @@ function template ({
   }
 } = {}) {
   const nunjucks = require('nunjucks')
-  const path = require('path')
   paths = [].concat(paths)
   try {
     const assert = require('assert')
@@ -1173,6 +1242,7 @@ function template ({
     }
   }
 }
+// {% endif %}
 
 function templateContext(extraContext = {}) {
   return next => {
@@ -1192,18 +1262,36 @@ function templateContext(extraContext = {}) {
   }
 }
 
-function devStatic({ prefix = 'static', dir = 'static', fs = require('fs') } = {}) {
+// {% if staticfiles or esbuild %}
+let mime = null
+
+function staticfiles({ prefix = 'static', dir = 'static', addToContext = true, fs = require('fs'), quiet = false} = {}) {
+  const logger = bole('boltzmann:staticfiles')
   if (!isDev()) {
-    return next => context => next(context)
+    return (
+      addToContext
+      ? templateContext({ STATIC_URL: process.env.STATIC_URL })
+      : next => context => next(context)
+    )
   }
 
-  const path = require('path')
-  const mime = require('mime')
+  mime = mime || require('mime')
   dir = path.isAbsolute(dir) ? dir : path.join(__dirname, dir)
 
   return next => {
-    return async context => {
-      if (!context.url.pathname.startsWith(`/${prefix}/`)) {
+    if (!quiet) {
+      logger.info(`Running in development mode; assets served from /${prefix}`)
+    }
+
+    const prefixURL = `/${prefix}/`
+    const contextMiddleware = (
+      addToContext
+      ? templateContext({ STATIC_URL: prefixURL })
+      : next => context => next(context)
+    )
+
+    return contextMiddleware(async context => {
+      if (!context.url.pathname.startsWith(prefixURL)) {
         return next(context)
       }
 
@@ -1225,7 +1313,85 @@ function devStatic({ prefix = 'static', dir = 'static', fs = require('fs') } = {
           'content-type': mimetype || 'application/octet-stream'
         }
       })
+    })
+  }
+}
+// {% endif %}
+
+// {% if esbuild %}
+let _build = null 
+function esbuild({
+  source = 'client',
+  prefix = '_assets',
+  staticUrl = process.env.STATIC_URL,
+  destination = path.join(os.tmpdir(), crypto.createHash('sha1').update(__dirname).digest('hex')),
+  options = {}
+} = {}) {
+  const logger = bole('boltzmann:esbuild')
+  if (!isDev()) {
+    return next => staticAssets(async function inner(context) {
+      const response = await next(context)
+      if (!response[Symbol.for('template')]) {
+        return response
+      }
+
+      const entry = entries.get(context._routed.handler)
+      if (!entry) {
+        return response
+      }
+
+      response.ESBUILD_ENTRY_URL = `/${prefix}/${entry.replace(/\\/g, '/')}`
+      return response
+    })
+  }
+
+  const staticAssets = staticfiles({
+    prefix,
+    dir: destination,
+    addToContext: false,
+    quiet: true
+  })
+
+  return async (next) => {
+    await fs.mkdir(destination, { recursive: true })
+
+    const routeMetadata = await routes()
+
+    const entries = await _findESBuildEntries(source)
+
+    const start = Date.now()
+    if (entries.size > 0) {
+      _build = _build || require('esbuild').build
+      await _build({
+        sourcemap: 'inline',
+        define: {
+          'process.env': 'false',
+        },
+        minify: true,
+        format: 'esm',
+        splitting: true,
+        bundle: true,
+        ...options,
+        entryPoints: [...new Set(entries.values())].map((value) => path.join(source, value)),
+        outdir: destination,
+      })
     }
+    logger.info(`esbuild development middleware active; built in ${Date.now() - start}ms`)
+
+    return staticAssets(async function inner(context) {
+      const response = await next(context)
+      if (!response[Symbol.for('template')]) {
+        return response
+      }
+
+      const entry = entries.get(context._routed.handler)
+      if (!entry) {
+        return response
+      }
+
+      response.ESBUILD_ENTRY_URL = `/${prefix}/${entry.replace(/\\/g, '/')}`
+      return response
+    })
   }
 }
 // {% endif %}
@@ -1380,7 +1546,334 @@ function applyCSRF ({
 }
 // {% endif %}
 
+// {% if livereload %}
+function livereload({ reloadPath = '/__livereload' } = {}) {
+  const logger = bole('boltzmann:livereload')
+  logger.info('live reload enabled!')
+  const number = Date.now()
+  return next => async context => {
+    if (context.url.pathname === reloadPath) {
+      const { Readable } = require('stream')
+      return Object.assign(new Readable({
+        read (_) {
+          setInterval(() => {
+            this.push(`event: message\ndata: ${number}\n\n`)
+          }, 5000)
+        }
+      }), {
+        [Symbol.for('headers')]: {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache',
+        }
+      })
+    }
+
+    const response = await next(context)
+
+    if (response[Symbol.for('headers')]['content-type'].startsWith('text/html')) {
+      const src = `
+        let last = null
+        let retryCount = 0
+        let retryBackoff = [500, 500, 1000, 1000, 5000, 5000, 10000, 30000, 0]
+        function connect() {
+          const url = ${JSON.stringify(reloadPath)}
+          console.log('connecting to', url)
+          const es = new EventSource(url)
+
+          es.onerror = () => {
+            es.onmessage = () => {}
+            es.onerror = () => {}
+            ++retryCount
+            if (retryBackoff[retryCount]) {
+              es.close()
+              setTimeout(connect, retryBackoff[retryCount])
+            } else {
+              es.close()
+              console.log(\`live reload inactive after \${retryBackoff.length} attempts\`)
+            }
+          }
+
+          es.onmessage = ev => {
+            retryCount = 0
+            if (last && last !== ev.data) {
+              es.onmessage = () => {}
+              es.onerror = () => {}
+              setTimeout(() => window.location.reload(), 100)
+            }
+            last = ev.data
+          }
+        }
+
+        connect()
+      `
+
+      return Object.assign(Buffer.from(
+        String(response).replace('</html>', `<script>${src}</script></html>`),
+        'utf8'
+      ), {
+        [Symbol.for('status')]: response[Symbol.for('status')],
+        [Symbol.for('headers')]: response[Symbol.for('headers')],
+      })
+    }
+
+    return response
+  }
+}
+// {% endif %}
+
+// {% if oauth %}
+let OAuth2 = null
+
+function handleOAuthLogin ({
+  prompt,
+  max_age,
+  audience,
+  connection,
+  login_hint,
+  connection_scope,
+  loginRoute = '/login',
+  domain = process.env.OAUTH_DOMAIN,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  defaultNextPath = '/'
+} = {}) {
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+
+  const extraOpts = {}
+
+  if (connection) {
+    extraOpts.connection = connection
+  }
+
+  if (connection_scope) {
+    extraOpts.connection_scope = connection_scope
+  }
+
+  if (audience) {
+    extraOpts.audience = audience
+  }
+
+  if (prompt) {
+    extraOpts.prompt = prompt
+  }
+
+  if (login_hint) {
+    extraOpts.login_hint = login_hint
+  }
+
+  if (max_age) {
+    extraOpts.max_age = max_age
+  }
+
+  return next => async context => {
+    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+
+    if (context.url.pathname !== loginRoute || context.method !== 'GET') {
+      return next(context)
+    }
+
+    const nextUrl =  (
+      context.query.next && /^\/(?!\/+)/.test(context.query.next) // must start with "/" and NOT contain "//"
+      ? context.query.next 
+      : defaultNextPath
+    )
+
+    const nonce = crypto.randomBytes(16).toString('hex')
+    const session = await context.session
+    session.set('nonce', nonce)
+    session.set('next', nextUrl)
+
+    const authorizationParams = {
+      ...extraOpts,
+
+      // controlled by mechanism
+      nonce,
+      response_type: 'code', // this is the type of oauth flow – "code" means web browser flow
+      redirect_uri: callbackUrl,
+      client_id: clientId
+    }
+
+    const location = new URL(authorizationUrl)
+    for (const [key, value] of Object.entries(authorizationParams)) {
+      location.searchParams.set(key, value)
+    }
+
+    return Object.assign(Buffer.from(''), {
+      [Symbol.for('status')]: 302,
+      [Symbol.for('headers')]: {
+        'Location': String(location)
+      }
+    })
+  }
+}
+
+function handleOAuthCallback ({
+  userKey = 'user',
+  domain = process.env.OAUTH_DOMAIN,
+  secret = process.env.OAUTH_CLIENT_SECRET,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  tokenUrl = process.env.OAUTH_TOKEN_URL,
+  userinfoUrl = process.env.OAUTH_USERINFO_URL,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  expiryLeewaySeconds = process.env.OAUTH_EXPIRY_LEEWAY,
+  defaultNextPath = '/'
+} = {}) {
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+  userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
+  tokenUrl = tokenUrl || `https://${domain}/oauth/token`
+  OAuth2 = OAuth2 || require('oauth').OAuth2
+  const oauth = new OAuth2(
+    clientId,
+    secret,
+    '',
+    authorizationUrl,
+    tokenUrl,
+    {}
+  )
+
+  let loginRoute = null
+  return next => async context => {
+    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+    loginRoute = loginRoute || new URL(callbackUrl).pathname
+    if (context.url.pathname !== loginRoute || context.method !== 'GET') {
+      return next(context)
+    }
+
+    if (!context.query.code) {
+      throw new Error('Code is required.')
+    }
+
+    const session = await context.session
+    const expectedNonce = session.get('nonce')
+
+    // XXX: this throws non-error-like objects with statusCodes; we may wish to forward 403 results out
+    const { accessToken, refreshToken, params } = await new Promise((resolve, reject) => {
+      const params = {
+        'grant_type': 'authorization_code',
+        'redirect_uri': callbackUrl
+      }
+      oauth.getOAuthAccessToken(context.query.code, params, (err, accessToken, refreshToken, params) => {
+        err ? reject(err) : resolve({ accessToken, refreshToken, params })
+      })
+    })
+
+    // NB: we are not checking the signature here; we're relying on the nonce
+    // to protect us.
+    _jwt = _jwt || require('jsonwebtoken')
+    _uuid = _uuid || require('uuid')
+    try {
+      var decoded = _jwt.decode(params.id_token)
+    } catch(err) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: failed to decode JWT (jwt="${params.id_token}")`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 400
+      })
+    }
+
+    if (decoded.iss !== `https://${domain}/`) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Issuer mismatched. Got "${decoded.iss}", expected "https://${process.env.OAUTH_DOMAIN}/"`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    if (![].concat(decoded.aud).includes(clientId)) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Audience mismatched. Got "${decoded.aud}", expected value of "clientId" (default: process.env.OAUTH_CLIENT_ID)`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    if (decoded.nonce !== expectedNonce) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Nonce mismatched. Got "${decoded.nonce}", expected "${expectedNonce}"`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    const window = (Number(expiryLeewaySeconds) || 60)
+    const expires = (Number(decoded.exp) || 0) + window
+
+    if (expires < now) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Expiration time exceeded. Got "${decoded.exp}", expected "${now}" (leeway=${window})`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    const profile = await new Promise((resolve, reject) => {
+      oauth.get(userinfoUrl, accessToken, (err, body) => {
+        err ? reject(err) : resolve(JSON.parse(body))
+      })
+    })
+
+    const nextUrl = session.get('next') || defaultNextPath
+    session.delete('nonce')
+    session.delete('next')
+    context.accessToken = accessToken
+    context.refreshToken = refreshToken
+    context.profile = profile
+    context.nextUrl = nextUrl
+    context.userKey = userKey
+    return next(context)
+  }
+}
+
+function handleOAuthLogout ({
+  logoutRoute = '/logout',
+  clientId = process.env.OAUTH_CLIENT_ID,
+  domain = process.env.OAUTH_DOMAIN,
+  returnTo = process.env.OAUTH_LOGOUT_CALLBACK,
+  logoutUrl = process.env.OAUTH_LOGOUT_URL,
+  userKey = 'user',
+} = {}) {
+  logoutUrl = logoutUrl || `https://${domain}/v2/logout`
+  return next => async context => {
+    if (context.url.pathname !== logoutRoute || context.method !== 'POST') {
+      return next(context)
+    }
+
+    const session = await context.session
+    session.delete(userKey)
+    session.reissue()
+
+    returnTo = (
+      returnTo ||
+      `http://${context.host}${![80, 443].includes(context.request.connection.localPort) ? ':' + context.request.connection.localPort : ''}/`
+    )
+
+    const logout = new URL(logoutUrl)
+    logout.searchParams.set('returnTo', returnTo)
+    logout.searchParams.set('client_id', clientId)
+
+    return Object.assign(Buffer.from(''), {
+      [Symbol.for('status')]: 302,
+      [Symbol.for('headers')]: {
+        'Location': String(logout)
+      }
+    })
+  }
+}
+
+function oauth (options = {}) {
+  const callback = handleOAuthCallback(options)
+  const logout = handleOAuthLogout(options)
+  const login = handleOAuthLogin(options)
+
+  return next => callback(logout(login(next)))
+}
+// {% endif %}
+
 // {% if jwt %}
+let _jwt = null
 function authenticateJWT ({
   scheme = 'Bearer',
   publicKey = process.env.AUTHENTICATION_KEY,
@@ -1401,7 +1894,8 @@ the environment variable "AUTHENTICATION_KEY" or the publicKey config field
 https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '))
   }
-  const verifyJWT = require('jsonwebtoken').verify
+  _jwt = _jwt || require('jsonwebtoken')
+  const verifyJWT = _jwt.verify
 
   return async next => {
     const publicKeyContents = (
@@ -1455,14 +1949,14 @@ function log ({
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout
 } = {}) {
-  return function logMiddleware (next) {
-    if (isDev()) {
-      const pretty = require('bistre')({ time: true })
-      pretty.pipe(stream)
-      stream = pretty
-    }
-    bole.output({ level, stream })
+  if (isDev()) {
+    const pretty = require('bistre')({ time: true })
+    pretty.pipe(stream)
+    stream = pretty
+  }
+  bole.output({ level, stream })
 
+  return function logMiddleware (next) {
     return async function inner (context) {
       const result = await next(context)
 
@@ -1650,6 +2144,7 @@ function honeycombMiddlewareSpans ({name} = {}) {
 
 // {% endif %}
 
+let _uuid = null
 let IN_MEMORY = new Map()
 function session ({
   cookie = process.env.SESSION_ID || 'sid',
@@ -1665,7 +2160,7 @@ function session ({
 // {% if redis %}
   async (context, id, session) => {
     // Add 5 seconds of lag
-    await context.redisClient.setex(id, expirySeconds + 5000, JSON.stringify(session))
+    await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
   },
 // {% else %}
   async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
@@ -1675,7 +2170,6 @@ function session ({
   expirySeconds = 60 * 60 * 24 * 365
 } = {}) {
   let _iron = null
-  let _uuid = null
 
   expirySeconds = Number(expirySeconds) || 0
   if (typeof load !== 'function') {
@@ -2101,8 +2595,6 @@ function _processMiddleware (middleware) {
 
 // {% if esm %}
 async function _requireOr (target, value) {
-  const fs = require('fs').promises
-  const path = require('path')
   const candidates = [
     `./${path.join(target, 'index.mjs')}`,
     `${target}.mjs`,
@@ -2242,8 +2734,21 @@ class Session extends Map {
 // {% if jwt %}
   authenticateJWT,
 // {% endif %}
+
+// {% if oauth %}
+  oauth,
+  handleOAuthLogin,
+  handleOAuthLogout,
+  handleOAuthCallback,
+// {% endif %}
+// {% if staticfiles %}
+  staticfiles,
+// {% endif %}
+// {% if esbuild %}
+  esbuild,
+// {% endif %}
+
 // {% if templates %}
-  devStatic,
   template,
   templateContext,
 // {% endif %}
@@ -2264,10 +2769,16 @@ exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
+// {% if esbuild %}
+exports.buildAssets = buildAssets
+// {% endif %}
 // {% endif %}
 
 // {% if not selftest %}
-if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %}) {
+// {% if esm %}
+const isEval = ['-e', '--eval', '-p', '--print'].some(xs => process.execArgv.includes(xs))
+// {% endif %}
+if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{% endif %}) {
   main({
     middleware: _requireOr('./middleware', []).then(_processMiddleware).then(mw => [
       // {% if honeycomb %}
@@ -2275,6 +2786,9 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
       // {% endif %}
       // {% if ping %}
       handlePing,
+      // {% endif %}
+      // {% if livereload %}
+      isDev() ? livereload : null,
       // {% endif %}
       log,
 
@@ -2288,7 +2802,7 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
       // {% if status %}
       ...[handleStatus]
       // {% endif %}
-    ])
+    ].filter(Boolean))
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
       bole('server').info(`now listening on port ${server.address().port}`)
@@ -2305,7 +2819,6 @@ if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %})
   const { promises: fs, createReadStream } = require('fs')
   const shot = require('@hapi/shot')
   const { test } = require('tap')
-  const path = require('path')
 
   test('_requireOr only returns default for top-level failure', async assert => {
     // {% if esm %}

@@ -36,6 +36,33 @@
     ))
   ),
   DependencySpec(
+    name: "oauth",
+    version: "^0.9.15",
+    kind: Normal,
+    preconditions: Some(When(
+      feature: Some("oauth"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
+    name: "mime",
+    version: "^2.4.6",
+    kind: Normal,
+    preconditions: Some(When(
+      feature: Some("esbuild"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
+    name: "mime",
+    version: "^2.4.6",
+    kind: Normal,
+    preconditions: Some(When(
+      feature: Some("staticfiles"),
+      if_not_present: []
+    ))
+  ),
+  DependencySpec(
     name: "culture-ships",
     version: "^1.0.0",
     kind: Normal,
@@ -58,6 +85,12 @@
     version: "^8.5.1",
     kind: Normal,
     preconditions: Some(When(feature: Some("jwt"),if_not_present: []))
+  ),
+  DependencySpec(
+    name: "jsonwebtoken",
+    version: "^8.5.1",
+    kind: Normal,
+    preconditions: Some(When(feature: Some("oauth"),if_not_present: []))
   ),
   DependencySpec(
     name: "ajv",
@@ -121,6 +154,12 @@
     preconditions:None
   ),
 
+  DependencySpec(
+    name: "esbuild",
+    version: "^0.8.6",
+    kind: Development,
+    preconditions: Some(When(feature: Some("esbuild"), if_not_present: []))
+  ),
   DependencySpec(
     name: "tap",
     version: "^14.10.7",
