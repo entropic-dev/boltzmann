@@ -7,6 +7,13 @@
   {% block head %}
     <link rel="stylesheet" href="https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css"/>
   {% endblock %}
+  {% endraw %}
+  {% if esbuild %}
+  {% raw %}
+  <script type="module" src="{{ ESBUILD_ENTRY_URL }}"></script>
+  {% endraw %}
+  {% endif %}
+  {% raw %}
 </head>
 <body id="{% block body_id %}{% endblock %}" class="{% block body_class %}w-100 sans-serif{% endblock %}">
   {% block body %}

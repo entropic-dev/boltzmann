@@ -65,8 +65,20 @@ pub struct Flags {
     #[structopt(long, help = "Enable jwt middleware")]
     jwt: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Enable live reload in development")]
+    livereload: Option<Option<Flipper>>,
+
+    #[structopt(long, help = "Enable OAuth")]
+    oauth: Option<Option<Flipper>>,
+
+    #[structopt(long, help = "Enable static file serving in development")]
+    devstatic: Option<Option<Flipper>>,
+
+    #[structopt(long, help = "Enable asset bundling via ESBuild")]
+    esbuild: Option<Option<Flipper>>,
+
     // Convenient option groups next. These aren't saved individually.
-    #[structopt(long, help = "Enable website feature set (templates, csrf)")]
+    #[structopt(long, help = "Enable website feature set (templates, csrf, devstatic, jwt, livereload, ping, status)")]
     website: bool,
 
     #[structopt(long, help = "Enable everything!")]
