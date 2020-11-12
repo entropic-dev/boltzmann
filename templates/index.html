@@ -10,7 +10,9 @@
   {% endraw %}
   {% if esbuild %}
   {% raw %}
+  {% if ESBUILD_ENTRY_URL %}
   <script type="module" src="{{ ESBUILD_ENTRY_URL }}"></script>
+  {% endif %}
   {% endraw %}
   {% endif %}
   {% raw %}
@@ -19,6 +21,19 @@
   {% block body %}
     <div id="main" class="flex justify-center">
       {% block content %}
+        {% endraw %}
+        {% if oauth %}
+        {% raw %}
+        {% if user %}
+        <form action="/logout" method="POST">
+          <input type="submit" value="Logout" />
+        </form>
+        {% else %}
+        <a href="/login">Login</a>
+        {% endif %}
+        {% endraw %}
+        {% endif %}
+        {% raw %}
         {% if name %}
         <h1>Hello, {{ name }}!</h1>
         {% else %}

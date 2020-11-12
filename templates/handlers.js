@@ -7,23 +7,45 @@ import { Context } from './boltzmann.js' // optionally pull in typescript defini
 const { Context } = require('./boltzmann.js') // optionally pull in typescript definition
 // {%- endif %}
 
+index.route = 'GET /'
+{{ EXPORTS -}} async function index(/** @type {Context} */ context) {
+  {% if oauth -%}
+  const session = await context.session
+  const user = session.get('user')
+  const name = user?.name ?? 'Anonymous'
+  {% else -%}
+  const name = 'Friendly Boltzmann Author'
+  {% endif %}
+  {% if templates -%}
+  return {
+    [Symbol.for('template')]: 'index.html',
+    name,
+    user
+  }
+  {%- else -%}
+  return {
+    message: `welcome to boltzmann, ${name}!`,
+  }
+  {%- endif %}
+}
+
 greeting.route = 'GET /hello/:name'
 {% if templates %}
-{{ EXPORTS }} async function greeting(/** @type {Context} */ context) {
+{{ EXPORTS -}} async function greeting(/** @type {Context} */ context) {
   return {
     [Symbol.for('template')]: 'index.html',
     name: context.params.name,
   }
 }
 {% else %}
-{{ EXPORTS }} async function greeting(/** @type {Context} */ context) {
+{{ EXPORTS -}} async function greeting(/** @type {Context} */ context) {
   return `hello ${context.params.name}`
 }
 {% endif %}
 
 {%- if oauth %}
 callback.route = 'GET /callback'
-{{ EXPORTS }} async function callback(/** @type {Context} */ context) {
+{{ EXPORTS -}} async function callback(/** @type {Context} */ context) {
   // This handler is only called for valid oauth login attempts by the OAuth
   // middleware. context.{userKey, profile, nextUrl} are provided by the
   // aforementioned middleware. It is your application's responsibility to
@@ -44,6 +66,7 @@ callback.route = 'GET /callback'
 
 {%- if not esm %}
 module.exports = {
+  index,
   greeting,
 {%- if oauth %}
   callback,

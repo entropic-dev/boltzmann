@@ -323,6 +323,12 @@ class NoMatchError extends Error {
   return routes
 }
 
+// {% if esbuild %}
+{{ EXPORTS }} async function buildAssets (middleware = _requireOr('./middleware')) {
+
+}
+// {% endif %}
+
 {{ EXPORTS }} async function printRoutes () {
   const metadata = await routes()
 
@@ -1199,24 +1205,21 @@ let mime = null
 function devStatic({ prefix = 'static', dir = 'static', addToContext = true, fs = require('fs'), quiet = false} = {}) {
   const logger = bole('boltzmann:devStatic')
   if (!isDev()) {
-    if (!quiet && addToContext) {
-      logger.info('Running in production mode: configure static asset url using the STATIC_URL environment variable')
-    }
-
     return (
       addToContext
       ? templateContext({ STATIC_URL: process.env.STATIC_URL })
       : next => context => next(context)
     )
   }
-  if (!quiet) {
-    logger.info(`Running in development mode; assets served from /${prefix}`)
-  }
 
   mime = mime || require('mime')
   dir = path.isAbsolute(dir) ? dir : path.join(__dirname, dir)
 
   return next => {
+    if (!quiet) {
+      logger.info(`Running in development mode; assets served from /${prefix}`)
+    }
+
     const prefixURL = `/${prefix}/`
     const contextMiddleware = (
       addToContext
@@ -1257,9 +1260,28 @@ let _build = null
 function esbuild({
   source = 'client',
   prefix = '_assets',
+  staticUrl = process.env.STATIC_URL,
   destination = path.join(os.tmpdir(), crypto.createHash('sha1').update(__dirname).digest('hex')),
   options = {}
 } = {}) {
+  const logger = bole('boltzmann:esbuild')
+  if (!isDev()) {
+    return next => staticAssets(async function inner(context) {
+      const response = await next(context)
+      if (!response[Symbol.for('template')]) {
+        return response
+      }
+
+      const entry = entries.get(context._routed.handler)
+      if (!entry) {
+        return response
+      }
+
+      response.ESBUILD_ENTRY_URL = `/${prefix}/${entry.replace(/\\/g, '/')}`
+      return response
+    })
+  }
+
   const staticAssets = devStatic({
     prefix,
     dir: destination,
@@ -1290,6 +1312,7 @@ function esbuild({
       }
     }
 
+    const start = Date.now()
     if (entries.size > 0) {
       _build = _build || require('esbuild').build
       await _build({
@@ -1306,6 +1329,7 @@ function esbuild({
         outdir: destination,
       })
     }
+    logger.info(`esbuild development middleware active; built in ${Date.now() - start}ms`)
 
     return staticAssets(async function inner(context) {
       const response = await next(context)
@@ -1313,7 +1337,12 @@ function esbuild({
         return response
       }
 
-      response.ESBUILD_ENTRY_URL = `/${prefix}/${entries.get(context._routed.handler).replace(/\\/g, '/')}`
+      const entry = entries.get(context._routed.handler)
+      if (!entry) {
+        return response
+      }
+
+      response.ESBUILD_ENTRY_URL = `/${prefix}/${entry.replace(/\\/g, '/')}`
       return response
     })
   }
@@ -1591,6 +1620,8 @@ function handleOAuthLogin ({
   }
 
   return next => async context => {
+    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+
     if (context.url.pathname !== loginRoute || context.method !== 'GET') {
       return next(context)
     }
@@ -1655,10 +1686,11 @@ function handleOAuthCallback ({
     {}
   )
 
+  let loginRoute = null
   return next => async context => {
     callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
-    const path = path || new URL(callbackUrl).pathname
-    if (context.url.pathname !== path || context.method !== 'GET') {
+    loginRoute = loginRoute || new URL(callbackUrl).pathname
+    if (context.url.pathname !== loginRoute || context.method !== 'GET') {
       return next(context)
     }
 
@@ -1870,14 +1902,14 @@ function log ({
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout
 } = {}) {
-  return function logMiddleware (next) {
-    if (isDev()) {
-      const pretty = require('bistre')({ time: true })
-      pretty.pipe(stream)
-      stream = pretty
-    }
-    bole.output({ level, stream })
+  if (isDev()) {
+    const pretty = require('bistre')({ time: true })
+    pretty.pipe(stream)
+    stream = pretty
+  }
+  bole.output({ level, stream })
 
+  return function logMiddleware (next) {
     return async function inner (context) {
       const result = await next(context)
 
@@ -2081,7 +2113,7 @@ function session ({
 // {% if redis %}
   async (context, id, session) => {
     // Add 5 seconds of lag
-    await context.redisClient.setex(id, expirySeconds + 5000, JSON.stringify(session))
+    await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
   },
 // {% else %}
   async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
