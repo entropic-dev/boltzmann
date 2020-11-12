@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 {% if not selftest %}/* eslint-disable */{% endif %}
 {% if not selftest %}/* istanbul ignore file */{% endif %}
-// Boltzmann v{{ version }}
 'use strict'
+// Boltzmann v{{ version }}
 
 // {% if esm %}
 import { createRequire } from 'module'
@@ -1549,16 +1549,21 @@ function livereload({ reloadPath = '/__livereload' } = {}) {
 let OAuth2 = null
 
 function handleOAuthLogin ({
-  oauth,
-  path = '/login',
-  connection,
-  connection_scope,
-  audience,
   prompt,
-  login_hint,
   max_age,
-  callbackPath,
+  audience,
+  connection,
+  login_hint,
+  connection_scope,
+  loginRoute = '/login',
+  domain = process.env.OAUTH_DOMAIN,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  defaultNextPath = '/'
 } = {}) {
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+
   const extraOpts = {}
 
   if (connection) {
@@ -1586,14 +1591,14 @@ function handleOAuthLogin ({
   }
 
   return next => async context => {
-    if (context.url.pathname !== path || context.method !== 'GET') {
+    if (context.url.pathname !== loginRoute || context.method !== 'GET') {
       return next(context)
     }
 
     const nextUrl =  (
       context.query.next && /^\/(?!\/+)/.test(context.query.next) // must start with "/" and NOT contain "//"
       ? context.query.next 
-      : '/'
+      : defaultNextPath
     )
 
     const nonce = crypto.randomBytes(16).toString('hex')
@@ -1607,11 +1612,11 @@ function handleOAuthLogin ({
       // controlled by mechanism
       nonce,
       response_type: 'code', // this is the type of oauth flow – "code" means web browser flow
-      redirect_uri: process.env.OAUTH_CALLBACK_URL || `http://${context.headers.host}${callbackPath}`,
-      client_id: process.env.OAUTH_CLIENT_ID
+      redirect_uri: callbackUrl,
+      client_id: clientId
     }
 
-    const location = new URL(oauth._authorizeUrl)
+    const location = new URL(authorizationUrl)
     for (const [key, value] of Object.entries(authorizationParams)) {
       location.searchParams.set(key, value)
     }
@@ -1626,12 +1631,33 @@ function handleOAuthLogin ({
 }
 
 function handleOAuthCallback ({
-  oauth,
   userKey = 'user',
-  path = '/callback',
+  domain = process.env.OAUTH_DOMAIN,
+  secret = process.env.OAUTH_CLIENT_SECRET,
+  clientId = process.env.OAUTH_CLIENT_ID,
   callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  tokenUrl = process.env.OAUTH_TOKEN_URL,
+  userinfoUrl = process.env.OAUTH_USERINFO_URL,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  expiryLeewaySeconds = process.env.OAUTH_EXPIRY_LEEWAY,
+  defaultNextPath = '/'
 } = {}) {
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+  userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
+  tokenUrl = tokenUrl || `https://${domain}/oauth/token`
+  OAuth2 = OAuth2 || require('oauth').OAuth2
+  const oauth = new OAuth2(
+    clientId,
+    secret,
+    '',
+    authorizationUrl,
+    tokenUrl,
+    {}
+  )
+
   return next => async context => {
+    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+    const path = path || new URL(callbackUrl).pathname
     if (context.url.pathname !== path || context.method !== 'GET') {
       return next(context)
     }
@@ -1647,7 +1673,7 @@ function handleOAuthCallback ({
     const { accessToken, refreshToken, params } = await new Promise((resolve, reject) => {
       const params = {
         'grant_type': 'authorization_code',
-        'redirect_uri': callbackUrl || `http://${context.headers.host}${path}`,
+        'redirect_uri': callbackUrl
       }
       oauth.getOAuthAccessToken(context.query.code, params, (err, accessToken, refreshToken, params) => {
         err ? reject(err) : resolve({ accessToken, refreshToken, params })
@@ -1668,7 +1694,7 @@ function handleOAuthCallback ({
       })
     }
 
-    if (decoded.iss !== `https://${process.env.OAUTH_DOMAIN}/`) {
+    if (decoded.iss !== `https://${domain}/`) {
       const correlation = _uuid.v4()
       logger.error(`err=${correlation}: Issuer mismatched. Got "${decoded.iss}", expected "https://${process.env.OAUTH_DOMAIN}/"`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
@@ -1676,9 +1702,9 @@ function handleOAuthCallback ({
       })
     }
 
-    if (![].concat(decoded.aud).includes(process.env.OAUTH_CLIENT_ID)) {
+    if (![].concat(decoded.aud).includes(clientId)) {
       const correlation = _uuid.v4()
-      logger.error(`err=${correlation}: Audience mismatched. Got "${decoded.aud}", expected value of process.env.OAUTH_CLIENT_ID`)
+      logger.error(`err=${correlation}: Audience mismatched. Got "${decoded.aud}", expected value of "clientId" (default: process.env.OAUTH_CLIENT_ID)`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
         [Symbol.for('status')]: 403
       })
@@ -1693,7 +1719,7 @@ function handleOAuthCallback ({
     }
 
     const now = Math.floor(Date.now() / 1000)
-    const window = (Number(process.env.OAUTH_EXPIRY_LEEWAY) || 60)
+    const window = (Number(expiryLeewaySeconds) || 60)
     const expires = (Number(decoded.exp) || 0) + window
 
     if (expires < now) {
@@ -1705,12 +1731,12 @@ function handleOAuthCallback ({
     }
 
     const profile = await new Promise((resolve, reject) => {
-      oauth.get(process.env.OAUTH_USERINFO_URL || `https://${process.env.OAUTH_DOMAIN}/userinfo`, accessToken, (err, body) => {
+      oauth.get(userinfoUrl, accessToken, (err, body) => {
         err ? reject(err) : resolve(JSON.parse(body))
       })
     })
 
-    const nextUrl = session.get('next') || '/'
+    const nextUrl = session.get('next') || defaultNextPath
     session.delete('nonce')
     session.delete('next')
     context.accessToken = accessToken
@@ -1723,14 +1749,16 @@ function handleOAuthCallback ({
 }
 
 function handleOAuthLogout ({
-  path = '/logout',
+  logoutRoute = '/logout',
+  clientId = process.env.OAUTH_CLIENT_ID,
+  domain = process.env.OAUTH_DOMAIN,
   returnTo = process.env.OAUTH_LOGOUT_CALLBACK,
-  logoutUrl = process.env.OAUTH_LOGOUT_URL || `https://${process.env.OAUTH_DOMAIN}/v2/logout`,
+  logoutUrl = process.env.OAUTH_LOGOUT_URL,
   userKey = 'user',
-  clientId,
 } = {}) {
+  logoutUrl = logoutUrl || `https://${domain}/v2/logout`
   return next => async context => {
-    if (context.url.pathname !== path || context.method !== 'POST') {
+    if (context.url.pathname !== logoutRoute || context.method !== 'POST') {
       return next(context)
     }
 
@@ -1756,39 +1784,12 @@ function handleOAuthLogout ({
   }
 }
 
-function oauth ({
-  callbackOptions = {},
-  loginOptions = {},
-  logoutOptions = {},
-  secret = process.env.OAUTH_CLIENT_SECRET,
-  clientId = process.env.OAUTH_CLIENT_ID,
-  userKey = 'user'
-} = {}) {
+function oauth (options = {}) {
+  const callback = handleOAuthCallback(options)
+  const logout = handleOAuthLogout(options)
+  const login = handleOAuthLogin(options)
 
-  return async next => {
-    OAuth2 = OAuth2 || require('oauth').OAuth2
-    const oauth = new OAuth2(
-      process.env.OAUTH_CLIENT_ID,
-      process.env.OAUTH_CLIENT_SECRET,
-      '',
-      process.env.OAUTH_AUTHORIZATION_URL || `https://${process.env.OAUTH_DOMAIN}/authorize`,
-      process.env.OAUTH_TOKEN_URL || `https://${process.env.OAUTH_DOMAIN}/oauth/token`,
-      {}
-    )
-
-    const opts = {
-      secret,
-      clientId,
-      oauth,
-      userKey
-    }
-    loginOptions.callbackPath = loginOptions.callbackPath || callbackOptions.path || '/callback'
-    const callback = handleOAuthCallback({...opts, ...callbackOptions})
-    const logout = handleOAuthLogout({...opts, ...logoutOptions})
-    const login = handleOAuthLogin({...opts, ...loginOptions})
-
-    return callback(logout(login(next)))
-  }
+  return next => callback(logout(login(next)))
 }
 // {% endif %}
 
