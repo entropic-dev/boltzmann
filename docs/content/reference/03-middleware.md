@@ -115,6 +115,10 @@ module.exports = {
 
 ### Automatically installed middleware
 
+Automatically-installed middleware is middleware you can configure but do *not* need to attach to
+the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
+them are enabled.
+
 #### `trace`
 
 This middleware is added to your service if you have enabled the `honeycomb` feature.
@@ -139,6 +143,8 @@ for this endpoint. In particular, it is *not* logged.
 ---
 
 #### `log`
+
+This middleware is always attached to Boltzmann apps.
 
 This middleware configures the [bole](https://github.com/rvagg/bole) logger and enables per-request
 logging. In development mode, the logger is configured using
@@ -172,30 +178,94 @@ async function greeting(/** @type {Context} */ context) {
 }
 ```
 
-
-
 ---
 
 #### `attachRedis`
+
+This middleware is enabled when the [redis feature](@/reference/01-cli.md#redis) is enabled.
+
+This middleware adds a configured, promisified Redis client to the context object accessible via the
+getter `context.redisClient`. This object is a [handy-redis](https://github.com/mmkal/handy-redis)
+client with a promisified API. The environment variable `REDIS_URL` is passed to the handy-redis
+constructor.
 
 ---
 
 #### `attachPostgres`
 
+This middleware is enabled when the [postgres feature](@/reference/01-cli.md#postgres) is enabled.
+It creates a postgres client and makes it available on the context object via an async getter. To use it:
+
+```js
+const client = await context.postgresClient
+```
+
+Configure the postgres client with these two environment variables:
+
+- `PGURL`: the URI of the database to connect to; defaults to
+  `postgres://postgres@localhost:5432/${process.env.SERVICE_NAME}`
+- `PGPOOLSIZE`: the maximum number of connections to make in the connection pool; defaults to 20
+
 ---
 
 #### `handleStatus`
+
+This middleware is attached when the [status feature](@/reference/01-cli.md#status) is enabled. It
+mounts a handler at `GET /monitor/status` that includes helpful information about the process status
+and the results of the reachability checks added by the redis and postgres features, if those are
+also enabled. The response is a single json object, like this one:
+
+```json
+{
+    "downstream": {
+        "redisReachability": {
+            "error": null,
+            "latency": 1,
+            "status": "healthy"
+        }
+    },
+    "hostname": "catnip.local",
+    "memory": {
+        "arrayBuffers": 58703,
+        "external": 1522825,
+        "heapTotal": 7008256,
+        "heapUsed": 5384288,
+        "rss": 29138944
+    },
+    "service": "hello",
+    "stats": {
+        "requestCount": 3,
+        "statuses": {
+            "200": 2,
+            "404": 1
+        }
+    },
+    "uptime": 196.845680345
+}
+```
+
+If you have enabled this endpoint, you might wish to make sure it is not externally accessible.
 
 ---
 
 #### `devMiddleware`
 
+TODO
+
+This middleware is installed when Boltzmann runs in development mode. It provides stall and hang timers
+to aid in detecting and debugging slow middleware.
+
 ---
 
 #### `honeycombMiddlewareSpans`
 
+This middleware is part of the Honeycomb tracing machinery.
+
 ---
 
 #### `enforceInvariants`
+
+This middleware is installed between middleware layers. It ensures that if middleware throws, the
+error is caught and an error response is created.
 
 ---
