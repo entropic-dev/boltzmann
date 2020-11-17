@@ -25,8 +25,6 @@ For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.de
 
 If you prefer to look at working example code, we've provided examples in the [`./examples`](https://github.com/entropic-dev/boltzmann/tree/latest/examples) directory of this repo.
 
-Boltzmann uses JavaScript language features like nullish coalescing, so you must run node 14 or newer.
-
 To scaffold a new service with Boltzmann, run the `boltzmann` command-line tool. You can get it from [the releases page](https://github.com/entropic-dev/boltzmann/releases) or run it via `npx boltzmann-cli`. (We prebuild for Mac OS, Windows, and GNU Linuxes.) The tool is responsible for initializing a new Boltzmann project as well as keeping it up to date. You enable or disable specific Boltzmann features using the tool.
 
 For example, to scaffold with the defaults:
