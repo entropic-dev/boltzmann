@@ -2,8 +2,6 @@
 title="Websites"
 weight=3
 slug="websites"
-[taxonomies]
-tags = ["concepts"]
 +++
 
 Boltzmann's defaults are good for building API servers, but it can be configured
@@ -37,19 +35,23 @@ CORS headers are more relaxed in dev mode, and Boltzmann will reveal more inform
 about errors. In particular, it'll render an informative error page when the templating
 feature is available; read on for details.
 
+In dev mode, Boltzmann provides a [static file server](#Static-asset-serving) for convenience.
+
 ## Cookies
 
-Cookie handling is always enabled in Boltzmann. The context object passed to
-each route handler has functions for getting and setting cookies. The underlying
-implementation of cookie parsing is from
+[Cookie handling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies) is always enabled in
+Boltzmann. The context object passed to each route handler has functions for getting and setting
+cookies. The underlying implementation of cookie parsing is from
 [jshttp/cookie](https://github.com/jshttp/cookie).
 
 The functions for examining cookies are:
 
 * `context.cookie.get(name)`: Get the named cookie; returns an object.
-* `context.cookie.set(name, value)`: Set the named cookie. Sends the passed
-  value to jshttp's cookie.serialize().
+* `context.cookie.set(name, value)`: Set the named cookie. Sends the passed value to jshttp's
+  `cookie.serialize()`.
 * `context.cookie.delete(name)`: Un-sets the named cookie.
+
+See the [full cookie documentation](@/reference/02-handlers.md#cookie) for more detail.
 
 ## CSRF protection
 
@@ -71,6 +73,7 @@ to `boltzmann.middleware.applyCSRF`:
 - `param`: a body param to look for the csrf token in; defaults to `_csrf`
 - `header`: a response header to look for the csrf token in; is consulted first
   if both are used; defaults to `csrf-token`
+
 
 ## Templates
 

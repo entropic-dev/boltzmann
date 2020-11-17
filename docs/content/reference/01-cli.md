@@ -161,7 +161,7 @@ $ git init
 $ touch foo.js
 $ git commit -am 'add foo.js'
 $ echo "example" > foo.js
-$ npx boltzmann-cli --force . # if run without --force, boltzmann would 
+$ npx boltzmann-cli --force . # if run without --force, boltzmann would
                               # refuse to update the directory since it
                               # contains uncommitted changes.
 ```
@@ -336,7 +336,7 @@ application-attached middleware. This flag adds an automatic reachability check
 to the endpoint added by the [`--status`] flag, and augments the [`test`]
 decorator. It also makes `context.postgresClient` available to application
 request handlers and middleware. For more on how the postgres functionality
-works, see ["persisting data"]. 
+works, see ["persisting data"].
 
 **Example use:**
 
@@ -353,7 +353,7 @@ application-attached middleware. This flag adds an automatic reachability check
 to the endpoint added by the [`--status`] flag, and augments the [`test`]
 decorator. It also makes `context.redisClient` available to application
 request handlers and middleware. For more on how the redis functionality
-works, see ["persisting data"]. 
+works, see ["persisting data"].
 
 **Example use:**
 
@@ -475,4 +475,3 @@ ARGS:
 [`import`/`export` syntax]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
 [ECMAScript Module (ESM)]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
 [`"module"` mode]: https://nodejs.org/api/esm.html#esm_package_json_type_field
-

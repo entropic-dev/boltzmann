@@ -59,7 +59,8 @@ directory if you outgrow the initial `middleware.js` file.
 
 ## Hello world
 
-Let's look at a hello-world project.
+Let's look at a hello-world project. You can create one by running the scaffolding tool
+with its default options:
 
 ```shell
 code|⇒ npx boltzmann-cli hello
@@ -69,15 +70,19 @@ Scaffolding a Boltzmann service in /Users/cj/code/hello
     updating dependencies...
         adding are-we-dev @ ^1.0.0
         adding uuid @ ^8.3.0
+        adding @hapi/iron @ ^6.0.0
         adding culture-ships @ ^1.0.0
-        adding find-my-way @ ^2.2.1
+        adding find-my-way @ ^3.0.4
         adding bole @ ^4.0.0
         adding ajv @ ^6.12.2
         adding dotenv @ ^8.2.0
         adding accepts @ ^1.3.7
         adding cookie @ ^0.4.1
         adding tap @ ^14.10.7 (dev)
-        adding @hapi/shot @ ^4.1.2 (dev)
+        adding ansi-escapes @ ^4.3.1 (dev)
+        adding supports-hyperlinks @ ^2.1.0 (dev)
+        adding get-function-location @ ^2.0.0 (dev)
+        adding @hapi/shot @ ^5.0.4 (dev)
         adding bistre @ ^1.0.1 (dev)
         adding eslint @ ^7.1.0 (dev)
         adding @typescript-eslint/parser @ ^3.1.0 (dev)
@@ -85,12 +90,17 @@ Scaffolding a Boltzmann service in /Users/cj/code/hello
         adding eslint-config-prettier @ ^6.11.0 (dev)
         adding eslint-plugin-prettier @ ^3.1.3 (dev)
         adding prettier @ ^2.0.5 (dev)
+        adding nodemon @ ^2.0.4 (dev)
     writing updated package.json...
     running package install...
-Boltzmann at 0.1.2 with githubci, ping, status
+Boltzmann at 0.1.9 with githubci, ping, status
 ```
 
-You now have a complete hello world project in the `hello` directory, with commented source files to edit in place.
+As you can see, boltzmann informs you about what top-level dependencies it is adding
+and why those dependencies are present.
+
+You now have a complete hello world project in the `hello` directory, with commented source files to
+edit in place.
 
 ```shell
 hello|⇒ ls
@@ -112,8 +122,14 @@ module.exports = {
 }
 ```
 
-To run: `./boltzmann.js`. And to view the response: `curl
+The scaffolded project includes examples for most of the features you can choose to enable.
+For instance, if you enable the `templates` feature, the scaffold gives you a hello world
+template file to start with.
+
+To run your scaffolded project, : `./boltzmann.js`. And to view the response: `curl
 http://localhost:5000/hello/world`
+
+In development, you can use `npm start` to run under nodemon.
 
 The [context object](@/concepts/01-handlers.md#context) is where Boltzmann puts all data it
 derives from the initial request. It expects you to modify the context object

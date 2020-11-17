@@ -38,7 +38,7 @@ _Added in 0.1.4_.
 **Arguments**:
 
 - `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
-  from `process.env.SESSION_SECRET`. 
+  from `process.env.SESSION_SECRET`.
 - `salt`: **Required**. A string or buffer used to salt the client session id before hashing it for lookup.
   Read from `process.env.SESSION_SALT`.
 - `load`: An async function taking `context` and an encoded `id` and returning a plain JavaScript object.
@@ -117,13 +117,62 @@ module.exports = {
 
 #### `trace`
 
+This middleware is added to your service if you have enabled the `honeycomb` feature.
+This feature sends trace data to the [Honeycomb](https://www.honeycomb.io) service for
+deep observability of performance of your handlers.
+
+To configure this middleware, set the following environment variables:
+
+- `HONEYCOMBIO_WRITE_KEY`: the honeycomb API key to use
+- `HONEYCOMBIO_DATASET`: the name of the dataset to send trace data to
+- `HONEYCOMBIO_TEAM`: optional; set this to enable links to traces from error reporting
+
 ---
 
 #### `handlePing`
 
+This middleware adds a handler at `GET /monitor/ping`. It responds with a short text string that is
+selected randomly at process start. This endpoint is intended to be called often by load balancers
+or other automated processes that check if the process is listening. No other middleware is invoked
+for this endpoint. In particular, it is *not* logged.
+
 ---
 
 #### `log`
+
+This middleware configures the [bole](https://github.com/rvagg/bole) logger and enables per-request
+logging. In development mode, the logger is configured using
+[bistre](https://github.com/hughsk/bistre) pretty-printing. In production mode, the output is
+newline-delimited json.
+
+To configure the log level, set the environment variable `LOG_LEVEL` to a level that bole supports.
+The default level is `debug`. To tag your logs with a specific name, set the environment variable
+`SERVICE_NAME`. The default name is `boltzmann`.
+
+Here is an example of the request logging:
+
+```shell
+> env SERVICE_NAME=hello NODE_ENV=production ./boltzmann.js
+{"time":"2020-11-16T23:28:58.104Z","hostname":"catnip.local","pid":19186,"level":"info","name":"server","message":"now listening on port 5000"}
+{"time":"2020-11-16T23:29:02.375Z","hostname":"catnip.local","pid":19186,"level":"info","name":"hello","message":"200 GET /hello/world","id":"GSV Total Internal Reflection","ip":"::1","host":"localhost","method":"GET","url":"/hello/world","elapsed":1,"status":200,"userAgent":"HTTPie/2.3.0"}
+```
+
+The `id` fields in logs is the value of the request-id, available on the context object as the `id`
+field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
+and `x-request-id` before falling back to generating a request id using a short randomly-selected
+string.
+
+To log from your handlers, you might write code like this:
+
+```js
+async function greeting(/** @type {Context} */ context) {
+    const logger = require('bole')('greeting')
+    logger.info(`giving a hearty welcome to ${context.params.name}`)
+    return `hello ${context.params.name}`
+}
+```
+
+
 
 ---
 

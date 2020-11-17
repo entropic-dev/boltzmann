@@ -71,12 +71,13 @@ methods.
 
 `.cookie` maps cookie names (as strings) to cookie configurations:
 
-```
-{ httpOnly: Boolean, # defaults to true
+```js
+{
+  httpOnly: Boolean, // defaults to true
   expires: Date,
   maxAge: Number,
-  secure: Boolean, # defaults to true in production, false in development mode
-  sameSite: true,  # defaults to true
+  secure: Boolean, // defaults to true in production, false in development mode
+  sameSite: true,  // defaults to true
   value: String
 }
 ```
