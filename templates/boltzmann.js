@@ -348,7 +348,11 @@ async function _findESBuildEntries (source) {
   return entries
 }
 
-{{ EXPORTS }} async function buildAssets (destination = 'build', middleware = _requireOr('./middleware')) {
+{{ EXPORTS }} async function buildAssets (
+  destination = 'build',
+  middleware = _requireOr('./middleware', []).then(_processMiddleware),
+  handlers = _requireOr('./handlers', {})
+) {
   middleware = await middleware
   let [, config = {}] = [].concat(middleware.find(xs => esbuild === (Array.isArray(xs) ? xs[0] : xs)))
 
@@ -360,6 +364,10 @@ async function _findESBuildEntries (source) {
     options: {},
     ...config,
   }
+
+  // XXX(CD): at the time of writing, router desugars handler properties into their canonical attributes.
+  // Eventually the `routes()` function should do this, and the main function should rely on routes().
+  await router(await handlers)
 
   const entries = await _findESBuildEntries(config.source)
 
@@ -2761,6 +2769,7 @@ exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
+exports.buildAssets = buildAssets
 // {% endif %}
 
 // {% if not selftest %}
