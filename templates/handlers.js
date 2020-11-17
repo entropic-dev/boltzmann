@@ -12,7 +12,7 @@ index.route = 'GET /'
   {% if oauth -%}
   const session = await context.session
   const user = session.get('user')
-  const name = user?.name ?? 'Anonymous'
+  const name = user ? user.name : 'Anonymous'
   {% else -%}
   const name = 'Friendly Boltzmann Author'
   {% endif %}

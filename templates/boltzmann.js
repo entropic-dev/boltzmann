@@ -338,7 +338,7 @@ async function _findESBuildEntries (source) {
     for (const suffix of ['.js', '.jsx', '.ts', '.tsx']) {
       const entrypoint = `${filepath}${suffix}`
       const stats = await fs.stat(entrypoint).catch(_ => null)
-      if (stats?.isFile()) {
+      if (stats && stats.isFile()) {
         entries.set(route.handler, `${basename}${suffix}`)
         break
       }
@@ -2769,7 +2769,9 @@ exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
+// {% if esbuild %}
 exports.buildAssets = buildAssets
+// {% endif %}
 // {% endif %}
 
 // {% if not selftest %}
