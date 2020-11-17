@@ -68,8 +68,8 @@ const { middleware } = require('./boltzmann')
     // tags: {}     // extend nunjucks with custom tags
   }],
   {%- endif %}
-  {%- if devstatic %}
-  [middleware.devStatic, {
+  {%- if staticfiles %}
+  [middleware.staticfiles, {
     // prefix: 'static', // the URL at which to serve files
     // dir: 'static', // the directory from which to serve static assets (relative to boltzmann.js)
     // addToContext: true, // controls whether STATIC_URL will be set in template context

@@ -24,7 +24,7 @@ pub struct Settings {
     pub(crate) csrf: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) devstatic: Option<bool>,
+    pub(crate) staticfiles: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) esbuild: Option<bool>,
@@ -95,7 +95,7 @@ impl Settings {
         Settings {
             // website features, grouped
             csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
-            devstatic: cast(&flags.devstatic, &self.devstatic, flags.all || flags.website),
+            staticfiles: cast(&flags.staticfiles, &self.staticfiles, flags.all || flags.website),
             esbuild: cast(&flags.esbuild, &self.esbuild, flags.all || flags.website),
             jwt: cast(&flags.jwt, &self.jwt, flags.all || flags.website),
             livereload: cast(&flags.livereload, &self.livereload, flags.all || flags.website),
@@ -131,8 +131,8 @@ impl fmt::Display for Settings {
         if self.csrf.unwrap_or(false) {
             features.push("csrf");
         }
-        if self.devstatic.unwrap_or(false) {
-            features.push("devstatic");
+        if self.staticfiles.unwrap_or(false) {
+            features.push("staticfiles");
         }
         if self.esbuild.unwrap_or(false) {
             features.push("esbuild");
@@ -186,7 +186,7 @@ impl Into<Context> for Settings {
     fn into(self) -> Context {
         let mut ctxt = Context::new();
 
-        ctxt.insert("devstatic", &self.devstatic.unwrap_or(false));
+        ctxt.insert("staticfiles", &self.staticfiles.unwrap_or(false));
         ctxt.insert("csrf", &self.csrf.unwrap_or(false));
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
         ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));

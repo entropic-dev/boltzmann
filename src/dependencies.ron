@@ -58,7 +58,7 @@
     version: "^2.4.6",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("devstatic"),
+      feature: Some("staticfiles"),
       if_not_present: []
     ))
   ),

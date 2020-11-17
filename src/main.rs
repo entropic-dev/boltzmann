@@ -72,13 +72,13 @@ pub struct Flags {
     oauth: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable static file serving in development")]
-    devstatic: Option<Option<Flipper>>,
+    staticfiles: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable asset bundling via ESBuild")]
     esbuild: Option<Option<Flipper>>,
 
     // Convenient option groups next. These aren't saved individually.
-    #[structopt(long, help = "Enable website feature set (templates, csrf, devstatic, jwt, livereload, ping, status)")]
+    #[structopt(long, help = "Enable website feature set (templates, csrf, staticfiles, jwt, livereload, ping, status)")]
     website: bool,
 
     #[structopt(long, help = "Enable everything!")]
@@ -118,6 +118,9 @@ struct RunScripts {
 
     #[serde(rename = "boltzmann:routes")]
     routes: Option<String>,
+
+    #[serde(rename = "boltzmann:esbuild")]
+    esbuild: Option<String>,
 }
 
 impl RunScripts {
@@ -127,6 +130,18 @@ impl RunScripts {
 
     fn routes_string() -> String {
         "node -e 'require(\"./boltzmann\").printRoutes()'".to_string()
+    }
+
+    fn routes_string_esm() -> String {
+        "node -e 'import(\"./boltzmann.js\").then(xs => xs.printRoutes())'".to_string()
+    }
+
+    fn esbuild_string() -> String {
+        "node -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'".to_string()
+    }
+
+    fn esbuild_string_esm() -> String {
+        "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'".to_string()
     }
 }
 
@@ -139,6 +154,7 @@ impl Default for RunScripts {
             test: Some("tap test".to_string()),
             upgrade: Some(RunScripts::upgrade_string()),
             routes: Some(RunScripts::routes_string()),
+            esbuild: None,
             rest: BTreeMap::new()
         }
     }
@@ -399,10 +415,23 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         }
     }
 
-    if let Some(esm) = updated_settings.esm {
+    let has_esm = if let Some(esm) = updated_settings.esm {
         if esm {
             package_json.module_type = Some("module".to_string());
         }
+        esm
+    } else {
+        false
+    };
+
+    if let Some(mut scripts) = package_json.scripts.as_mut() {
+        if let Some(esbuild) = updated_settings.esbuild {
+            if esbuild {
+                scripts.esbuild = Some(if has_esm { RunScripts::esbuild_string_esm() } else { RunScripts::esbuild_string() });
+            }
+        }
+
+        scripts.routes = Some(if has_esm { RunScripts::routes_string_esm() } else { RunScripts::routes_string() });
     }
 
     package_json.boltzmann.replace(updated_settings.clone());

@@ -324,8 +324,63 @@ class NoMatchError extends Error {
 }
 
 // {% if esbuild %}
-{{ EXPORTS }} async function buildAssets (middleware = _requireOr('./middleware')) {
+async function _findESBuildEntries (source) {
+  const routeMetadata = await routes()
 
+  const entries = new Map()
+  for (const route of routeMetadata) {
+    if (![].concat(route.props.method).some(xs => xs === 'GET' || xs === 'POST')) {
+      continue
+    }
+
+    const basename = route.props.entry || route.handler.name || route.key
+    const filepath = path.join(source, basename)
+    for (const suffix of ['.js', '.jsx', '.ts', '.tsx']) {
+      const entrypoint = `${filepath}${suffix}`
+      const stats = await fs.stat(entrypoint).catch(_ => null)
+      if (stats?.isFile()) {
+        entries.set(route.handler, `${basename}${suffix}`)
+        break
+      }
+    }
+  }
+
+  return entries
+}
+
+{{ EXPORTS }} async function buildAssets (destination = 'build', middleware = _requireOr('./middleware')) {
+  middleware = await middleware
+  let [, config = {}] = [].concat(middleware.find(xs => esbuild === (Array.isArray(xs) ? xs[0] : xs)))
+
+  config = {
+    source: 'client',
+    prefix: '_assets',
+    staticUrl: process.env.STATIC_URL,
+    destination,
+    options: {},
+    ...config,
+  }
+
+  const entries = await _findESBuildEntries(config.source)
+
+  const esbuildConfig = {
+    sourcemap: 'external',
+    define: {
+      'process.env': 'false',
+    },
+    minify: true,
+    format: 'esm',
+    splitting: true,
+    bundle: true,
+    ...config.options,
+    entryPoints: [...new Set(entries.values())].map((value) => path.join(config.source, value)),
+    outdir: destination,
+  }
+
+  if (entries.size > 0) {
+    _build = _build || require('esbuild').build
+    await _build(esbuildConfig)
+  }
 }
 // {% endif %}
 
@@ -1199,11 +1254,11 @@ function templateContext(extraContext = {}) {
   }
 }
 
-// {% if devstatic or esbuild %}
+// {% if staticfiles or esbuild %}
 let mime = null
 
-function devStatic({ prefix = 'static', dir = 'static', addToContext = true, fs = require('fs'), quiet = false} = {}) {
-  const logger = bole('boltzmann:devStatic')
+function staticfiles({ prefix = 'static', dir = 'static', addToContext = true, fs = require('fs'), quiet = false} = {}) {
+  const logger = bole('boltzmann:staticfiles')
   if (!isDev()) {
     return (
       addToContext
@@ -1282,7 +1337,7 @@ function esbuild({
     })
   }
 
-  const staticAssets = devStatic({
+  const staticAssets = staticfiles({
     prefix,
     dir: destination,
     addToContext: false,
@@ -1294,23 +1349,7 @@ function esbuild({
 
     const routeMetadata = await routes()
 
-    const entries = new Map()
-    for (const route of routeMetadata) {
-      if (![].concat(route.props.method).some(xs => xs === 'GET' || xs === 'POST')) {
-        continue
-      }
-
-      const basename = route.props.entry || route.handler.name || route.key
-      const filepath = path.join(source, basename)
-      for (const suffix of ['.js', '.jsx', '.ts', '.tsx']) {
-        const entrypoint = `${filepath}${suffix}`
-        const stats = await fs.stat(entrypoint).catch(_ => null)
-        if (stats?.isFile()) {
-          entries.set(route.handler, `${basename}${suffix}`)
-          break
-        }
-      }
-    }
+    const entries = await _findESBuildEntries(source)
 
     const start = Date.now()
     if (entries.size > 0) {
@@ -2694,8 +2733,8 @@ class Session extends Map {
   handleOAuthLogout,
   handleOAuthCallback,
 // {% endif %}
-// {% if devstatic %}
-  devStatic,
+// {% if staticfiles %}
+  staticfiles,
 // {% endif %}
 // {% if esbuild %}
   esbuild,
@@ -2725,7 +2764,10 @@ exports.printRoutes = printRoutes
 // {% endif %}
 
 // {% if not selftest %}
-if ({% if esm %}esMain(import.meta){% else %}require.main === module{% endif %}) {
+// {% if esm %}
+const isEval = ['-e', '--eval', '-p', '--print'].some(xs => process.execArgv.includes(xs))
+// {% endif %}
+if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{% endif %}) {
   main({
     middleware: _requireOr('./middleware', []).then(_processMiddleware).then(mw => [
       // {% if honeycomb %}

@@ -28,7 +28,7 @@ Dir(DirSpec(
             )), None)
       ],
     )), Some(When(
-      feature: Some("devstatic"),
+      feature: Some("staticfiles"),
       if_not_present: [ "client/greeting.js"]
     ))),
 
