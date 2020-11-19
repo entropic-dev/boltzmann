@@ -14,7 +14,7 @@ module.exports = {
     [
       boltzmann.middleware.session,
       {
-        secret: 'wow a great secret, just amazing'.repeat(2),
+        secret: 'wow a great secret, just amazing wootles'.repeat(2),
         salt: 'potassium',
       },
     ],
