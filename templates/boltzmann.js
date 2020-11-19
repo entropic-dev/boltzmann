@@ -2218,9 +2218,8 @@ function session ({
         }
 
         if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
-          logger.warn(`removing malformed session; clientID="${clientId}"; request_id="${context.id}"`)
-          _session = new Session(null, [['created', Date.now()]])
-          return _session
+          logger.warn(`caught malformed session; clientID="${clientId}"; request_id="${context.id}"`)
+          throw new BadSessionError()
         }
 
         const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
@@ -2695,7 +2694,7 @@ class Cookie extends Map {
   }
 }
 
-class BadSessionErrror extends Error {
+class BadSessionError extends Error {
   [STATUS] = 400
 }
 
@@ -4056,6 +4055,35 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     assert.equal(response.statusCode, 403)
     assert.ok(/Invalid CSRF token/.test(response.payload))
     assert.equal(called, 0)
+  })
+
+  test('session middleware throws on malformed session data', async assert => {
+    const _c = require('cookie')
+    const _iron = require('@hapi/iron')
+
+    const config = {
+      secret: 'wow a great secret, just amazing wootles'.repeat(2),
+      salt: 'potassium',
+  }
+    const handler = async context => {
+      const s = await context.session
+      return 'OK'
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [ [ session, config ] ],
+      handlers: { handler }
+    })
+
+    const baddata = await _iron.seal("I-am-malformed", config.secret, { ..._iron.defaults })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: { cookie: _c.serialize('sid', baddata) }
+    })
+    assert.equal(response.statusCode, 400)
   })
 
   test('applyXFO() ensures its option is DENY or SAMEORIGIN', async assert => {

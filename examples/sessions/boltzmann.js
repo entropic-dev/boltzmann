@@ -1602,9 +1602,8 @@ function session ({
         }
 
         if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
-          logger.warn(`removing malformed session; clientID="${clientId}"; request_id="${context.id}"`)
-          _session = new Session(null, [['created', Date.now()]])
-          return _session
+          logger.warn(`caught malformed session; clientID="${clientId}"; request_id="${context.id}"`)
+          throw new BadSessionError()
         }
 
         const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
@@ -1981,7 +1980,7 @@ class Cookie extends Map {
   }
 }
 
-class BadSessionErrror extends Error {
+class BadSessionError extends Error {
   [STATUS] = 400
 }
 
