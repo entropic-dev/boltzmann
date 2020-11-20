@@ -133,7 +133,9 @@ To configure this middleware, set the following environment variables:
 - `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
 - `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
 
-The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is disabled if a write key and dataset are not provided; the middleware is still mounted but does nothing in this case.
+The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is 
+disabled if a write key and dataset are not provided; the middleware is still 
+attached but does nothing in this case.
 
 ---
 
