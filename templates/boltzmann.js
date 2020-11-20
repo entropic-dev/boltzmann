@@ -1319,7 +1319,7 @@ function staticfiles({ prefix = 'static', dir = 'static', addToContext = true, f
 // {% endif %}
 
 // {% if esbuild %}
-let _build = null 
+let _build = null
 function esbuild({
   source = 'client',
   prefix = '_assets',
@@ -1675,7 +1675,7 @@ function handleOAuthLogin ({
 
     const nextUrl =  (
       context.query.next && /^\/(?!\/+)/.test(context.query.next) // must start with "/" and NOT contain "//"
-      ? context.query.next 
+      ? context.query.next
       : defaultNextPath
     )
 
@@ -2150,6 +2150,7 @@ function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
+  logger = bole('BOLTZMANN:session'),
   load =
 // {% if redis %}
   async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
@@ -2207,9 +2208,17 @@ function session ({
         _iron = _iron || require('@hapi/iron')
         _uuid = _uuid || require('uuid')
 
-        const clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+        let clientId
+        try {
+          clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+        } catch (err) {
+          logger.warn(`removing session that failed to decrypt; request_id="${context.id}"`)
+          _session = new Session(null, [['created', Date.now()]])
+          return _session
+        }
 
         if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
+          logger.warn(`caught malformed session; clientID="${clientId}"; request_id="${context.id}"`)
           throw new BadSessionError()
         }
 
@@ -2685,7 +2694,7 @@ class Cookie extends Map {
   }
 }
 
-class BadSessionErrror extends Error {
+class BadSessionError extends Error {
   [STATUS] = 400
 }
 
@@ -4046,6 +4055,35 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     assert.equal(response.statusCode, 403)
     assert.ok(/Invalid CSRF token/.test(response.payload))
     assert.equal(called, 0)
+  })
+
+  test('session middleware throws on malformed session data', async assert => {
+    const _c = require('cookie')
+    const _iron = require('@hapi/iron')
+
+    const config = {
+      secret: 'wow a great secret, just amazing wootles'.repeat(2),
+      salt: 'potassium',
+  }
+    const handler = async context => {
+      const s = await context.session
+      return 'OK'
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [ [ session, config ] ],
+      handlers: { handler }
+    })
+
+    const baddata = await _iron.seal("I-am-malformed", config.secret, { ..._iron.defaults })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: { cookie: _c.serialize('sid', baddata) }
+    })
+    assert.equal(response.statusCode, 400)
   })
 
   test('applyXFO() ensures its option is DENY or SAMEORIGIN', async assert => {
