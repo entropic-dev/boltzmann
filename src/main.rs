@@ -110,9 +110,6 @@ struct RunScripts {
     start: Option<String>,
     test: Option<String>,
 
-    #[serde(flatten)]
-    pub(crate) rest: BTreeMap<String, Value>,
-
     #[serde(rename = "boltzmann:upgrade")]
     upgrade: Option<String>,
 
@@ -121,6 +118,12 @@ struct RunScripts {
 
     #[serde(rename = "boltzmann:esbuild")]
     esbuild: Option<String>,
+
+    #[serde(rename = "boltzmann:docs")]
+    docs: Option<String>,
+
+    #[serde(flatten)]
+    pub(crate) rest: BTreeMap<String, Value>,
 }
 
 impl RunScripts {
@@ -143,6 +146,10 @@ impl RunScripts {
     fn esbuild_string_esm() -> String {
         "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'".to_string()
     }
+
+    fn docs_string() -> String {
+        "npx boltzmann-cli docs".to_string()
+    }
 }
 
 impl Default for RunScripts {
@@ -155,6 +162,7 @@ impl Default for RunScripts {
             upgrade: Some(RunScripts::upgrade_string()),
             routes: Some(RunScripts::routes_string()),
             esbuild: None,
+            docs: Some(RunScripts::docs_string()),
             rest: BTreeMap::new()
         }
     }
@@ -344,6 +352,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         package_json.scripts = package_json.scripts.map(|mut scripts| {
             scripts.upgrade.replace(RunScripts::upgrade_string());
             scripts.routes.replace(RunScripts::routes_string());
+            scripts.docs.replace(RunScripts::docs_string());
             scripts
         }).or_else(Default::default);
 

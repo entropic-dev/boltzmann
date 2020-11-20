@@ -139,6 +139,8 @@ let ajvStrict = null
       }
     }
 
+    headers['x-clacks-overhead'] = 'GNU/Terry Pratchett'
+
     res.writeHead(status, headers || {})
     if (isPipe) {
       body.pipe(res)
