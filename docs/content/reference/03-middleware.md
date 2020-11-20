@@ -187,9 +187,8 @@ async function greeting(/** @type {Context} */ context) {
 
 #### `attachRedis`
 
-This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled.
-
-This middleware adds a configured, promisified Redis client to the context object accessible via the
+This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled. 
+It adds a configured, promisified Redis client to the context object accessible via the
 getter `context.redisClient`. This object is a [handy-redis](https://github.com/mmkal/handy-redis)
 client with a promisified API. The environment variable `REDIS_URL` is passed to the handy-redis
 constructor.
@@ -257,7 +256,7 @@ If you have enabled this endpoint, you might wish to make sure it is not externa
 
 #### `devMiddleware`
 
-This middleware is installed when Boltzmann runs in development mode. It provides stall and hang timers
+This middleware is attached when Boltzmann runs in development mode. It provides stall and hang timers
 to aid in detecting and debugging slow middleware.
 
 You can configure what slow means in your use case by setting these two environment variables

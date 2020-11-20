@@ -63,7 +63,7 @@ Let's look at a hello-world project. You can create one by running the scaffoldi
 with its default options:
 
 ```shell
-code|⇒ npx boltzmann-cli hello
+code|⇒ npx boltzmann-cli hello --redis
 Scaffolding a Boltzmann service in /Users/cj/code/hello
     initializing a new NPM package...
     writing boltzmann files...
@@ -77,6 +77,8 @@ Scaffolding a Boltzmann service in /Users/cj/code/hello
         adding ajv @ ^6.12.2
         adding dotenv @ ^8.2.0
         adding accepts @ ^1.3.7
+        adding handy-redis @ ^1.8.1 (redis activated)
+        adding redis @ ^3.0.2 (redis activated)
         adding cookie @ ^0.4.1
         adding tap @ ^14.10.7 (dev)
         adding ansi-escapes @ ^4.3.1 (dev)
@@ -93,7 +95,7 @@ Scaffolding a Boltzmann service in /Users/cj/code/hello
         adding nodemon @ ^2.0.4 (dev)
     writing updated package.json...
     running package install...
-Boltzmann at 0.1.9 with githubci, ping, status
+Boltzmann at 0.2.0-alpha1 with githubci, ping, redis, status
 ```
 
 As you can see, boltzmann informs you about what top-level dependencies it is adding
