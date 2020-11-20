@@ -113,23 +113,27 @@ module.exports = {
 
 ---
 
-### Automatically installed middleware
+### Automatically attached middleware
 
-Automatically-installed middleware is middleware you can configure but do *not* need to attach to
+Automatically-attached middleware is middleware you can configure but do *not* need to attach to
 the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
-them are enabled.
+them are enabled. You can often configure this middleware, however, using environment variables. 
 
 #### `trace`
 
 This middleware is added to your service if you have enabled the `honeycomb` feature.
 This feature sends trace data to the [Honeycomb](https://www.honeycomb.io) service for
-deep observability of performance of your handlers.
+deep observability of theperformance of your handlers.
 
 To configure this middleware, set the following environment variables:
 
-- `HONEYCOMBIO_WRITE_KEY`: the honeycomb API key to use
-- `HONEYCOMBIO_DATASET`: the name of the dataset to send trace data to
+- `HONEYCOMBIO_WRITE_KEY`: the honeycomb API key to use; required to enable tracing
+- `HONEYCOMBIO_DATASET`: the name of the dataset to send trace data to; required to enable tracing
 - `HONEYCOMBIO_TEAM`: optional; set this to enable links to traces from error reporting
+- `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
+- `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
+
+The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is disabled if a write key and dataset are not provided; the middleware is still mounted but does nothing in this case.
 
 ---
 
@@ -171,9 +175,10 @@ string.
 To log from your handlers, you might write code like this:
 
 ```js
+const logger = require('bole')('handlers')
+
 async function greeting(/** @type {Context} */ context) {
-    const logger = require('bole')('greeting')
-    logger.info(`giving a hearty welcome to ${context.params.name}`)
+    logger.info(`extending a hearty welcome to ${context.params.name}`)
     return `hello ${context.params.name}`
 }
 ```
@@ -182,7 +187,7 @@ async function greeting(/** @type {Context} */ context) {
 
 #### `attachRedis`
 
-This middleware is enabled when the [redis feature](@/reference/01-cli.md#redis) is enabled.
+This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled.
 
 This middleware adds a configured, promisified Redis client to the context object accessible via the
 getter `context.redisClient`. This object is a [handy-redis](https://github.com/mmkal/handy-redis)
@@ -244,28 +249,22 @@ also enabled. The response is a single json object, like this one:
 }
 ```
 
-If you have enabled this endpoint, you might wish to make sure it is not externally accessible.
+This endpoint uses the value of the environment variable `GIT_COMMIT`, if set, to populate the `git` field of this response structure. Set this if you find it useful to identify which commit identifies the build a specific process is running.
+
+If you have enabled this endpoint, you might wish to make sure it is not externally accessible. A common way of doing this is to block routes that match `/monitor/` in external-facing proxies or load balancers.
 
 ---
 
 #### `devMiddleware`
 
-TODO
-
 This middleware is installed when Boltzmann runs in development mode. It provides stall and hang timers
 to aid in detecting and debugging slow middleware.
 
----
+You can configure what slow means in your use case by setting these two environment variables
 
-#### `honeycombMiddlewareSpans`
+- `DEV_LATENCY_ERROR_MS`: the length of time a middleware is allowed to run before it's treated as hung, in milliseconds
+- `DEV_LATENCY_WARNING_MS`: the length of time a middleware can run before you get a warning that it's slow, in milliseconds
 
-This middleware is part of the Honeycomb tracing machinery.
-
----
-
-#### `enforceInvariants`
-
-This middleware is installed between middleware layers. It ensures that if middleware throws, the
-error is caught and an error response is created.
+This middleware does nothing if your app is not in development mode.
 
 ---
