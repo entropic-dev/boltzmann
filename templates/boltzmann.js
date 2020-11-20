@@ -1554,13 +1554,26 @@ function livereload({ reloadPath = '/__livereload' } = {}) {
   return next => async context => {
     if (context.url.pathname === reloadPath) {
       const { Readable } = require('stream')
-      return Object.assign(new Readable({
+
+      let active = false
+      const stream = new Readable({
         read (_) {
-          setInterval(() => {
-            this.push(`event: message\ndata: ${number}\n\n`)
-          }, 5000)
+          active = true
         }
-      }), {
+      })
+
+      const interval = setInterval(() => {
+        if (active) {
+          active = stream.push(`event: message\ndata: ${number}\n\n`)
+        }
+      }, 5000)
+
+      stream
+        .on('pause', () => active = false)
+        .once('error', () => clearInterval(interval))
+        .once('end', () => clearInterval(interval))
+
+      return Object.assign(stream, {
         [Symbol.for('headers')]: {
           'content-type': 'text/event-stream',
           'cache-control': 'no-cache',
