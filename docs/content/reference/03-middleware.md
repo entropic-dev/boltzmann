@@ -35,6 +35,10 @@ feature flags.
 
 _Added in 0.1.4_.
 
+You can import session middleware with `require('./boltzmann').middleware.session`. The session middleware
+provides [HTTP session support] using sealed http-only [cookies]. You can read more about Boltzmann's session
+support in the ["storage" chapter].
+
 **Arguments**:
 
 - `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
@@ -50,10 +54,6 @@ _Added in 0.1.4_.
   a cookie.
 - `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
 - `cookieOptions`: An object containing options passed to the [`cookie`] package when serializing a session id.
-
-You can import session middleware with `require('./boltzmann').middleware.session`. The session middleware
-provides [HTTP session support] using sealed http-only [cookies]. You can read more about Boltzmann's session
-support in the ["storage" chapter].
 
 **Example Configurations:**
 
@@ -111,13 +111,76 @@ module.exports = {
 ["storage" chapter]: #TKTKTK
 [`cookie`]: https://www.npmjs.com/package/cookie#options-1
 
+#### `oauth`
+
+_Added in 0.2.0_.
+
+This middleware implements support for using [OAuth 2.0](https://oauth.net/2/) to authenticate a
+user with an external service provider, such as Google or Auth0.
+
+**Arguments**:
+
+- `domain`: **Required**. Falls back to the env var `OAUTH_DOMAIN`.
+- `secret`: **Required**. Falls back to the env var `OAUTH_CLIENT_SECRET`.
+- `clientId`: **Required**. Falls back to the env var `OAUTH_CLIENT_ID`.
+- `userKey`: The key to delete from session storage on logout. A session key is *not set* by
+  middleware; you responsible for setting any session storage yourself. Defaults to `user`.
+- `callbackUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_CALLBACK_URL`;
+  defaults to the uri `/callback` on your app.
+- `tokenUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_TOKEN_URL`;
+  defaults to `https://${OAUTH_DOMAIN}/oauth/token`
+- `userinfoUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_USERINFO_URL`;
+  defaults to `https://${OAUTH_DOMAIN}/userinfo`
+- `authorizationUrl`: A full URI, with protocol and domain. Read from the env var
+  `OAUTH_AUTHORIZATION_URL`; defaults to `https://${OAUTH_DOMAIN}/authorize`
+- `expiryLeewaySeconds`: Read from the env var `OAUTH_EXPIRY_LEEWAY`. Defaults to 60 seconds.
+- `defaultNextPath`: defaults to `/`
+- `logoutRoute`: defaults to `/logout`,
+- `returnTo`: A full URI, with protocol and domain. Read from the env var `OAUTH_LOGOUT_CALLBACK`;
+  defaults to the uri `/` on your app.
+- `logoutUrl`: Read from the env var `AUTH_LOGOUT_URL`. Defaults to
+  `https://${OAUTH_DOMAIN}/v2/logout`
+
+The OAuth middleware has many configuration knobs and dials to turn, but the middleware is usable in
+development if you set three environment variables: `OAUTH_DOMAIN`, `OAUTH_CLIENT_SECRET`, and
+`OAUTH_CLIENT_ID`. If you set those variables, the code required to attach oauth middleware
+looks like this:
+
+```javascript
+const { middleware } = require('./boltzmann')
+
+module.exports = {
+  APP_MIDDLEWARE: [
+    middleware.oauth
+  ]
+};
+```
+
+To run in production, you will want to set the
+
+```js
+const { middleware } = require('./boltzmann');
+
+module.exports = {
+  APP_MIDDLEWARE: [
+    [ middleware.oauth, {
+      domain: ,
+      secret: ,
+      clientId: ,
+      callbackUrl: ,
+      returnTo: ,
+    }
+  ]
+};
+```
+
 ---
 
 ### Automatically attached middleware
 
 Automatically-attached middleware is middleware you can configure but do *not* need to attach to
 the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
-them are enabled. You can often configure this middleware, however, using environment variables. 
+them are enabled. You can often configure this middleware, however, using environment variables.
 
 #### `trace`
 
@@ -133,8 +196,8 @@ To configure this middleware, set the following environment variables:
 - `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
 - `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
 
-The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is 
-disabled if a write key and dataset are not provided; the middleware is still 
+The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is
+disabled if a write key and dataset are not provided; the middleware is still
 attached but does nothing in this case.
 
 ---
@@ -189,7 +252,7 @@ async function greeting(/** @type {Context} */ context) {
 
 #### `attachRedis`
 
-This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled. 
+This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled.
 It adds a configured, promisified Redis client to the context object accessible via the
 getter `context.redisClient`. This object is a [handy-redis](https://github.com/mmkal/handy-redis)
 client with a promisified API. The environment variable `REDIS_URL` is passed to the handy-redis
