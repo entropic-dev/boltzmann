@@ -1641,13 +1641,63 @@ function livereload({ reloadPath = '/__livereload' } = {}) {
 let OAuth2 = null
 
 function handleOAuthLogin ({
-  loginRoute,
-  clientId ,
-  authorizationUrl,
-  callbackUrl,
-  defaultNextPath,
-  extraOpts
+  prompt,
+  max_age,
+  audience,
+  connection,
+  login_hint,
+  connection_scope,
+  loginRoute = '/login',
+  domain = process.env.OAUTH_DOMAIN,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  defaultNextPath = '/'
 } = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain field to the handleOAuthLogin() middleware config
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID field to the handleOAuthLogin() middleware config
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+
+  const extraOpts = {}
+
+  if (connection) {
+    extraOpts.connection = connection
+  }
+
+  if (connection_scope) {
+    extraOpts.connection_scope = connection_scope
+  }
+
+  if (audience) {
+    extraOpts.audience = audience
+  }
+
+  if (prompt) {
+    extraOpts.prompt = prompt
+  }
+
+  if (login_hint) {
+    extraOpts.login_hint = login_hint
+  }
+
+  if (max_age) {
+    extraOpts.max_age = max_age
+  }
+
   return next => async context => {
     callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
 
@@ -1691,17 +1741,44 @@ function handleOAuthLogin ({
 }
 
 function handleOAuthCallback ({
-  userKey,
-  domain,
-  secret,
-  clientId,
-  callbackUrl,
-  tokenUrl,
-  userinfoUrl,
-  authorizationUrl,
-  expiryLeewaySeconds,
-  defaultNextPath
+  userKey = 'user',
+  domain = process.env.OAUTH_DOMAIN,
+  secret = process.env.OAUTH_CLIENT_SECRET,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  tokenUrl = process.env.OAUTH_TOKEN_URL,
+  userinfoUrl = process.env.OAUTH_USERINFO_URL,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  expiryLeewaySeconds = process.env.OAUTH_EXPIRY_LEEWAY,
+  defaultNextPath = '/'
 } = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain field to the handleOAuthCallback() config
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID field to the handleOAuthCallback() config
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!secret) {
+    throw new Error(
+      `You must provide a secret field to the handleOAuthCallback() config
+or set the env var OAUTH_CLIENT_SECRET to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+  userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
+  tokenUrl = tokenUrl || `https://${domain}/oauth/token`
   OAuth2 = OAuth2 || require('oauth').OAuth2
   const oauth = new OAuth2(
     clientId,
@@ -1807,12 +1884,30 @@ function handleOAuthCallback ({
 }
 
 function handleOAuthLogout ({
-  logoutRoute,
-  clientId,
-  returnTo,
-  logoutUrl,
-  userKey,
+  logoutRoute = '/logout',
+  clientId = process.env.OAUTH_CLIENT_ID,
+  domain = process.env.OAUTH_DOMAIN,
+  returnTo = process.env.OAUTH_LOGOUT_CALLBACK,
+  logoutUrl = process.env.OAUTH_LOGOUT_URL,
+  userKey = 'user',
 } = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain to the handleOAuthLogout() middleware
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID to the handleOAuthLogout() middleware
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  logoutUrl = logoutUrl || `https://${domain}/v2/logout`
   return next => async context => {
     if (context.url.pathname !== logoutRoute || context.method !== 'POST') {
       return next(context)
@@ -1840,103 +1935,7 @@ function handleOAuthLogout ({
   }
 }
 
-function oauth ({
-  audience,
-  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
-  callbackUrl = process.env.OAUTH_CALLBACK_URL,
-  clientId = process.env.OAUTH_CLIENT_ID,
-  connection_scope,
-  connection,
-  defaultNextPath = '/',
-  domain = process.env.OAUTH_DOMAIN,
-  expiryLeewaySeconds = process.env.OAUTH_EXPIRY_LEEWAY,
-  login_hint,
-  loginRoute = '/login',
-  logoutRoute = '/logout',
-  logoutUrl = process.env.OAUTH_LOGOUT_URL,
-  max_age,
-  prompt,
-  returnTo = process.env.OAUTH_LOGOUT_CALLBACK,
-  secret = process.env.OAUTH_CLIENT_SECRET,
-  tokenUrl = process.env.OAUTH_TOKEN_URL,
-  userinfoUrl = process.env.OAUTH_USERINFO_URL,
-  userKey = 'user',
-} = {}) {
-  // This function processes config & then sets up the three middlewares that
-  // do all the work.
-  if (!domain) {
-    throw new Error(
-      `You must provide a domain field to the OAuth middleware config
-or set the env var OAUTH_DOMAIN to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
-`.trim().split('\n').join(' '))
-  }
-
-  if (!clientId) {
-    throw new Error(
-      `You must provide a clientID field to the OAuth middleware config
-or set the env var OAUTH_CLIENT_ID to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
-`.trim().split('\n').join(' '))
-  }
-
-  if (!secret) {
-    throw new Error(
-      `You must provide a secret field to the OAuth middleware config
-or set the env var OAUTH_CLIENT_SECRET to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
-`.trim().split('\n').join(' '))
-  }
-
-  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
-  logoutUrl = logoutUrl || `https://${domain}/v2/logout`
-  tokenUrl = tokenUrl || `https://${domain}/oauth/token`
-  userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
-
-  const extraOpts = {}
-
-  if (connection) {
-    extraOpts.connection = connection
-  }
-
-  if (connection_scope) {
-    extraOpts.connection_scope = connection_scope
-  }
-
-  if (audience) {
-    extraOpts.audience = audience
-  }
-
-  if (prompt) {
-    extraOpts.prompt = prompt
-  }
-
-  if (login_hint) {
-    extraOpts.login_hint = login_hint
-  }
-
-  if (max_age) {
-    extraOpts.max_age = max_age
-  }
-
-  const options = {
-    authorizationUrl,
-    callbackUrl,
-    clientId,
-    defaultNextPath,
-    domain,
-    expiryLeewaySeconds,
-    loginRoute,
-    logoutRoute,
-    logoutUrl,
-    returnTo,
-    secret,
-    tokenUrl,
-    userinfoUrl,
-    userKey,
-    extraOpts
-  }
-
+function oauth (options = {}) {
   const callback = handleOAuthCallback(options)
   const logout = handleOAuthLogout(options)
   const login = handleOAuthLogin(options)

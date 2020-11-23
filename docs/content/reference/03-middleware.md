@@ -35,9 +35,9 @@ feature flags.
 
 _Added in 0.1.4_.
 
-You can import session middleware with `require('./boltzmann').middleware.session`. The session middleware
-provides [HTTP session support] using sealed http-only [cookies]. You can read more about Boltzmann's session
-support in the ["storage" chapter].
+You can import session middleware with `require('./boltzmann').middleware.session`. The session
+middleware provides [HTTP session support] using sealed http-only [cookies]. You can read more about
+Boltzmann's session support in the ["storage" chapter].
 
 **Arguments**:
 
@@ -115,10 +115,16 @@ module.exports = {
 
 _Added in 0.2.0_.
 
-This middleware implements support for using [OAuth 2.0](https://oauth.net/2/) to authenticate a
-user with an external service provider, such as Google or Auth0.
+This feature implements support for using [OAuth 2.0](https://oauth.net/2/) to authenticate a
+user with an external service provider, such as Google or Auth0. Enabling the feature provides
+four middlewares:
 
-**Arguments**:
+- `handleOAuthLogin()`: Sets up a middleware to handle oauth login.
+- `handleOAuthCallback()`: Sets up a middleware that provides the callback url triggered by your OAuth provider after a successful login.
+- `handleOAuthLogout()`: Handles logging out an oauth-authenticated user. Unsets the key `userKey` in the user's session.
+- `oauth()`: This automatically attaches the above three middleware with identical config.
+
+**Configuration**:
 
 - `domain`: **Required**. Falls back to the env var `OAUTH_DOMAIN`.
 - `secret`: **Required**. Falls back to the env var `OAUTH_CLIENT_SECRET`.
@@ -149,6 +155,7 @@ looks like this:
 ```javascript
 const { middleware } = require('./boltzmann')
 
+// with process.env.{OAUTH_DOMAIN, OAUTH_CLIENT_SECRET, OAUTH_CLIENT_ID} all set
 module.exports = {
   APP_MIDDLEWARE: [
     middleware.oauth
@@ -156,23 +163,52 @@ module.exports = {
 };
 ```
 
-To run in production, you will want to set the
+**Advanced configuration**:
 
-```js
-const { middleware } = require('./boltzmann');
+If you have a more complex setup, the individual middlewares can be configured differently.
+In each case, if you do not provide an optional configuration field, the default is determined
+as documented above.
 
-module.exports = {
-  APP_MIDDLEWARE: [
-    [ middleware.oauth, {
-      domain: ,
-      secret: ,
-      clientId: ,
-      callbackUrl: ,
-      returnTo: ,
-    }
-  ]
-};
-```
+`handleOauthCallback()` respects the following configuration fields:
+
+- `authorizationUrl`
+- `callbackUrl`
+- `clientId`
+- `defaultNextPath`
+- `domain`
+- `expiryLeewaySeconds`
+- `secret`
+- `tokenUrl`
+- `userinfoUrl`
+- `userKey`
+
+`handleOauthLogin()` respects the following configuration fields:
+
+- `audience`
+- `authorizationUrl`
+- `callbackUrl`
+- `clientId`
+- `connection_scope`
+- `connection`
+- `defaultNextPath`
+- `domain`
+- `login_hint`
+- `loginRoute`
+- `max_age`
+- `prompt`
+
+`handleOauthLogin()` respects the following configuration fields:
+
+- `authorizationUrl`
+- `callbackUrl`
+- `clientId`
+- `defaultNextPath`
+- `domain`
+- `expiryLeewaySeconds`
+- `secret`
+- `tokenUrl`
+- `userinfoUrl`
+- `userKey`
 
 ---
 
