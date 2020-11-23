@@ -2,7 +2,7 @@
 /* eslint-disable */
 /* istanbul ignore file */
 'use strict'
-// Boltzmann v0.1.9
+// Boltzmann v0.2.0-alpha1
 
 // 
 // 
@@ -96,6 +96,8 @@ let ajvStrict = null
         headers['set-cookie'] = setCookie
       }
     }
+
+    headers['x-clacks-overhead'] = 'GNU/Terry Pratchett'
 
     res.writeHead(status, headers || {})
     if (isPipe) {
@@ -721,6 +723,7 @@ function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
+  logger = bole('BOLTZMANN:session'),
   load =
 // 
   async (context, id) => JSON.parse(IN_MEMORY.get(id)),
@@ -771,9 +774,17 @@ function session ({
         _iron = _iron || require('@hapi/iron')
         _uuid = _uuid || require('uuid')
 
-        const clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+        let clientId
+        try {
+          clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+        } catch (err) {
+          logger.warn(`removing session that failed to decrypt; request_id="${context.id}"`)
+          _session = new Session(null, [['created', Date.now()]])
+          return _session
+        }
 
         if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
+          logger.warn(`caught malformed session; clientID="${clientId}"; request_id="${context.id}"`)
           throw new BadSessionError()
         }
 
@@ -1105,7 +1116,7 @@ class Cookie extends Map {
   }
 }
 
-class BadSessionErrror extends Error {
+class BadSessionError extends Error {
   [STATUS] = 400
 }
 
@@ -1173,7 +1184,7 @@ exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
-exports.buildAssets = buildAssets
+// 
 // 
 
 // 

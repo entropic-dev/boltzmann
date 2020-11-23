@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* eslint-disable */
 /* istanbul ignore file */
-
 'use strict'
+// Boltzmann v0.2.0-alpha1
 
 // 
 // 
@@ -17,6 +17,7 @@ const serviceName = (
 const beeline = require('honeycomb-beeline')({
   writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
   dataset: process.env.HONEYCOMBIO_DATASET,
+  sampleRate: Number(process.env.HONEYCOMBIO_SAMPLE_RATE) || Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
   serviceName
 })
 const onHeaders = require('on-headers')
@@ -38,6 +39,7 @@ const CsrfTokens = require('csrf')
 // 
 const http = require('http')
 const bole = require('bole')
+const path = require('path')
 const os = require('os')
 // 
 // 
@@ -73,8 +75,9 @@ let ajvStrict = null
     })
   })
 
+  // 
   let _middleware = []
-  if (isDev()) {
+  if (isDev() && !process.env.TAP) {
     const getFunctionLocation = require('get-function-location')
     _middleware = await Promise.all(middleware.map(async xs => {
       const fn = (Array.isArray(xs) ? xs[0] : xs)
@@ -85,6 +88,7 @@ let ajvStrict = null
       }
     }))
   }
+  // 
 
   server.on('request', async (req, res) => {
     const context = new Context(req, res)
@@ -120,6 +124,8 @@ let ajvStrict = null
         headers['set-cookie'] = setCookie
       }
     }
+
+    headers['x-clacks-overhead'] = 'GNU/Terry Pratchett'
 
     res.writeHead(status, headers || {})
     if (isPipe) {
@@ -190,6 +196,15 @@ let ajvStrict = null
   get headers() {
     return this.request.headers
   }
+
+  // 
+  get traceURL () {
+    const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace`)
+    url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
+    url.searchParams.set('trace_start_ts', Math.floor(this._honeycombTrace.startTime/1000 - 1))
+    return String(url)
+  }
+  // 
 
   get url() {
     if (this._parsedUrl) {
@@ -280,6 +295,8 @@ class NoMatchError extends Error {
 
   return routes
 }
+
+// 
 
  async function printRoutes () {
   const metadata = await routes()
@@ -620,7 +637,6 @@ function template ({
   }
 } = {}) {
   const nunjucks = require('nunjucks')
-  const path = require('path')
   paths = [].concat(paths)
   try {
     const assert = require('assert')
@@ -715,7 +731,7 @@ function template ({
               <td class="tr white-80 v-top pr2">Honeycomb Trace</td>
               <td>
                 {% if context._honeycombTrace %}
-                  <a class="link underline washed-blue dim" target="_blank" rel="noreferrer noopener" href="http://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace?trace_id={{ context._honeycombTrace.payload['trace.trace_id'] }}&trace_start_ts={{ (context._honeycombTrace.startTime/1000 - 1)|round }}">
+                  <a class="link underline washed-blue dim" target="_blank" rel="noreferrer noopener" href="{{ context.traceURL }}">
                     Available
                   </a>
                 {% else %}
@@ -1130,6 +1146,7 @@ function template ({
     }
   }
 }
+// 
 
 function templateContext(extraContext = {}) {
   return next => {
@@ -1149,42 +1166,8 @@ function templateContext(extraContext = {}) {
   }
 }
 
-function devStatic({ prefix = 'static', dir = 'static', fs = require('fs') } = {}) {
-  if (!isDev()) {
-    return next => context => next(context)
-  }
+// 
 
-  const path = require('path')
-  const mime = require('mime')
-  dir = path.isAbsolute(dir) ? dir : path.join(__dirname, dir)
-
-  return next => {
-    return async context => {
-      if (!context.url.pathname.startsWith(`/${prefix}/`)) {
-        return next(context)
-      }
-
-      const target = path.join(dir, context.url.pathname.slice(1 + prefix.length))
-      if (!target.startsWith(dir + path.sep)) {
-        throw Object.assign(new Error('File not found'), {
-          [Symbol.for('status')]: 404
-        })
-      }
-
-      const data = await new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(target)
-          .on('open', () => resolve(stream))
-          .on('error', reject)
-      })
-      const mimetype = mime.getType(path.extname(target))
-      return Object.assign(data, {
-        [Symbol.for('headers')]: {
-          'content-type': mimetype || 'application/octet-stream'
-        }
-      })
-    }
-  }
-}
 // 
 
 function handleCORS ({
@@ -1338,6 +1321,11 @@ function applyCSRF ({
 // 
 
 // 
+
+// 
+
+// 
+let _jwt = null
 function authenticateJWT ({
   scheme = 'Bearer',
   publicKey = process.env.AUTHENTICATION_KEY,
@@ -1355,10 +1343,11 @@ function authenticateJWT ({
     throw new Error(
       `To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
+https://www.boltzmann.dev/en/docs/0.2.0-alpha1/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '))
   }
-  const verifyJWT = require('jsonwebtoken').verify
+  _jwt = _jwt || require('jsonwebtoken')
+  const verifyJWT = _jwt.verify
 
   return async next => {
     const publicKeyContents = (
@@ -1368,7 +1357,7 @@ https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
-          https://www.boltzmann.dev/en/docs/0.1.3/reference/middleware/#authenticatejwt
+          https://www.boltzmann.dev/en/docs/0.2.0-alpha1/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '))
         throw err
       })
@@ -1412,14 +1401,14 @@ function log ({
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout
 } = {}) {
-  return function logMiddleware (next) {
-    if (isDev()) {
-      const pretty = require('bistre')({ time: true })
-      pretty.pipe(stream)
-      stream = pretty
-    }
-    bole.output({ level, stream })
+  if (isDev()) {
+    const pretty = require('bistre')({ time: true })
+    pretty.pipe(stream)
+    stream = pretty
+  }
+  bole.output({ level, stream })
 
+  return function logMiddleware (next) {
     return async function inner (context) {
       const result = await next(context)
 
@@ -1607,11 +1596,13 @@ function honeycombMiddlewareSpans ({name} = {}) {
 
 // 
 
+let _uuid = null
 let IN_MEMORY = new Map()
 function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
+  logger = bole('BOLTZMANN:session'),
   load =
 // 
   async (context, id) => JSON.parse(IN_MEMORY.get(id)),
@@ -1621,10 +1612,10 @@ function session ({
   async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
 // 
   iron = {},
+  cookieOptions = {},
   expirySeconds = 60 * 60 * 24 * 365
 } = {}) {
   let _iron = null
-  let _uuid = null
 
   expirySeconds = Number(expirySeconds) || 0
   if (typeof load !== 'function') {
@@ -1662,9 +1653,17 @@ function session ({
         _iron = _iron || require('@hapi/iron')
         _uuid = _uuid || require('uuid')
 
-        const clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+        let clientId
+        try {
+          clientId = String(await _iron.unseal(sessid.value, secret, { ..._iron.defaults, ...iron }))
+        } catch (err) {
+          logger.warn(`removing session that failed to decrypt; request_id="${context.id}"`)
+          _session = new Session(null, [['created', Date.now()]])
+          return _session
+        }
 
         if (!clientId.startsWith('s_') || !_uuid.validate(clientId.slice(2).split(':')[0])) {
+          logger.warn(`caught malformed session; clientID="${clientId}"; request_id="${context.id}"`)
           throw new BadSessionError()
         }
 
@@ -1706,7 +1705,8 @@ function session ({
           httpOnly: true,
           sameSite: true,
           maxAge: expirySeconds,
-          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)})
+          ...(expirySeconds ? {} : {expires: new Date(Date.now() + 1000 * expirySeconds)}),
+          ...cookieOptions
         })
       }
 
@@ -1827,7 +1827,7 @@ function validateBlock(what) {
     const validator = ajvLoose.compile(schema)
     return function validate (next) {
       return async (context, params, ...args) => {
-        const subject = what(context, params)
+        const subject = what(context)
         const valid = validator(subject)
         if (!valid) {
           return Object.assign(new Error('Bad request'), {
@@ -1859,9 +1859,9 @@ function test ({
   // 
 
   return inner => async assert => {
+    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
 
-    [handlers, bodyParsers, middleware] = await Promise.all([handlers, bodyParsers, middleware])
     // 
     // 
 
@@ -1995,7 +1995,7 @@ class Cookie extends Map {
   }
 }
 
-class BadSessionErrror extends Error {
+class BadSessionError extends Error {
   [STATUS] = 400
 }
 
@@ -2036,7 +2036,7 @@ class Session extends Map {
   validate: {
     body: validateBody,
     query: validateBlock(ctx => ctx.query),
-    params: validateBlock((_, params) => params)
+    params: validateBlock(ctx => ctx.params)
   },
   test
 }
@@ -2044,8 +2044,12 @@ class Session extends Map {
 // 
   authenticateJWT,
 // 
+
 // 
-  devStatic,
+// 
+// 
+
+// 
   template,
   templateContext,
 // 
@@ -2062,11 +2066,14 @@ class Session extends Map {
 exports.Context = Context
 exports.main = main
 exports.middleware = middleware
+exports.body = body
 exports.decorators = decorators
 exports.routes = routes
 exports.printRoutes = printRoutes
 // 
+// 
 
+// 
 // 
 if (require.main === module) {
   main({
@@ -2077,6 +2084,7 @@ if (require.main === module) {
       // 
       handlePing,
       // 
+      // 
       log,
 
       // 
@@ -2085,7 +2093,7 @@ if (require.main === module) {
       // 
       ...[handleStatus]
       // 
-    ])
+    ].filter(Boolean))
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
       bole('server').info(`now listening on port ${server.address().port}`)

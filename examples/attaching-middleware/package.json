@@ -41,10 +41,11 @@
     "test": "tap test",
     "boltzmann:upgrade": "npx boltzmann-cli",
     "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
-    "boltzmann:esbuild": null
+    "boltzmann:esbuild": null,
+    "boltzmann:docs": "npx boltzmann-cli docs"
   },
   "boltzmann": {
-    "version": "0.1.9",
+    "version": "0.2.0-alpha1",
     "githubci": false,
     "ping": true,
     "status": true
