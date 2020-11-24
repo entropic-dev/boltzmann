@@ -25,9 +25,58 @@ feature flags.
 
 #### `handleCORS`
 
+The `handleCORs` middleware is always available to be attached. It configures headers to
+control [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), or CORS.
+
+**Arguments**
+
+- `origins`: the origins that are permitted to request resources; sent in responses inn the
+  `Access-Control-Allow-Origin` header value
+- `methods`: the allowed HTTP verbs; sent in responses in the `Access-Control-Allow-Methods` header
+  value
+- `headers`: the custom headers the server will allow; sent in in responses in the
+  `Access-Control-Allow-Headers` header value
+
+**Example Configuration:**
+
+```javascript
+const boltzmann = require('./boltzmann')
+const isDev = require('are-we-dev')
+
+module.exports = {
+  APP_MIDDLEWARE: [
+    [ boltzmann.middleware.handleCORS, {
+      origins: isDev() ? '*' : [ 'www.example.com', 'another.example.com' ],
+      methods: [ 'GET', 'POST', 'PATCH', 'PUT', 'DELETE' ],
+      headers: [ 'Origin', 'Content-Type', 'Accept', 'Accept-Version', 'x-my-custom-header ],
+    } ],
+  ],
+}
+
+```
+
 ---
 
 #### `applyXFO`
+
+The `applyXFO` middleware adds an
+[X-Frame-Options header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
+to responses. It accepts one configuration value, the value of the header to set. This value must
+be one of `SAMEORIGIN` or `DENY`.
+
+**Example Configuration:**
+
+```javascript
+'use strict'
+
+const boltzmann = require('./boltzmann')
+
+module.exports = {
+  APP_MIDDLEWARE: [
+    [boltzmann.middleware.applyXFO, 'DENY'],
+  ],
+}
+```
 
 ---
 
@@ -126,9 +175,12 @@ four middlewares:
 
 **Configuration**:
 
-- `domain`: **Required**. Falls back to the env var `OAUTH_DOMAIN`.
-- `secret`: **Required**. Falls back to the env var `OAUTH_CLIENT_SECRET`.
-- `clientId`: **Required**. Falls back to the env var `OAUTH_CLIENT_ID`.
+- `domain`: **Required**. The fully-qualified domain name for the service providing authentication.
+   For example, `my-domain.auth0.com`. Falls back to the env var `OAUTH_DOMAIN`.
+- `secret`: **Required**. Falls back to the env var `OAUTH_CLIENT_SECRET`. Provided by your oauth
+   service when you registered your application.
+- `clientId`: **Required**. Falls back to the env var `OAUTH_CLIENT_ID`. Provided by your oauth
+   service when you registered your application.
 - `userKey`: The key to delete from session storage on logout. A session key is *not set* by
   middleware; you responsible for setting any session storage yourself. Defaults to `user`.
 - `callbackUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_CALLBACK_URL`;
