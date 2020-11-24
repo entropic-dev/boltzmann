@@ -651,7 +651,7 @@ if (!isDev()) {
     if (isClosing) {
       process.exit(1)
     }
-    const logger = bole()
+    const logger = bole('boltzmann:server')
     logger.info('Caught SIGINT, preparing to shutdown. If running on the command line another ^C will close the app immediately.')
     isClosing = true
   })
@@ -730,7 +730,7 @@ function template ({
   paths = ['templates'],
   filters = {},
   tags = {},
-  logger = bole('BOLTZMANN:templates'),
+  logger = bole('boltzmann:templates'),
   opts = {
     noCache: isDev()
   }
@@ -2002,7 +2002,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
           })
         })
       } catch (err) {
-        const logger = bole('jwt')
+        const logger = bole('boltzmann:jwt')
         logger.error(err)
         throw Object.assign(new Error('Invalid bearer token'), {
           [Symbol.for('status')]: 403
@@ -2222,7 +2222,7 @@ function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
-  logger = bole('BOLTZMANN:session'),
+  logger = bole('boltzmann:session'),
   load =
 // {% if redis %}
   async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
@@ -2886,7 +2886,7 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     ].filter(Boolean))
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
-      bole('server').info(`now listening on port ${server.address().port}`)
+      bole('boltzmann:server').info(`now listening on port ${server.address().port}`)
     })
   }).catch(err => {
     console.error(err.stack)
