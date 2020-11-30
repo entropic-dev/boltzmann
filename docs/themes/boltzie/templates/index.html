@@ -21,13 +21,9 @@
         </div>
 
       {% block nav %}
-        <ul id="breadcrumbs">
-          {% for tax in config.taxonomies %}
-            <li>/<a href="/{{tax.name}}/">{{tax.name}}</a>&nbsp;</li>
-          {% endfor %}
-        </ul>
         <h1>{{ config.title }}</h1>
           {{ macro::tree() }}
+          <a href="https://github.com/entropic-dev/boltzmann">GitHub repo</a></li>
       {% endblock nav %}
       </nav>
 
