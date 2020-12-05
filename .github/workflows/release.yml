@@ -45,10 +45,8 @@ jobs:
             echo "prerelease; skipping latest"
           else
             # TODO: I bet you could do this with a redirect object in S3.
-            aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/latest --acl public-read
+            aws s3 sync . s3://www.boltzmann.dev/en/docs/latest --acl public-read
           fi
-
-          cd ..
 
           # rewrite all the old docs with the new version tags.
           for tag in $all_tags; do
@@ -56,18 +54,14 @@ jobs:
               continue
             fi
 
-            rm -rf docs
-            mkdir docs
-            cd docs
-            aws s3 cp --recursive s3://www.boltzmann.dev/en/docs/${tag} .
+            aws s3 sync s3://www.boltzmann.dev/en/docs/${tag} .
 
             for file in $(find . -type f -name '*.html'); do
               contents=$(cat $file | hq 'nav#versions' @<(get_active_docs ${tag}))
               echo "$contents" > $file
             done
 
-            aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag} --acl public-read
-            cd ..
+            aws s3 sync . s3://www.boltzmann.dev/en/docs/${tag} --acl public-read
           done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
