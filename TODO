@@ -1,5 +1,15 @@
 ## TODO
 
+### 2020-12-04
+
+- [ ] documentation version picker
+  - ideally fully static:
+    - [ ] download all versions of the docs
+    - [ ] find all version selectors
+    - [ ] update the selector with the new set of versions
+    - [ ] create a "latest" tag
+    - [ ] DONE
+
 ### 2020-06-05
 
 - [ ] investigate static site generators

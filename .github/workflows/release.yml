@@ -7,19 +7,68 @@ jobs:
     name: publish docs
     runs-on: ubuntu-latest
     steps:
+      - name: download hq
+        run: |
+          curl -sL https://github.com/chrisdickinson/hq/releases/download/v1.0.0/hq_x64_linux.tar.gz | tar xfz -
       - name: download docs
         run: |
           tag=${{ github.ref }}
+          current_tag=${tag/refs\/tags\//}
           download_url=$(
-            curl -sL https://api.github.com/repos/entropic-dev/boltzmann/releases/tags/${tag/refs\/tags\//} | \
+            curl -sL https://api.github.com/repos/entropic-dev/boltzmann/releases/tags/${current_tag} | \
               jq -r '.assets[] | .browser_download_url' | \
               grep 'docs'
           )
+
+          all_tags=$(curl -sL https://api.github.com/repos/entropic-dev/boltzmann/releases | jq -r '.[] | .tag_name')
+
+          function get_active_docs() {
+            local active=$1
+            echo "<ul>"
+            for tag in $all_tags; do
+              echo "<li>"
+              echo '<a class="'$(if [[ $tag == $active ]]; then echo "active"; fi; echo " "; if [[ $tag =~ .+-.+ ]]; then echo "prerelease"; fi;)'" href="https://www.boltzmann.dev/en/docs/'$tag'">' $tag '</a>'
+              echo "</li>"
+            done
+            echo "</ul>"
+          }
+
           mkdir docs
           curl -sL $download_url | tar zx -C docs
           cd docs
-          aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag/refs\/tags\//} --acl public-read
+          for file in $(find . -type f -name '*.html'); do
+            contents=$(cat $file | hq 'nav#versions' @<(get_active_docs ${current_tag}))
+            echo "$contents" > $file
+          done
+          aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${current_tag} --acl public-read
+          if [[ $current_tag =~ .+-.+ ]]; then
+            echo "prerelease; skipping latest"
+          else
+            # TODO: I bet you could do this with a redirect object in S3.
+            aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/latest --acl public-read
+          fi
+
           cd ..
+
+          # rewrite all the old docs with the new version tags.
+          for tag in $all_tags; do
+            if [[ "$tag" == "$current_tag" ]]; then
+              continue
+            fi
+
+            rm -rf docs
+            mkdir docs
+            cd docs
+            aws s3 cp --recursive s3://www.boltzmann.dev/en/docs/${tag} .
+
+            for file in $(find . -type f -name '*.html'); do
+              contents=$(cat $file | hq 'nav#versions' @<(get_active_docs ${tag}))
+              echo "$contents" > $file
+            done
+
+            aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${tag} --acl public-read
+            cd ..
+          done
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
