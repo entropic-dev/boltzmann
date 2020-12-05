@@ -25,13 +25,17 @@ jobs:
 
           function get_active_docs() {
             local active=$1
+            echo '<a href="#">&rarr;'"$active"'</a>'
+            echo "<div>"
             echo "<ul>"
             for tag in $all_tags; do
-              echo "<li>"
-              echo '<a class="'$(if [[ $tag == $active ]]; then echo "active"; fi; echo " "; if [[ $tag =~ .+-.+ ]]; then echo "prerelease"; fi;)'" href="https://www.boltzmann.dev/en/docs/'$tag'">' $tag '</a>'
+              echo '<li class="'$(if [[ $tag == $active ]]; then echo "active"; fi; echo " "; if [[ $tag =~ .+-.+ ]]; then echo "prerelease"; fi;)'">'
+              echo '<a href="https://www.boltzmann.dev/en/docs/'$tag'">' $tag '</a>'
               echo "</li>"
             done
             echo "</ul>"
+            echo '<p><small><label for="prerelease"><input id="prerelease" type="checkbox" /> Show prerelease versions</label></small></p>'
+            echo "</div>"
           }
 
           mkdir docs
