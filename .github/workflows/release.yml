@@ -11,6 +11,10 @@ jobs:
         run: |
           curl -sL https://github.com/chrisdickinson/hq/releases/download/v1.0.0/hq_x64_linux.tar.gz | tar xfz -
           sudo mv hq /usr/local/bin/hq
+      - name: download semver-sort
+        run: |
+          curl -sL https://github.com/chrisdickinson/semver-sort/releases/download/v1.1.0/semver-sort_x64_linux.tar.gz | tar xfz -
+          sudo mv semver-sort /usr/local/bin/semver-sort
       - name: download docs
         run: |
           tag=${{ github.ref }}
@@ -46,10 +50,9 @@ jobs:
             echo "$contents" > $file
           done
           aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${current_tag} --acl public-read
-          if [[ $current_tag =~ .+-.+ ]]; then
-            echo "prerelease; skipping latest"
-          else
-            # TODO: I bet you could do this with a redirect object in S3.
+          latest_tag=$(echo "$all_tags" | semver-sort -r | head -n1)
+
+          if [[ "$current_tag" == "$latest_tag" ]]; then
             aws s3 sync . s3://www.boltzmann.dev/en/docs/latest --acl public-read
           fi
 
