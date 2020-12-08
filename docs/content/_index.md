@@ -7,12 +7,11 @@ sort_by = "weight"
 
 # Getting started
 
-Boltzmann is a node http server framework that uses the same building blocks as
-many other frameworks, using well-tested libraries like the ones from the
-[jshttp project](https://jshttp.github.io), which support Express. It makes
-some choices that are notably different from many other node frameworks, and
-you'll want to know about these choices even if you're an experienced node
-developer.
+[Boltzmann](https://github.com/entropic-dev/boltzmann) is a node http server framework constructed
+from the same building blocks as many other frameworks, using well-tested libraries like the ones
+from the [jshttp project](https://jshttp.github.io), which support Express. It makes some choices
+that are notably different from many other node frameworks, and you'll want to know about these
+choices even if you're an experienced node developer.
 
 The first difference you're likely to notice is that Boltzmann is not a
 versioned dependency of your application. It's implemented in a single file
@@ -99,10 +98,18 @@ Boltzmann at 0.2.0-alpha1 with githubci, ping, redis, status
 ```
 
 As you can see, boltzmann informs you about what top-level dependencies it is adding
-and why those dependencies are present.
+and why those dependencies are present. `handy-redis` is present in this scaffold because
+we asked for the redis feature.
 
 You now have a complete hello world project in the `hello` directory, with commented source files to
-edit in place.
+edit in place. To run your scaffolded project, : `./boltzmann.js`. And to view the response: `curl
+http://localhost:5000/hello/world`
+
+In development, you can use `npm start` to run under nodemon.
+
+The scaffolded project includes examples for most of the features you can choose to enable.
+For instance, if you enable the `templates` feature, the scaffold gives you a hello world
+template file to start with. Here's what you get with the default options:
 
 ```shell
 hello|⇒ ls
@@ -124,26 +131,16 @@ module.exports = {
 }
 ```
 
-The scaffolded project includes examples for most of the features you can choose to enable.
-For instance, if you enable the `templates` feature, the scaffold gives you a hello world
-template file to start with.
+A Boltzmann route handler is a function that returns an object or throws an error. Input to the
+function is the *context* object. The [context object](@/concepts/01-handlers.md#context) is where
+Boltzmann puts all data it derives from the initial request. It expects you to modify the context
+object in middleware: it is there to hold data you find useful through the request lifecycle. The
+raw node request object is available on the context object if you need it.
 
-To run your scaffolded project, : `./boltzmann.js`. And to view the response: `curl
-http://localhost:5000/hello/world`
+The default scaffolded project also provides a commented `middleware.js` file to help you write your
+first middlewares. And finally, a linter is configured for you. Use `npm run` in a Boltzmann project
+to see the run scripts provided out of the box for you.
 
-In development, you can use `npm start` to run under nodemon.
+## Learn more!
 
-The [context object](@/concepts/01-handlers.md#context) is where Boltzmann puts all data it
-derives from the initial request. It expects you to modify the context object
-in middleware: it is there to hold data you find useful through the request
-lifecycle. The raw node request object is available on the context object if
-you need it, but we suggest you avoid modifying it directly. In particular, you
-might break body parsing middleware.
-
-The default scaffolded project also provides a commented `middleware.js` file
-to help you write your first middlewares. And finally, a linter is configured
-for you.
-
-To learn more about Boltzmann's fundamentals, check out the [concepts
-documentation](@/concepts/_index.md). If you need to deep-dive into details,
-see the [reference documentation](@/reference/_index.md).
+To learn more about Boltzmann's fundamentals, check out the [concepts documentation](@/concepts/_index.md). If you need to deep-dive into details, see the [reference documentation](@/reference/_index.md).

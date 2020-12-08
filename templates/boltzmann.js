@@ -651,7 +651,7 @@ if (!isDev()) {
     if (isClosing) {
       process.exit(1)
     }
-    const logger = bole()
+    const logger = bole('boltzmann:server')
     logger.info('Caught SIGINT, preparing to shutdown. If running on the command line another ^C will close the app immediately.')
     isClosing = true
   })
@@ -730,7 +730,7 @@ function template ({
   paths = ['templates'],
   filters = {},
   tags = {},
-  logger = bole('BOLTZMANN:templates'),
+  logger = bole('boltzmann:templates'),
   opts = {
     noCache: isDev()
   }
@@ -1654,6 +1654,22 @@ function handleOAuthLogin ({
   callbackUrl = process.env.OAUTH_CALLBACK_URL,
   defaultNextPath = '/'
 } = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain field to the handleOAuthLogin() middleware config
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID field to the handleOAuthLogin() middleware config
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
   authorizationUrl = authorizationUrl || `https://${domain}/authorize`
 
   const extraOpts = {}
@@ -1736,6 +1752,30 @@ function handleOAuthCallback ({
   expiryLeewaySeconds = process.env.OAUTH_EXPIRY_LEEWAY,
   defaultNextPath = '/'
 } = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain field to the handleOAuthCallback() config
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID field to the handleOAuthCallback() config
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!secret) {
+    throw new Error(
+      `You must provide a secret field to the handleOAuthCallback() config
+or set the env var OAUTH_CLIENT_SECRET to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
   authorizationUrl = authorizationUrl || `https://${domain}/authorize`
   userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
   tokenUrl = tokenUrl || `https://${domain}/oauth/token`
@@ -1851,6 +1891,22 @@ function handleOAuthLogout ({
   logoutUrl = process.env.OAUTH_LOGOUT_URL,
   userKey = 'user',
 } = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain to the handleOAuthLogout() middleware
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID to the handleOAuthLogout() middleware
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
   logoutUrl = logoutUrl || `https://${domain}/v2/logout`
   return next => async context => {
     if (context.url.pathname !== logoutRoute || context.method !== 'POST') {
@@ -1946,7 +2002,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
           })
         })
       } catch (err) {
-        const logger = bole('jwt')
+        const logger = bole('boltzmann:jwt')
         logger.error(err)
         throw Object.assign(new Error('Invalid bearer token'), {
           [Symbol.for('status')]: 403
@@ -2166,7 +2222,7 @@ function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
-  logger = bole('BOLTZMANN:session'),
+  logger = bole('boltzmann:session'),
   load =
 // {% if redis %}
   async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
@@ -2830,7 +2886,7 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     ].filter(Boolean))
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
-      bole('server').info(`now listening on port ${server.address().port}`)
+      bole('boltzmann:server').info(`now listening on port ${server.address().port}`)
     })
   }).catch(err => {
     console.error(err.stack)

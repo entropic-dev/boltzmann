@@ -17,6 +17,7 @@ const serviceName = (
 const beeline = require('honeycomb-beeline')({
   writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
   dataset: process.env.HONEYCOMBIO_DATASET,
+  sampleRate: Number(process.env.HONEYCOMBIO_SAMPLE_RATE) || Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
   serviceName
 })
 const onHeaders = require('on-headers')
@@ -125,6 +126,8 @@ let ajvStrict = null
         headers['set-cookie'] = setCookie
       }
     }
+
+    headers['x-clacks-overhead'] = 'GNU/Terry Pratchett'
 
     res.writeHead(status, headers || {})
     if (isPipe) {

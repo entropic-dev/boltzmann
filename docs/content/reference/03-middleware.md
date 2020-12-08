@@ -25,15 +25,68 @@ feature flags.
 
 #### `handleCORS`
 
+The `handleCORS` middleware is always available to be attached. It configures headers to
+control [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), or CORS.
+
+**Arguments**
+
+- `origins`: the origins that are permitted to request resources; sent in responses inn the
+  `Access-Control-Allow-Origin` header value
+- `methods`: the allowed HTTP verbs; sent in responses in the `Access-Control-Allow-Methods` header
+  value
+- `headers`: the custom headers the server will allow; sent in in responses in the
+  `Access-Control-Allow-Headers` header value
+
+**Example Configuration:**
+
+```javascript
+const boltzmann = require('./boltzmann')
+const isDev = require('are-we-dev')
+
+module.exports = {
+  APP_MIDDLEWARE: [
+    [ boltzmann.middleware.handleCORS, {
+      origins: isDev() ? '*' : [ 'www.example.com', 'another.example.com' ],
+      methods: [ 'GET', 'POST', 'PATCH', 'PUT', 'DELETE' ],
+      headers: [ 'Origin', 'Content-Type', 'Accept', 'Accept-Version', 'x-my-custom-header' ],
+    } ],
+  ],
+}
+
+```
+
 ---
 
 #### `applyXFO`
+
+The `applyXFO` middleware adds an
+[X-Frame-Options header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
+to responses. It accepts one configuration value, the value of the header to set. This value must
+be one of `SAMEORIGIN` or `DENY`.
+
+**Example Configuration:**
+
+```javascript
+'use strict'
+
+const boltzmann = require('./boltzmann')
+
+module.exports = {
+  APP_MIDDLEWARE: [
+    [boltzmann.middleware.applyXFO, 'DENY'],
+  ],
+}
+```
 
 ---
 
 #### `session`
 
 _Added in 0.1.4_.
+
+You can import session middleware with `require('./boltzmann').middleware.session`. The session
+middleware provides [HTTP session support] using sealed http-only [cookies]. You can read more about
+Boltzmann's session support in the ["storage" chapter].
 
 **Arguments**:
 
@@ -50,10 +103,6 @@ _Added in 0.1.4_.
   a cookie.
 - `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
 - `cookieOptions`: An object containing options passed to the [`cookie`] package when serializing a session id.
-
-You can import session middleware with `require('./boltzmann').middleware.session`. The session middleware
-provides [HTTP session support] using sealed http-only [cookies]. You can read more about Boltzmann's session
-support in the ["storage" chapter].
 
 **Example Configurations:**
 
@@ -111,13 +160,116 @@ module.exports = {
 ["storage" chapter]: #TKTKTK
 [`cookie`]: https://www.npmjs.com/package/cookie#options-1
 
+#### `oauth`
+
+_Added in 0.2.0_.
+
+This feature implements support for using [OAuth 2.0](https://oauth.net/2/) to authenticate a
+user with an external service provider, such as Google or Auth0. Enabling the feature provides
+four middlewares:
+
+- `handleOAuthLogin()`: Sets up a middleware to handle oauth login.
+- `handleOAuthCallback()`: Sets up a middleware that provides the callback url triggered by your OAuth provider after a successful login.
+- `handleOAuthLogout()`: Handles logging out an oauth-authenticated user. Unsets the key `userKey` in the user's session.
+- `oauth()`: This automatically attaches the above three middleware with identical config.
+
+**Configuration**:
+
+- `domain`: **Required** either in the config object or in the env var `OAUTH_DOMAIN`. The
+   fully-qualified domain name for the service providing authentication. For example,
+   `my-domain.auth0.com`.
+- `secret`: **Required**. either in the config object or in the env var `OAUTH_CLIENT_SECRET`.
+   Provided by your oauth service when you registered your application.
+- `clientId`: **Required** either in the config object or in the env var `OAUTH_CLIENT_ID`. Provided
+   by your oauth service when you registered your application.
+- `userKey`: The key to delete from session storage on logout. A session key is *not set* by
+  middleware; you responsible for setting any session storage yourself. Defaults to `user`.
+- `callbackUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_CALLBACK_URL`;
+  defaults to the uri `/callback` on your app.
+- `tokenUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_TOKEN_URL`;
+  defaults to `https://${OAUTH_DOMAIN}/oauth/token`
+- `userinfoUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_USERINFO_URL`.
+  If no value is provided, derived from the `domain` parameter as `https://${domain}/userinfo`
+- `authorizationUrl`: A full URI, with protocol and domain. Read from the env var
+  `OAUTH_AUTHORIZATION_URL`; defaults to `https://${OAUTH_DOMAIN}/authorize`
+- `expiryLeewaySeconds`: Read from the env var `OAUTH_EXPIRY_LEEWAY`. Defaults to 60 seconds.
+- `defaultNextPath`: defaults to `/`
+- `logoutRoute`: defaults to `/logout`,
+- `returnTo`: A full URI, with protocol and domain. Read from the env var `OAUTH_LOGOUT_CALLBACK`;
+  defaults to the uri `/` on your app.
+- `logoutUrl`: Read from the env var `AUTH_LOGOUT_URL`. Defaults to
+  `https://${OAUTH_DOMAIN}/v2/logout`
+
+The OAuth middleware has many configuration knobs and dials to turn, but the middleware is usable in
+development if you set three environment variables: `OAUTH_DOMAIN`, `OAUTH_CLIENT_SECRET`, and
+`OAUTH_CLIENT_ID`. If you set those variables, the code required to attach oauth middleware
+looks like this:
+
+```javascript
+const { middleware } = require('./boltzmann')
+
+// with process.env.{OAUTH_DOMAIN, OAUTH_CLIENT_SECRET, OAUTH_CLIENT_ID} all set
+module.exports = {
+  APP_MIDDLEWARE: [
+    middleware.oauth
+  ]
+};
+```
+
+**Advanced configuration**:
+
+If you have a more complex setup, the individual middlewares can be configured differently.
+In each case, if you do not provide an optional configuration field, the default is determined
+as documented above.
+
+`handleOauthCallback()` respects the following configuration fields:
+
+- `authorizationUrl`
+- `callbackUrl`
+- `clientId`
+- `defaultNextPath`
+- `domain`
+- `expiryLeewaySeconds`
+- `secret`
+- `tokenUrl`
+- `userinfoUrl`
+- `userKey`
+
+`handleOauthLogin()` respects the following configuration fields:
+
+- `audience`
+- `authorizationUrl`
+- `callbackUrl`
+- `clientId`
+- `connection_scope`
+- `connection`
+- `defaultNextPath`
+- `domain`
+- `login_hint`
+- `loginRoute`
+- `max_age`
+- `prompt`
+
+`handleOauthLogin()` respects the following configuration fields:
+
+- `authorizationUrl`
+- `callbackUrl`
+- `clientId`
+- `defaultNextPath`
+- `domain`
+- `expiryLeewaySeconds`
+- `secret`
+- `tokenUrl`
+- `userinfoUrl`
+- `userKey`
+
 ---
 
 ### Automatically attached middleware
 
 Automatically-attached middleware is middleware you can configure but do *not* need to attach to
 the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
-them are enabled. You can often configure this middleware, however, using environment variables. 
+them are enabled. You can often configure this middleware, however, using environment variables.
 
 #### `trace`
 
@@ -133,8 +285,8 @@ To configure this middleware, set the following environment variables:
 - `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
 - `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
 
-The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is 
-disabled if a write key and dataset are not provided; the middleware is still 
+The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is
+disabled if a write key and dataset are not provided; the middleware is still
 attached but does nothing in this case.
 
 ---
@@ -189,7 +341,7 @@ async function greeting(/** @type {Context} */ context) {
 
 #### `attachRedis`
 
-This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled. 
+This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled.
 It adds a configured, promisified Redis client to the context object accessible via the
 getter `context.redisClient`. This object is a [handy-redis](https://github.com/mmkal/handy-redis)
 client with a promisified API. The environment variable `REDIS_URL` is passed to the handy-redis
