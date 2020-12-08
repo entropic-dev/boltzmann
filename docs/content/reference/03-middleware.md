@@ -25,7 +25,7 @@ feature flags.
 
 #### `handleCORS`
 
-The `handleCORs` middleware is always available to be attached. It configures headers to
+The `handleCORS` middleware is always available to be attached. It configures headers to
 control [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), or CORS.
 
 **Arguments**
@@ -48,7 +48,7 @@ module.exports = {
     [ boltzmann.middleware.handleCORS, {
       origins: isDev() ? '*' : [ 'www.example.com', 'another.example.com' ],
       methods: [ 'GET', 'POST', 'PATCH', 'PUT', 'DELETE' ],
-      headers: [ 'Origin', 'Content-Type', 'Accept', 'Accept-Version', 'x-my-custom-header ],
+      headers: [ 'Origin', 'Content-Type', 'Accept', 'Accept-Version', 'x-my-custom-header' ],
     } ],
   ],
 }
@@ -175,20 +175,21 @@ four middlewares:
 
 **Configuration**:
 
-- `domain`: **Required**. The fully-qualified domain name for the service providing authentication.
-   For example, `my-domain.auth0.com`. Falls back to the env var `OAUTH_DOMAIN`.
-- `secret`: **Required**. Falls back to the env var `OAUTH_CLIENT_SECRET`. Provided by your oauth
-   service when you registered your application.
-- `clientId`: **Required**. Falls back to the env var `OAUTH_CLIENT_ID`. Provided by your oauth
-   service when you registered your application.
+- `domain`: **Required** either in the config object or in the env var `OAUTH_DOMAIN`. The
+   fully-qualified domain name for the service providing authentication. For example,
+   `my-domain.auth0.com`.
+- `secret`: **Required**. either in the config object or in the env var `OAUTH_CLIENT_SECRET`.
+   Provided by your oauth service when you registered your application.
+- `clientId`: **Required** either in the config object or in the env var `OAUTH_CLIENT_ID`. Provided
+   by your oauth service when you registered your application.
 - `userKey`: The key to delete from session storage on logout. A session key is *not set* by
   middleware; you responsible for setting any session storage yourself. Defaults to `user`.
 - `callbackUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_CALLBACK_URL`;
   defaults to the uri `/callback` on your app.
 - `tokenUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_TOKEN_URL`;
   defaults to `https://${OAUTH_DOMAIN}/oauth/token`
-- `userinfoUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_USERINFO_URL`;
-  defaults to `https://${OAUTH_DOMAIN}/userinfo`
+- `userinfoUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_USERINFO_URL`.
+  If no value is provided, derived from the `domain` parameter as `https://${domain}/userinfo`
 - `authorizationUrl`: A full URI, with protocol and domain. Read from the env var
   `OAUTH_AUTHORIZATION_URL`; defaults to `https://${OAUTH_DOMAIN}/authorize`
 - `expiryLeewaySeconds`: Read from the env var `OAUTH_EXPIRY_LEEWAY`. Defaults to 60 seconds.

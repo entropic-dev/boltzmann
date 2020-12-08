@@ -135,8 +135,7 @@ A Boltzmann route handler is a function that returns an object or throws an erro
 function is the *context* object. The [context object](@/concepts/01-handlers.md#context) is where
 Boltzmann puts all data it derives from the initial request. It expects you to modify the context
 object in middleware: it is there to hold data you find useful through the request lifecycle. The
-raw node request object is available on the context object if you need it, but we suggest you avoid
-modifying it directly. In particular, you might break body parsing middleware.
+raw node request object is available on the context object if you need it.
 
 The default scaffolded project also provides a commented `middleware.js` file to help you write your
 first middlewares. And finally, a linter is configured for you. Use `npm run` in a Boltzmann project
