@@ -2490,7 +2490,7 @@ async function redisReachability (context, meta) {
 function validateBody(schema) {
   ajv = ajv || require('ajv')
   ajvStrict = ajvStrict || new ajv()
-  const validator = ajvStrict.compile(schema)
+  const validator = ajvStrict.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
   return function validate (next) {
     return async (context, ...args) => {
       const subject = await context.body
@@ -2514,7 +2514,7 @@ function validateBlock(what) {
   return schema => {
     ajv = ajv || require('ajv')
     ajvLoose = ajvLoose || new ajv({ coerceTypes: true })
-    const validator = ajvLoose.compile(schema)
+    const validator = ajvLoose.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
     return function validate (next) {
       return async (context, params, ...args) => {
         const subject = what(context)
