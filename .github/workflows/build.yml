@@ -56,7 +56,7 @@ jobs:
           asset_content_type: application/gzip
 
       - run: rustup target add x86_64-pc-windows-msvc
-      - run: cargo build --release --target 86_64-pc-windows-msvc
+      - run: cargo build --release --target x86_64-pc-windows-msvc
       - name: tar up x86 windows build
         shell: bash
         run: |
