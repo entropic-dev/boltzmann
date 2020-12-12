@@ -1,9 +1,0 @@
-disable-publish = true
-sign-commit = true
-sign-tag = true
-pre-release-replacements = [
-  {file="README.md", search="https://www.boltzmann.dev/en/docs/([a-z0-9.-]+/)", replace="https://www.boltzmann.dev/en/docs/{{version}}/"} ,
-  {file="docs/README.md", search="https://www.boltzmann.dev/en/docs/([a-z0-9.-]+/)", replace="https://www.boltzmann.dev/en/docs/{{version}}/"} ,
-]
-exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/release.toml", "/bin/**"]
-no-dev-version = true

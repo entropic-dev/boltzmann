@@ -21,3 +21,14 @@ tera = "1.5.0"
 [dependencies.serde]
 features = ["derive"]
 version = "1.0.115"
+
+[package.metadata.release]
+disable-publish = true
+sign-commit = true
+sign-tag = true
+pre-release-replacements = [
+  {file="README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/{{version}}/"} ,
+  {file="docs/README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/{{version}}/"} ,
+]
+exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**"]
+no-dev-version = true

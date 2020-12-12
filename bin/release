@@ -30,5 +30,5 @@ tag=$(git describe --tags)
 version=$(cargo read-manifest | jq -r ".version")
 
 echo
-echo "Next step: write release notes on GitHub!"
-open "https://github.com/entropic-dev/boltzmann/releases/tag/$version"
+echo "Next step: write release notes on GitHub while the asset builds run."
+open "https://github.com/entropic-dev/boltzmann/releases/"
