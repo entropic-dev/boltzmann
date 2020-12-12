@@ -55,22 +55,6 @@ jobs:
           asset_name: boltzmann_x64_linux.tar.gz
           asset_content_type: application/gzip
 
-      - run: cargo build --release --target x86_64-apple-darwin
-      - name: tar up x86 darwin build
-        shell: bash
-        run: |
-          tar cfz boltzmann_x64_darwin.tar.gz -C target/x86_64-apple-darwin/release boltzmann
-      - name: upload x86 darwin release
-        id: releasedarwin
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{needs.release.outputs.upload_url}}
-          asset_path: ./boltzmann_x64_darwin.tar.gz
-          asset_name: boltzmann_x64_darwin.tar.gz
-          asset_content_type: application/gzip
-
       - run: rustup target add x86_64-pc-windows-msvc
       - run: cargo build --release --target 86_64-pc-windows-msvc
       - name: tar up x86 windows build
@@ -86,6 +70,23 @@ jobs:
           upload_url: ${{needs.release.outputs.upload_url}}
           asset_path: ./boltzmann_x64_win32.tar.gz
           asset_name: boltzmann_x64_win32.tar.gz
+          asset_content_type: application/gzip
+
+      - run: sudo apt-get install build-essentials
+      - run: cargo build --release --target x86_64-apple-darwin
+      - name: tar up x86 darwin build
+        shell: bash
+        run: |
+          tar cfz boltzmann_x64_darwin.tar.gz -C target/x86_64-apple-darwin/release boltzmann
+      - name: upload x86 darwin release
+        id: releasedarwin
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.release.outputs.upload_url}}
+          asset_path: ./boltzmann_x64_darwin.tar.gz
+          asset_name: boltzmann_x64_darwin.tar.gz
           asset_content_type: application/gzip
 
   docs:
