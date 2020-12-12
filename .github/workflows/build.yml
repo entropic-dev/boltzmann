@@ -44,12 +44,12 @@ jobs:
       - run: cargo build --release
       - run: tar cfz boltzmann_x64_linux.tar.gz -C target/release boltzmann
       - name: upload x64 linux gnu release
-        id: release
+        id: releaselinux
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{needs.release.outputs.upload_url}}
+          upload_url: ${{needs.releaselinux.outputs.upload_url}}
           asset_path: ./boltzmann_x64_linux.tar.gz
           asset_name: boltzmann_x64_linux.tar.gz
           asset_content_type: application/gzip
@@ -57,12 +57,12 @@ jobs:
       - run: cargo build --release --target aarch64-apple-darwin
       - run: tar cfz boltzmann_aarch64_darwin.tar.gz -C target/aarch64-apple-darwin/release/ boltzmann
       - name: upload m1 darwin release
-        id: release
+        id: releasem1
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{needs.release.outputs.upload_url}}
+          upload_url: ${{needs.releasem1.outputs.upload_url}}
           asset_path: ./boltzmann_aarch64_darwin.tar.gz
           asset_name: boltzmann_aarch64_darwin.tar.gz
           asset_content_type: application/gzip
@@ -73,12 +73,12 @@ jobs:
         run: |
           tar cfz boltzmann_x64_darwin.tar.gz -C target/x86_64-apple-darwin/release boltzmann
       - name: upload x86 darwin release
-        id: release
+        id: releasedarwin
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{needs.release.outputs.upload_url}}
+          upload_url: ${{needs.releasedarwin.outputs.upload_url}}
           asset_path: ./boltzmann_x64_darwin.tar.gz
           asset_name: boltzmann_x64_darwin.tar.gz
           asset_content_type: application/gzip
@@ -89,12 +89,12 @@ jobs:
         run: |
           tar cfz boltzmann_x64_win32.tar.gz -C target/86_64-pc-windows-msvc/release boltzmann
       - name: upload windows release
-        id: release
+        id: windows
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{needs.release.outputs.upload_url}}
+          upload_url: ${{needs.windows.outputs.upload_url}}
           asset_path: ./boltzmann_x64_win32.tar.gz
           asset_name: boltzmann_x64_win32.tar.gz
           asset_content_type: application/gzip
