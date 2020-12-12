@@ -31,7 +31,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc
+          target: aarch64-apple-darwin
       - uses: actions/cache@v2
         with:
           path: |
@@ -41,6 +41,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
       - run: cargo build --release
       - run: tar cfz boltzmann_x64_linux.tar.gz -C target/release boltzmann
       - name: upload x64 linux gnu release
@@ -67,6 +68,7 @@ jobs:
           asset_name: boltzmann_aarch64_darwin.tar.gz
           asset_content_type: application/gzip
 
+      - run: rustup target add x86_64-apple-darwin
       - run: cargo build --release --target x86_64-apple-darwin
       - name: tar it up
         shell: bash
@@ -83,6 +85,7 @@ jobs:
           asset_name: boltzmann_x64_darwin.tar.gz
           asset_content_type: application/gzip
 
+      - run: rustup target add x86_64-pc-windows-msvc
       - run: cargo build --release --target 86_64-pc-windows-msvc
       - name: tar it up
         shell: bash
