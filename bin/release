@@ -1,0 +1,34 @@
+#!/bin/bash
+
+print_help() {
+  cat >&2 <<EOF
+USAGE: bin/release [level]
+
+Level should be one of release, patch, minor, major, alpha, beta, or rc.
+See the cargo-release documentation on what each of these mean:
+
+https://github.com/sunng87/cargo-release/blob/master/docs/reference.md
+
+EOF
+}
+
+if [ -z "$1" ]; then
+  print_help
+  exit 1
+fi
+
+level=$1
+
+if [ ! -e "$HOME/.cargo/bin/cargo-release" ]; then
+    echo "Installing cargo-release..."
+    cargo install cargo-release
+fi
+
+cargo release $level
+
+tag=$(git describe --tags)
+version=$(cargo read-manifest | jq -r ".version")
+
+echo
+echo "Next step: write release notes on GitHub!"
+open "https://github.com/entropic-dev/boltzmann/releases/tag/$version"
