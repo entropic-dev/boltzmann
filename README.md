@@ -19,7 +19,7 @@ Our design goals:
 
 Boltzmann provides Typescript definitions for its exports, for your development convenience, but it does not require you to opt-in to Typescript or do any transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
 
-For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/v0.1.9/).
+For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/0.2.0/).
 
 ## Getting started
 
@@ -33,7 +33,7 @@ For example, to scaffold with the defaults:
 projects|⇒ npx boltzmann-cli hello
 ```
 
-A complete project is provided for you, with useful package run scripts and linting. To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/v0.1.9/)
+A complete project is provided for you, with useful package run scripts and linting. To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/0.2.0/)
 
 ## Team
 
