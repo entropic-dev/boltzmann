@@ -26,9 +26,6 @@ fi
 
 cargo release $level
 
-tag=$(git describe --tags)
-version=$(cargo read-manifest | jq -r ".version")
-
-echo
+echo "We are now at version $(cargo read-manifest | jq -r ".version")"
 echo "Next step: write release notes on GitHub while the asset builds run."
 open "https://github.com/entropic-dev/boltzmann/releases/"
