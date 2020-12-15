@@ -23,7 +23,6 @@ features = ["derive"]
 version = "1.0.115"
 
 [package.metadata.release]
-disable-publish = true
 sign-commit = true
 sign-tag = true
 pre-release-replacements = [
