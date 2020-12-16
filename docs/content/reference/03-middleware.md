@@ -12,16 +12,16 @@ you need to attach yourself, either to specific handlers or to your app.
 
 <!-- more -->
 
-# User-attached middleware
+## User-attached middleware
 
-## `applyXFO`
+### `applyXFO`
 
 The `applyXFO` middleware adds an
 [X-Frame-Options header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
 to responses. It accepts one configuration value, the value of the header to set. This value must
 be one of `SAMEORIGIN` or `DENY`.
 
-**Example Configuration:**
+#### Example
 
 ```javascript
 'use strict'
@@ -35,35 +35,35 @@ module.exports = {
 }
 ```
 
----
+* * *
 
-## `authenticateJWT`
+### `authenticateJWT`
 
 [To be documented.](https://github.com/entropic-dev/boltzmann/issues/68)
 
----
+* * *
 
-## `esbuild`
+### `esbuild`
 
 [To be documented.](https://github.com/entropic-dev/boltzmann/issues/63)
 
----
+* * *
 
-## `handleCORS`
+### `handleCORS`
 
 The `handleCORS` middleware is always available to be attached. It configures headers to
 control [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), or CORS.
 
-### Arguments
+#### Arguments
 
-- `origins`: the origins that are permitted to request resources; sent in responses inn the
-  `Access-Control-Allow-Origin` header value
-- `methods`: the allowed HTTP verbs; sent in responses in the `Access-Control-Allow-Methods` header
-  value
-- `headers`: the custom headers the server will allow; sent in in responses in the
-  `Access-Control-Allow-Headers` header value
+-   `origins`: the origins that are permitted to request resources; sent in responses inn the
+    `Access-Control-Allow-Origin` header value
+-   `methods`: the allowed HTTP verbs; sent in responses in the `Access-Control-Allow-Methods` header
+    value
+-   `headers`: the custom headers the server will allow; sent in in responses in the
+    `Access-Control-Allow-Headers` header value
 
-**Example Configuration:**
+#### Example
 
 ```javascript
 const boltzmann = require('./boltzmann')
@@ -80,9 +80,9 @@ module.exports = {
 }
 ```
 
----
+* * *
 
-## `oauth`
+### `oauth`
 
 _Added in 0.2.0_.
 
@@ -90,37 +90,37 @@ This feature implements support for using [OAuth 2.0](https://oauth.net/2/) to a
 user with an external service provider, such as Google or Auth0. Enabling the feature provides
 four middlewares:
 
-- `handleOAuthLogin()`: Sets up a middleware to handle oauth login.
-- `handleOAuthCallback()`: Sets up a middleware that provides the callback url triggered by your OAuth provider after a successful login.
-- `handleOAuthLogout()`: Handles logging out an oauth-authenticated user. Unsets the key `userKey` in the user's session.
-- `oauth()`: This automatically attaches the above three middleware with identical config.
+-   `handleOAuthLogin()`: Sets up a middleware to handle oauth login.
+-   `handleOAuthCallback()`: Sets up a middleware that provides the callback url triggered by your OAuth provider after a successful login.
+-   `handleOAuthLogout()`: Handles logging out an oauth-authenticated user. Unsets the key `userKey` in the user's session.
+-   `oauth()`: This automatically attaches the above three middleware with identical config.
 
-### Configuration
+#### Arguments
 
-- `domain`: **Required** either in the config object or in the env var `OAUTH_DOMAIN`. The
-   fully-qualified domain name for the service providing authentication. For example,
-   `my-domain.auth0.com`.
-- `secret`: **Required**. either in the config object or in the env var `OAUTH_CLIENT_SECRET`.
-   Provided by your oauth service when you registered your application.
-- `clientId`: **Required** either in the config object or in the env var `OAUTH_CLIENT_ID`. Provided
-   by your oauth service when you registered your application.
-- `userKey`: The key to delete from session storage on logout. A session key is *not set* by
-  middleware; you responsible for setting any session storage yourself. Defaults to `user`.
-- `callbackUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_CALLBACK_URL`;
-  defaults to the uri `/callback` on your app.
-- `tokenUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_TOKEN_URL`;
-  defaults to `https://${OAUTH_DOMAIN}/oauth/token`
-- `userinfoUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_USERINFO_URL`.
-  If no value is provided, derived from the `domain` parameter as `https://${domain}/userinfo`
-- `authorizationUrl`: A full URI, with protocol and domain. Read from the env var
-  `OAUTH_AUTHORIZATION_URL`; defaults to `https://${OAUTH_DOMAIN}/authorize`
-- `expiryLeewaySeconds`: Read from the env var `OAUTH_EXPIRY_LEEWAY`. Defaults to 60 seconds.
-- `defaultNextPath`: defaults to `/`
-- `logoutRoute`: defaults to `/logout`,
-- `returnTo`: A full URI, with protocol and domain. Read from the env var `OAUTH_LOGOUT_CALLBACK`;
-  defaults to the uri `/` on your app.
-- `logoutUrl`: Read from the env var `AUTH_LOGOUT_URL`. Defaults to
-  `https://${OAUTH_DOMAIN}/v2/logout`
+-   `domain`: **Required** either in the config object or in the env var `OAUTH_DOMAIN`. The
+     fully-qualified domain name for the service providing authentication. For example,
+     `my-domain.auth0.com`.
+-   `secret`: **Required**. either in the config object or in the env var `OAUTH_CLIENT_SECRET`.
+     Provided by your oauth service when you registered your application.
+-   `clientId`: **Required** either in the config object or in the env var `OAUTH_CLIENT_ID`. Provided
+     by your oauth service when you registered your application.
+-   `userKey`: The key to delete from session storage on logout. A session key is _not set_ by
+    middleware; you responsible for setting any session storage yourself. Defaults to `user`.
+-   `callbackUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_CALLBACK_URL`;
+    defaults to the uri `/callback` on your app.
+-   `tokenUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_TOKEN_URL`;
+    defaults to `https://${OAUTH_DOMAIN}/oauth/token`
+-   `userinfoUrl`: A full URI, with protocol and domain. Read from the env var `OAUTH_USERINFO_URL`.
+    If no value is provided, derived from the `domain` parameter as `https://${domain}/userinfo`
+-   `authorizationUrl`: A full URI, with protocol and domain. Read from the env var
+    `OAUTH_AUTHORIZATION_URL`; defaults to `https://${OAUTH_DOMAIN}/authorize`
+-   `expiryLeewaySeconds`: Read from the env var `OAUTH_EXPIRY_LEEWAY`. Defaults to 60 seconds.
+-   `defaultNextPath`: defaults to `/`
+-   `logoutRoute`: defaults to `/logout`,
+-   `returnTo`: A full URI, with protocol and domain. Read from the env var `OAUTH_LOGOUT_CALLBACK`;
+    defaults to the uri `/` on your app.
+-   `logoutUrl`: Read from the env var `AUTH_LOGOUT_URL`. Defaults to
+    `https://${OAUTH_DOMAIN}/v2/logout`
 
 The OAuth middleware has many configuration knobs and dials to turn, but the middleware is usable in
 development if you set three environment variables: `OAUTH_DOMAIN`, `OAUTH_CLIENT_SECRET`, and
@@ -138,7 +138,7 @@ module.exports = {
 };
 ```
 
-### Advanced configuration
+#### Advanced configuration
 
 If you have a more complex setup, the individual middlewares can be configured differently.
 In each case, if you do not provide an optional configuration field, the default is determined
@@ -146,48 +146,48 @@ as documented above.
 
 `handleOauthCallback()` respects the following configuration fields:
 
-- `authorizationUrl`
-- `callbackUrl`
-- `clientId`
-- `defaultNextPath`
-- `domain`
-- `expiryLeewaySeconds`
-- `secret`
-- `tokenUrl`
-- `userinfoUrl`
-- `userKey`
+-   `authorizationUrl`
+-   `callbackUrl`
+-   `clientId`
+-   `defaultNextPath`
+-   `domain`
+-   `expiryLeewaySeconds`
+-   `secret`
+-   `tokenUrl`
+-   `userinfoUrl`
+-   `userKey`
 
 `handleOauthLogin()` respects the following configuration fields:
 
-- `audience`
-- `authorizationUrl`
-- `callbackUrl`
-- `clientId`
-- `connection_scope`
-- `connection`
-- `defaultNextPath`
-- `domain`
-- `login_hint`
-- `loginRoute`
-- `max_age`
-- `prompt`
+-   `audience`
+-   `authorizationUrl`
+-   `callbackUrl`
+-   `clientId`
+-   `connection_scope`
+-   `connection`
+-   `defaultNextPath`
+-   `domain`
+-   `login_hint`
+-   `loginRoute`
+-   `max_age`
+-   `prompt`
 
 `handleOauthLogin()` respects the following configuration fields:
 
-- `authorizationUrl`
-- `callbackUrl`
-- `clientId`
-- `defaultNextPath`
-- `domain`
-- `expiryLeewaySeconds`
-- `secret`
-- `tokenUrl`
-- `userinfoUrl`
-- `userKey`
+-   `authorizationUrl`
+-   `callbackUrl`
+-   `clientId`
+-   `defaultNextPath`
+-   `domain`
+-   `expiryLeewaySeconds`
+-   `secret`
+-   `tokenUrl`
+-   `userinfoUrl`
+-   `userKey`
 
----
+* * *
 
-## `session`
+### `session`
 
 _Added in 0.1.4_.
 
@@ -195,23 +195,23 @@ You can import session middleware with `require('./boltzmann').middleware.sessio
 middleware provides [HTTP session support] using sealed http-only [cookies]. You can read more about
 Boltzmann's session support in the ["storage" chapter].
 
-### Arguments:
+#### Arguments
 
-- `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
-  from `process.env.SESSION_SECRET`.
-- `salt`: **Required**. A string or buffer used to salt the client session id before hashing it for lookup.
-  Read from `process.env.SESSION_SALT`.
-- `load`: An async function taking `context` and an encoded `id` and returning a plain JavaScript object.
-  Automatically provided if the [`--redis`] feature is enabled, otherwise **required**. Examples below.
-- `save`: An async function taking `context`, an encoded `id`, and a plain JavaScript object for storage.
-  Automatically provided if the [`--redis`] feature is enabled, otherwise **required**. Examples below.
-- `cookie`: The name of the cookie to read the client session id from. Read from `process.env.SESSION_ID`.
-- `iron`: Extra options for [`@hapi/iron`], which is used to seal the client session id for transport in
-  a cookie.
-- `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
-- `cookieOptions`: An object containing options passed to the [`cookie`] package when serializing a session id.
+-   `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
+    from `process.env.SESSION_SECRET`.
+-   `salt`: **Required**. A string or buffer used to salt the client session id before hashing it for lookup.
+    Read from `process.env.SESSION_SALT`.
+-   `load`: An async function taking `context` and an encoded `id` and returning a plain JavaScript object.
+    Automatically provided if the [`--redis`] feature is enabled, otherwise **required**. Examples below.
+-   `save`: An async function taking `context`, an encoded `id`, and a plain JavaScript object for storage.
+    Automatically provided if the [`--redis`] feature is enabled, otherwise **required**. Examples below.
+-   `cookie`: The name of the cookie to read the client session id from. Read from `process.env.SESSION_ID`.
+-   `iron`: Extra options for [`@hapi/iron`], which is used to seal the client session id for transport in
+    a cookie.
+-   `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
+-   `cookieOptions`: An object containing options passed to the [`cookie`] package when serializing a session id.
 
-**Example Configurations:**
+#### Examples
 
 ```javascript
 const { middleware } = require('./boltzmann')
@@ -261,54 +261,59 @@ module.exports = {
 ```
 
 [`--redis`]: @/reference/01-cli.md#redis
+
 [`@hapi/iron`]: https://github.com/hapijs/iron
+
 [HTTP session support]: https://en.wikipedia.org/wiki/Session_(computer_science)#HTTP_session_token
+
 [cookies]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies
+
 ["storage" chapter]: #TKTKTK
+
 [`cookie`]: https://www.npmjs.com/package/cookie#options-1
 
----
+* * *
 
-## `staticfiles`
+### `staticfiles`
 
 [To be documented.](https://github.com/entropic-dev/boltzmann/issues/64)
 
----
+* * *
 
-## `template`
+### `template`
 
 The `template` middleware is available if you have enabled the templating feature with
 `--templates=on`.  It enables returning rendered [nunjucks](https://mozilla.github.io/nunjucks/)
 templates from handlers. See the [website features overview](@/concepts/03-websites.md) for a
 description of how to use templates to build websites and the development conveniences provided.
 
-### Arguments
+#### Arguments
 
-- `paths`: an array of string paths where template files are looked up; defaults to `./templates`, a
-  single directory relative to the application root.
-- `filters`: an object specifying [custom
-  filters](https://mozilla.github.io/nunjucks/api#custom-filters) to add to the Nunjucks renderer.
-  Object keys are filter names, and the values must be filter functions.
-- `tags`: [custom tags](https://mozilla.github.io/nunjucks/api#custom-tags) that extend the nunjucks
-  renderer. Object keys are tag/extention names, and the values are the extention implementations.
-- `logger`: ; defaults to `bole('boltzmann:templates')`
-- `opts`: a [configuration object](https://mozilla.github.io/nunjucks/api.html#configure) passed to
-  nunjunks. Defaults to the single setting `noCache`, which is set to true if the app is run in
-  development mode, to support caching in production but livereload in development.
+-   `paths`: an array of string paths where template files are looked up; defaults to `./templates`, a
+    single directory relative to the application root.
+-   `filters`: an object specifying [custom
+    filters](https://mozilla.github.io/nunjucks/api#custom-filters) to add to the Nunjucks renderer.
+    Object keys are filter names, and the values must be filter functions.
+-   `tags`: [custom tags](https://mozilla.github.io/nunjucks/api#custom-tags) that extend the nunjucks
+    renderer. Object keys are tag/extention names, and the values are the extention implementations.
+-   `logger`: ; defaults to `bole('boltzmann:templates')`
+-   `opts`: a [configuration object](https://mozilla.github.io/nunjucks/api.html#configure) passed to
+    nunjunks. Defaults to the single setting `noCache`, which is set to true if the app is run in
+    development mode, to support caching in production but livereload in development.
 
----
+* * *
 
-## `templateContext`
+### `templateContext`
 
 The `template` middleware is available if you have enabled the templating feature with
 `--templates=on`. It allows you to add extra data to every context value sent to template
 rendering.
 
-### Arguments
+#### Arguments
 
-- `extraContext`: An object specifying key/value pairs to add to the context. The keys are the name of the context value. The value can either be a static value or an optionally asynchronous function returning a value.
+-   `extraContext`: An object specifying key/value pairs to add to the context. The keys are the name of the context value. The value can either be a static value or an optionally asynchronous function returning a value.
 
-**Example configuration**
+#### Example
 
 ```javascript
 const boltzmann = require('./boltzmann')
@@ -330,15 +335,15 @@ module.exports = {
 }
 ```
 
----
+* * *
 
-# Automatically attached middleware
+## Automatically attached middleware
 
-Automatically-attached middleware is middleware you can configure but do *not* need to attach to
+Automatically-attached middleware is middleware you can configure but do _not_ need to attach to
 the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
 them are enabled. You can often configure this middleware, however, using environment variables.
 
-## `attachPostgres`
+### `attachPostgres`
 
 This middleware is enabled when the [postgres feature](@/reference/01-cli.md#postgres) is enabled.
 It creates a postgres client and makes it available on the context object via an async getter. To use it:
@@ -349,13 +354,13 @@ const client = await context.postgresClient
 
 Configure the postgres client with these two environment variables:
 
-- `PGURL`: the URI of the database to connect to; defaults to
-  `postgres://postgres@localhost:5432/${process.env.SERVICE_NAME}`
-- `PGPOOLSIZE`: the maximum number of connections to make in the connection pool; defaults to 20
+-   `PGURL`: the URI of the database to connect to; defaults to
+    `postgres://postgres@localhost:5432/${process.env.SERVICE_NAME}`
+-   `PGPOOLSIZE`: the maximum number of connections to make in the connection pool; defaults to 20
 
----
+* * *
 
-## `attachRedis`
+### `attachRedis`
 
 This middleware is attached when the [redis feature](@/reference/01-cli.md#redis) is enabled.
 It adds a configured, promisified Redis client to the context object accessible via the
@@ -363,34 +368,34 @@ getter `context.redisClient`. This object is a [handy-redis](https://github.com/
 client with a promisified API. The environment variable `REDIS_URL` is passed to the handy-redis
 constructor.
 
----
+* * *
 
-## `devMiddleware`
+### `devMiddleware`
 
 This middleware is attached when Boltzmann runs in development mode. It provides stall and hang
 timers to aid in detecting and debugging slow middleware.
 
 You can configure what slow means in your use case by setting these two environment variables:
 
-- `DEV_LATENCY_ERROR_MS`: the length of time a middleware is allowed to run before it's treated as
-  hung, in milliseconds
-- `DEV_LATENCY_WARNING_MS`: the length of time a middleware can run before you get a warning that
-  it's slow, in milliseconds
+-   `DEV_LATENCY_ERROR_MS`: the length of time a middleware is allowed to run before it's treated as
+    hung, in milliseconds
+-   `DEV_LATENCY_WARNING_MS`: the length of time a middleware can run before you get a warning that
+    it's slow, in milliseconds
 
 This middleware does nothing if your app is not in development mode.
 
----
+* * *
 
-## `handlePing`
+### `handlePing`
 
 This middleware adds a handler at `GET /monitor/ping`. It responds with a short text string that is
 selected randomly at process start. This endpoint is intended to be called often by load balancers
 or other automated processes that check if the process is listening. No other middleware is invoked
-for this endpoint. In particular, it is *not* logged.
+for this endpoint. In particular, it is _not_ logged.
 
----
+* * *
 
-## `handleStatus`
+### `handleStatus`
 
 This middleware is attached when the [status feature](@/reference/01-cli.md#status) is enabled. It
 mounts a handler at `GET /monitor/status` that includes helpful information about the process status
@@ -430,15 +435,15 @@ This endpoint uses the value of the environment variable `GIT_COMMIT`, if set, t
 
 If you have enabled this endpoint, you might wish to make sure it is not externally accessible. A common way of doing this is to block routes that match `/monitor/` in external-facing proxies or load balancers.
 
----
+* * *
 
-## `livereload`
+### `livereload`
 
 [To be documented.](https://github.com/entropic-dev/boltzmann/issues/65)
 
----
+* * *
 
-## `log`
+### `log`
 
 This middleware is always attached to Boltzmann apps.
 
@@ -475,9 +480,9 @@ async function greeting(/** @type {Context} */ context) {
 }
 ```
 
----
+* * *
 
-## `trace`
+### `trace`
 
 This middleware is added to your service if you have enabled the `honeycomb` feature.
 This feature sends trace data to the [Honeycomb](https://www.honeycomb.io) service for
@@ -485,15 +490,14 @@ deep observability of theperformance of your handlers.
 
 To configure this middleware, set the following environment variables:
 
-- `HONEYCOMBIO_WRITE_KEY`: the honeycomb API key to use; required to enable tracing
-- `HONEYCOMBIO_DATASET`: the name of the dataset to send trace data to; required to enable tracing
-- `HONEYCOMBIO_TEAM`: optional; set this to enable links to traces from error reporting
-- `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
-- `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
+-   `HONEYCOMBIO_WRITE_KEY`: the honeycomb API key to use; required to enable tracing
+-   `HONEYCOMBIO_DATASET`: the name of the dataset to send trace data to; required to enable tracing
+-   `HONEYCOMBIO_TEAM`: optional; set this to enable links to traces from error reporting
+-   `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
+-   `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
 
 The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is
 disabled if a write key and dataset are not provided; the middleware is still
 attached but does nothing in this case.
 
----
-
+* * *
