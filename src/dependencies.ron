@@ -259,4 +259,13 @@
       feature: Some("typescript")
     ))
   ),
+
+  DependencySpec(
+    name: "@tsconfig/node14",
+    version: "^1.0.0",
+    kind: Development,
+    preconditions: Some(When(
+      feature: Some("typescript")
+    ))
+  ),
 ]

@@ -1,16 +1,8 @@
-// {%- if esm %}
-// {% set EXPORTS = "export " %}
 import { middleware } from './boltzmann.js'
-// {% else %}
-// {% set EXPORTS = "" %}
-'use strict'
-
-const { middleware } = require('./boltzmann')
-// {% endif %}
 
 // All Boltzmann middleware looks like this.
 // Middleware can be attached to either the app or individual routes.
-{{ EXPORTS }} function setupMiddlewareFunc(/* your config */) {
+export function setupMiddlewareFunc(/* your config */) {
   // startup configuration goes here
   return function createMiddlewareFunc(next) {
     return async function inner(context) {
@@ -27,7 +19,7 @@ const { middleware } = require('./boltzmann')
 }
 
 // Here's a more compactly-defined middleware.
-{{ EXPORTS }} function routeMiddlewareFunc(/* your config */) {
+export function routeMiddlewareFunc(/* your config */) {
   return (next) => {
     return (context) => {
       return next(context)
@@ -38,7 +30,7 @@ const { middleware } = require('./boltzmann')
 // This export is special: it instructs Boltzmann to attach
 // middlewares to the app in this order.
 // This is also where you can configure built-in middleware.
-{{ EXPORTS }} const APP_MIDDLEWARE = [
+export const APP_MIDDLEWARE = [
   setupMiddlewareFunc,
   {%- if jwt %}
   /* Provide a path to a file containing your public key & uncomment to enable
@@ -112,15 +104,3 @@ const { middleware } = require('./boltzmann')
   }],
   {%- endif %}
 ]
-
-// {% if not esm %}
-module.exports = {
-  // This export is special: it instructs Boltzmann to attach middlewares to the app in this
-  // order. This is also where you can configure built-in middleware.
-  APP_MIDDLEWARE,
-
-  // You can export middleware for testing or for attaching to routes.
-  routeMiddlewareFunc,
-  setupMiddlewareFunc,
-}
-// {% endif %}
