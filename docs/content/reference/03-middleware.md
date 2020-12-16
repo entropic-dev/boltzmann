@@ -298,7 +298,7 @@ description of how to use templates to build websites and the development conven
     renderer. Object keys are tag/extention names, and the values are the extention implementations.
 -   `logger`: ; defaults to `bole('boltzmann:templates')`
 -   `opts`: a [configuration object](https://mozilla.github.io/nunjucks/api.html#configure) passed to
-    nunjunks. Defaults to the single setting `noCache`, which is set to true if the app is run in
+    nunjucks. Defaults to the single setting `noCache`, which is set to true if the app is run in
     development mode, to support caching in production but livereload in development.
 
 * * *
