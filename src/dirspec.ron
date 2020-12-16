@@ -2,12 +2,71 @@ Dir(DirSpec(
   children: [
     ("boltzmann.js", 0o755, Template(TemplateSpec(
       template_name: "boltzmann.js"
-    )), None),
+    )), Some(When(
+      none_of: ["typescript"],
+    ))),
+
+    ("boltzmann.ts", 0o755, Template(TemplateSpec(
+      template_name: "boltzmann.js"
+    )), Some(When(
+      feature: Some("typescript"),
+    ))),
 
     ("handlers.js", 0o644, Template(TemplateSpec(
-      template_name: "handlers.js"
+      template_name: "handlers_cjs.js"
     )), Some(When(
+      none_of: ["esm", "typescript"],
       if_not_present: ["handlers.js", "handlers"]
+    ))),
+
+    ("handlers.js", 0o644, Template(TemplateSpec(
+      template_name: "handlers_esm.js"
+    )), Some(When(
+      none_of: ["typescript"],
+      feature: Some("esm"),
+      if_not_present: ["handlers.js", "handlers"]
+    ))),
+
+    ("handlers.ts", 0o644, Template(TemplateSpec(
+      template_name: "handlers_esm.js"
+    )), Some(When(
+      feature: Some("typescript"),
+      if_not_present: ["handlers.js", "handlers"]
+    ))),
+
+    ("middleware.js", 0o644, Template(TemplateSpec(
+      template_name: "middleware_cjs.js",
+    )), Some(When(
+      none_of: ["esm", "typescript"],
+      if_not_present: ["middleware.js", "middleware"]
+    ))),
+
+    ("middleware.js", 0o644, Template(TemplateSpec(
+      template_name: "middleware_esm.js",
+    )), Some(When(
+      none_of: ["typescript"],
+      feature: Some("esm"),
+      if_not_present: ["middleware.js", "middleware"]
+    ))),
+
+    ("middleware.ts", 0o644, Template(TemplateSpec(
+      template_name: "middleware_esm.js",
+    )), Some(When(
+      feature: Some("typescript"),
+      if_not_present: ["middleware.js", "middleware"]
+    ))),
+
+    ("tsconfig.json", 0o644, Template(TemplateSpec(
+      template_name: "tsconfig.json",
+    )), Some(When(
+      feature: Some("typescript"),
+      if_not_present: ["tsconfig.json"]
+    ))),
+
+    ("nodemon.json", 0o644, Template(TemplateSpec(
+      template_name: "nodemon.json",
+    )), Some(When(
+      if_not_present: ["nodemon.json"]
     ))),
 
     ("templates", 0o755, Dir(DirSpec(
@@ -44,12 +103,6 @@ Dir(DirSpec(
       if_not_present: [".prettierrc.js", ".prettierrc" ]
     ))),
 
-    ("middleware.js", 0o644, Template(TemplateSpec(
-      template_name: "middleware.js",
-    )), Some(When(
-      if_not_present: ["middleware.js", "middleware"]
-    ))),
-
     (".github", 0o755, Dir(DirSpec(
       children: [
         ("workflows", 0o755, Dir(DirSpec(
@@ -62,7 +115,6 @@ Dir(DirSpec(
       ]
     )), Some(When(
       feature: Some("githubci"),
-      if_not_present: []
     ))),
 
     // jumper module for selftest, to trick tap into
@@ -71,7 +123,6 @@ Dir(DirSpec(
       template_name: "selftest.js",
     )), Some(When(
       feature: Some("selftest"),
-      if_not_present: []
     )))
   ],
 ))

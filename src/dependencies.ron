@@ -23,7 +23,6 @@
     kind: Normal,
     preconditions: Some(When(
       feature: Some("esm"),
-      if_not_present: []
     ))
   ),
   DependencySpec(
@@ -32,7 +31,6 @@
     kind: Normal,
     preconditions: Some(When(
       feature: Some("templates"),
-      if_not_present: []
     ))
   ),
   DependencySpec(
@@ -41,7 +39,6 @@
     kind: Normal,
     preconditions: Some(When(
       feature: Some("oauth"),
-      if_not_present: []
     ))
   ),
   DependencySpec(
@@ -50,7 +47,6 @@
     kind: Normal,
     preconditions: Some(When(
       feature: Some("esbuild"),
-      if_not_present: []
     ))
   ),
   DependencySpec(
@@ -59,7 +55,6 @@
     kind: Normal,
     preconditions: Some(When(
       feature: Some("staticfiles"),
-      if_not_present: []
     ))
   ),
   DependencySpec(
@@ -84,13 +79,13 @@
     name: "jsonwebtoken",
     version: "^8.5.1",
     kind: Normal,
-    preconditions: Some(When(feature: Some("jwt"),if_not_present: []))
+    preconditions: Some(When(feature: Some("jwt")))
   ),
   DependencySpec(
     name: "jsonwebtoken",
     version: "^8.5.1",
     kind: Normal,
-    preconditions: Some(When(feature: Some("oauth"),if_not_present: []))
+    preconditions: Some(When(feature: Some("oauth")))
   ),
   DependencySpec(
     name: "ajv",
@@ -114,37 +109,37 @@
     name: "csrf",
     version: "^3.1.0",
     kind: Normal,
-    preconditions: Some(When(feature: Some("csrf"),if_not_present: []))
+    preconditions: Some(When(feature: Some("csrf")))
   ),
   DependencySpec(
     name: "honeycomb-beeline",
     version: "^2.1.1",
     kind: Normal,
-    preconditions: Some(When(feature: Some("honeycomb"),if_not_present: []))
+    preconditions: Some(When(feature: Some("honeycomb")))
   ),
   DependencySpec(
     name: "on-headers",
     version: "^1.0.2",
     kind: Normal,
-    preconditions: Some(When(  feature: Some("honeycomb"), if_not_present: [] ))
+    preconditions: Some(When(  feature: Some("honeycomb")))
   ),
   DependencySpec(
     name: "pg",
     version: "^8.3.3",
     kind: Normal,
-    preconditions: Some(When(  feature: Some("postgres"),if_not_present: [] ))
+    preconditions: Some(When(  feature: Some("postgres")))
   ),
   DependencySpec(
     name: "handy-redis",
     version: "^1.8.1",
     kind: Normal,
-    preconditions: Some(When( feature: Some("redis"),if_not_present: [] ))
+    preconditions: Some(When( feature: Some("redis")))
   ),
   DependencySpec(
     name: "redis",
     version: "^3.0.2",
     kind: Normal,
-    preconditions: Some(When(feature: Some("redis"),if_not_present: []))
+    preconditions: Some(When(feature: Some("redis")))
   ),
 
   DependencySpec(
@@ -158,7 +153,7 @@
     name: "esbuild",
     version: "^0.8.6",
     kind: Development,
-    preconditions: Some(When(feature: Some("esbuild"), if_not_present: []))
+    preconditions: Some(When(feature: Some("esbuild")))
   ),
   DependencySpec(
     name: "tap",
@@ -172,7 +167,6 @@
     kind: Development,
     preconditions: Some(When(
       feature: Some("templates"),
-      if_not_present: []
     ))
   ),
   DependencySpec(
@@ -248,4 +242,21 @@
     preconditions: None
   ),
 
+  DependencySpec(
+    name: "ts-node",
+    version: "^9.1.1",
+    kind: Development,
+    preconditions: Some(When(
+      feature: Some("typescript")
+    ))
+  ),
+
+  DependencySpec(
+    name: "typescript",
+    version: "^4.1.3",
+    kind: Development,
+    preconditions: Some(When(
+      feature: Some("typescript")
+    ))
+  ),
 ]

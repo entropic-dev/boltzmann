@@ -7,6 +7,7 @@ use log::{info, debug, trace};
 use std::os::unix::fs::{ DirBuilderExt, OpenOptionsExt };
 #[cfg(target_os = "windows")]
 use std::os::windows::fs::OpenOptionsExt;
+use std::collections::HashSet;
 
 use std::path::PathBuf;
 
@@ -86,23 +87,37 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
             return Err(e.into())
         }
     }
+    let mapped = serde_json::to_value(settings)?;
 
+    // Track files we created in prior iterations of the loop. If we created them on this run, do
+    // not log the "git rm" message when skipping.
+    let mut created = HashSet::new();
     'next:
     for (basename, mode, node, when) in spec.children {
         if let Some(preconditions) = when {
+            for exclude in preconditions.none_of {
+                let has_feature = mapped.get(exclude.clone())
+                    .map(|xs| xs.as_bool().unwrap_or(false))
+                    .unwrap_or(false);
+
+                if has_feature {
+                    trace!("        skipping {} (because {} is activated)", basename.strikethrough().blue(), exclude);
+                    continue 'next
+                }
+            }
+
             if let Some(feature) = preconditions.feature {
-                let mapped = serde_json::to_value(settings)?;
                 let has_feature = mapped.get(feature.clone())
                     .map(|xs| xs.as_bool().unwrap_or(false))
                     .unwrap_or(false);
 
                 if !has_feature {
                     trace!("        skipping {} ({} deactivated)", basename.strikethrough().blue(), feature);
-                    let mut cloned_cwd = cwd.clone();
-                    cloned_cwd.push(&basename[..]);
-                    if cloned_cwd.as_path().exists() {
+                    cwd.push(&basename[..]);
+                    if !created.contains(cwd.as_path()) && cwd.as_path().exists() {
                         info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
                     }
+                    cwd.pop();
                     continue
                 }
             }
@@ -119,6 +134,7 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
         }
 
         cwd.push(&basename[..]);
+        created.insert(cwd.clone());
         parents.push(basename.clone());
 
         // failure to render is fatal.

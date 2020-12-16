@@ -51,6 +51,9 @@ pub struct Flags {
     #[structopt(long, help = "Enable Nunjucks templates")]
     templates: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Enable typescript")]
+    typescript: Option<Option<Flipper>>,
+
     #[structopt(long, help = "Scaffold project using ES Modules")]
     esm: Option<Option<Flipper>>,
 
