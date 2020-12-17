@@ -318,7 +318,7 @@ rendering.
 
 ```javascript
 const boltzmann = require('./boltzmann')
-async function fetchActiveUsers() {
+async function fetchActiveUsers(context) {
   // do something with i/o here
 }
 
