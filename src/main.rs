@@ -456,10 +456,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                     }
                 }
             }
-
-            info!("        updating runscript {}", candidate.key.bold().magenta());
-            scripts.insert(candidate.key, format!("{} # managed by boltzmann", candidate.value).into());
         }
+
+        info!("        updating runscript {}", candidate.key.bold().magenta());
+        scripts.insert(candidate.key, format!("{} # managed by boltzmann", candidate.value).into());
     }
 
     info!("    writing updated package.json...");

@@ -1,6 +1,6 @@
 [
     RunScriptSpec(
-        name: "lint",
+        key: "lint",
         value: "eslint .",
         preconditions: Some(When(
             if_not_present: ["lint"]
@@ -8,7 +8,7 @@
     ),
 
     RunScriptSpec(
-        name: "posttest",
+        key: "posttest",
         value: "npm run lint",
         preconditions: Some(When(
             if_not_present: ["posttest"]
@@ -16,7 +16,7 @@
     ),
 
     RunScriptSpec(
-        name: "test",
+        key: "test",
         value: "tap test",
         preconditions: Some(When(
             if_not_present: ["test"],
@@ -25,7 +25,7 @@
     ),
 
     RunScriptSpec(
-        name: "test",
+        key: "test",
         value: "tap --no-esm test",
         preconditions: Some(When(
             if_not_present: ["test"],
@@ -35,7 +35,7 @@
     ),
 
     RunScriptSpec(
-        name: "start",
+        key: "start",
         value: "nodemon ./boltzmann.js",
         preconditions: Some(When(
             if_not_present: ["lint"]
@@ -43,12 +43,12 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:upgrade",
+        key: "boltzmann:upgrade",
         value: "npx boltzmann-cli",
     ),
 
     RunScriptSpec(
-        name: "boltzmann:routes",
+        key: "boltzmann:routes",
         value: "node -e 'require(\"./boltzmann\").printRoutes()'",
         preconditions: Some(When(
             none_of: ["esm", "typescript"],
@@ -56,7 +56,7 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:routes",
+        key: "boltzmann:routes",
         value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.printRoutes())",
         preconditions: Some(When(
             none_of: ["typescript"],
@@ -65,7 +65,7 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:routes",
+        key: "boltzmann:routes",
         value: "node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
         preconditions: Some(When(
             none_of: ["esm"],
@@ -74,7 +74,7 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:esbuild",
+        key: "boltzmann:esbuild",
         value: "node -r ts-node/register -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'",
         preconditions: Some(When(
             none_of: ["typescript", "esm"],
@@ -83,7 +83,7 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:esbuild",
+        key: "boltzmann:esbuild",
         value: "node -r ts-node/register -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'",
         preconditions: Some(When(
             none_of: ["esm"],
@@ -92,8 +92,8 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:esbuild",
-        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'"
+        key: "boltzmann:esbuild",
+        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'",
         preconditions: Some(When(
             none_of: ["typescript"],
             all_of: ["esbuild", "esm"]
@@ -101,15 +101,15 @@
     ),
 
     RunScriptSpec(
-        name: "boltzmann:esbuild",
-        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'"
+        key: "boltzmann:esbuild",
+        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'",
         preconditions: Some(When(
             all_of: ["esbuild", "esm", "typescript"]
         ))
     ),
 
     RunScriptSpec(
-        name: "boltzmann:docs",
+        key: "boltzmann:docs",
         value: "npx boltzmann-cli docs"
     )
 ]
