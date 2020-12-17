@@ -1,6 +1,5 @@
 #![allow(clippy::option_option)]
 
-use std::collections::BTreeMap;
 use std::io::prelude::*;
 use std::path::PathBuf;
 
@@ -110,85 +109,28 @@ pub struct Flags {
     destination: PathBuf
 }
 
-#[derive(Deserialize, Debug, Serialize)]
-struct RunScripts {
-    lint: Option<String>,
-    posttest: Option<String>,
-    start: Option<String>,
-    test: Option<String>,
-
-    #[serde(rename = "boltzmann:upgrade")]
-    upgrade: Option<String>,
-
-    #[serde(rename = "boltzmann:routes")]
-    routes: Option<String>,
-
-    #[serde(rename = "boltzmann:esbuild")]
-    esbuild: Option<String>,
-
-    #[serde(rename = "boltzmann:docs")]
-    docs: Option<String>,
-
-    #[serde(flatten)]
-    pub(crate) rest: BTreeMap<String, Value>,
-}
-
-impl RunScripts {
-    fn upgrade_string() -> String {
-        "npx boltzmann-cli".to_string()
-    }
-
-    fn routes_string() -> String {
-        "node -e 'require(\"./boltzmann\").printRoutes()'".to_string()
-    }
-
-    fn routes_string_esm() -> String {
-        "node -e 'import(\"./boltzmann.js\").then(xs => xs.printRoutes())'".to_string()
-    }
-
-    fn esbuild_string() -> String {
-        "node -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'".to_string()
-    }
-
-    fn esbuild_string_esm() -> String {
-        "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'".to_string()
-    }
-
-    fn docs_string() -> String {
-        "npx boltzmann-cli --docs".to_string()
-    }
-}
-
-impl Default for RunScripts {
-    fn default() -> Self {
-        RunScripts {
-            lint: Some("eslint .".to_string()),
-            posttest: Some("npm run lint".to_string()),
-            start: Some("nodemon ./boltzmann.js".to_string()),
-            test: Some("tap test".to_string()),
-            upgrade: Some(RunScripts::upgrade_string()),
-            routes: Some(RunScripts::routes_string()),
-            esbuild: None,
-            docs: Some(RunScripts::docs_string()),
-            rest: BTreeMap::new()
-        }
-    }
+#[derive(Deserialize)]
+struct RunScriptSpec {
+    key: String,
+    value: String,
+    preconditions: Option<When>
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct PackageJson {
     #[serde(flatten)]
-    pub(crate) rest: BTreeMap<String, Value>,
+    pub(crate) rest: serde_json::Map<String, Value>,
 
-    dependencies: Option<BTreeMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    dependencies: Option<serde_json::Map<String, Value>>,
 
-    #[serde(rename = "devDependencies")]
-    dev_dependencies: Option<BTreeMap<String, String>>,
+    #[serde(rename = "devDependencies", skip_serializing_if = "Option::is_none")]
+    dev_dependencies: Option<serde_json::Map<String, Value>>,
 
-    #[serde(rename = "type")]
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     module_type: Option<String>,
 
-    scripts: Option<RunScripts>,
+    scripts: Option<serde_json::Map<String, Value>>,
     boltzmann: Option<Settings>,
 }
 
@@ -262,18 +204,17 @@ fn initialize_package_json(path: &PathBuf, verbosity: u64) -> Result<()> {
     }
 }
 
-fn print_table<T: std::fmt::Display + Clone>(input: Vec<T>, columns: usize, indent: usize) {
-    let mut data = input.clone();
+fn print_table<T: std::fmt::Display + Clone>(mut input: Vec<T>, columns: usize, indent: usize) {
     let mut table = Table::new();
     table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
     table.get_format().indent(indent);
 
-    while data.len() > columns {
-        let (line, remainder) = data.split_at(columns);
+    while input.len() > columns {
+        let (line, remainder) = input.split_at(columns);
         table.add_row(line.into());
-        data = remainder.to_vec();
+        input = remainder.to_vec();
     }
-    table.add_row(data.into());
+    table.add_row(input.into());
     table.printstd();
 }
 
@@ -373,13 +314,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     let mut package_json = if let Some(mut package_json) = load_package_json(&flags, default_settings.clone()) {
         info!("    loaded settings from existing package.json");
-        package_json.scripts = package_json.scripts.map(|mut scripts| {
-            scripts.upgrade.replace(RunScripts::upgrade_string());
-            scripts.routes.replace(RunScripts::routes_string());
-            scripts.docs.replace(RunScripts::docs_string());
-            scripts
-        }).or_else(Default::default);
-
+        package_json.scripts = package_json.scripts.or_else(Default::default);
         package_json
     } else {
         first_scaffold = true;
@@ -404,8 +339,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let old = serde_json::to_value(settings)?;
     let new = serde_json::to_value(&updated_settings)?;
 
-    let mut dependencies = package_json.dependencies.take().unwrap_or_else(BTreeMap::new);
-    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(BTreeMap::new);
+    let mut dependencies = package_json.dependencies.take().unwrap_or_else(Default::default);
+    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(Default::default);
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
     info!("    updating dependencies...");
 
@@ -413,6 +348,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
 
     let mut actions: Vec<String> = Vec::new();
+    let false_sentinel = Value::Bool(false);
 
     for candidate in candidates {
         let target = match candidate.kind {
@@ -423,33 +359,45 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         let has_dep_currently = target.contains_key(&candidate.name[..]);
 
         if let Some(preconditions) = candidate.preconditions {
-            let feature = preconditions.feature.unwrap();
-            let wants_feature = new.get(&feature)
-                .map(|xs| xs.as_bool().unwrap_or(false))
-                .unwrap_or(false);
-            let used_to_have = old.get(&feature)
-                .map(|xs| xs.as_bool().unwrap_or(false))
-                .unwrap_or(false);
+            let wants_feature = preconditions.all_of.iter()
+                .all(|feature| {
+                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                    has_feature.as_bool().unwrap_or(false)
+                }) && !preconditions.none_of.iter()
+                .any(|feature| {
+                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                    has_feature.as_bool().unwrap_or(false)
+                });
+
+            let used_to_have = preconditions.all_of.iter()
+                .all(|feature| {
+                    let has_feature = old.get(feature).unwrap_or(&false_sentinel);
+                    has_feature.as_bool().unwrap_or(false)
+                }) && !preconditions.none_of.iter()
+                .any(|feature| {
+                    let has_feature = old.get(feature).unwrap_or(&false_sentinel);
+                    has_feature.as_bool().unwrap_or(false)
+                });
 
             // Note that we log on a state change, but we always make the change to pick up new versions.
             if wants_feature {
                 if !has_dep_currently {
-                    actions.push(format!("{}@{} ({} enabled)", candidate.name.bold().magenta(), candidate.version, feature));
+                    actions.push(format!("{}@{} ({} enabled)", candidate.name.bold().magenta(), candidate.version, preconditions.all_of.join(", ")));
                 }
-                target.insert(candidate.name, candidate.version);
+                target.insert(candidate.name, candidate.version.into());
             } else if wants_feature != used_to_have {
                 if has_dep_currently {
-                    actions.push(format!("ⅹ {} ({} disabled)", candidate.name.strikethrough().magenta(), feature));
+                    actions.push(format!("ⅹ {} ({} disabled)", candidate.name.strikethrough().magenta(), preconditions.all_of.join(", ")));
                 }
                 target.remove(&candidate.name[..]);
             }
         } else if !has_dep_currently {
             actions.push(format!("{}@{} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind));
-            target.insert(candidate.name, candidate.version);
+            target.insert(candidate.name, candidate.version.into());
         } else if let Some(current_value) = target.get(&candidate.name[..]) {
-            if current_value.as_str() != candidate.version.as_str() {
+            if current_value.as_str().unwrap_or("") != candidate.version.as_str() {
                 actions.push(format!("{}@{} ➜ {} {}", candidate.name.bold().magenta(), current_value, candidate.version, candidate.kind));
-                target.insert(candidate.name, candidate.version);
+                target.insert(candidate.name, candidate.version.into());
             }
         }
     }
@@ -459,28 +407,60 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         print_table(actions, 2, 6);
     }
 
-    let has_esm = if let Some(esm) = updated_settings.esm {
-        if esm {
-            package_json.module_type = Some("module".to_string());
-        }
-        esm
+    package_json.dependencies.replace(dependencies);
+    package_json.dev_dependencies.replace(devdeps);
+
+    if updated_settings.esm.unwrap_or(false) {
+        package_json.module_type = Some("module".to_string());
     } else {
-        false
-    };
-
-    if let Some(mut scripts) = package_json.scripts.as_mut() {
-        if let Some(esbuild) = updated_settings.esbuild {
-            if esbuild {
-                scripts.esbuild = Some(if has_esm { RunScripts::esbuild_string_esm() } else { RunScripts::esbuild_string() });
-            }
-        }
-
-        scripts.routes = Some(if has_esm { RunScripts::routes_string_esm() } else { RunScripts::routes_string() });
+        package_json.module_type = None
     }
 
     package_json.boltzmann.replace(updated_settings.clone());
-    package_json.dependencies.replace(dependencies);
-    package_json.dev_dependencies.replace(devdeps);
+
+
+    // Update package.json run scripts:
+    let candidates: Vec<RunScriptSpec> = ron::de::from_str(include_str!("runscripts.ron"))?;
+    let mut scripts = package_json.scripts.take().unwrap();
+
+    'next:
+    for candidate in candidates {
+        if let Some(preconditions) = candidate.preconditions {
+            let wants_feature = preconditions.all_of.iter()
+                .all(|feature| {
+                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                    has_feature.as_bool().unwrap_or(false)
+                }) && !preconditions.none_of.iter()
+                .any(|feature| {
+                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                    has_feature.as_bool().unwrap_or(false)
+                });
+
+            if !wants_feature {
+                continue
+            }
+
+            for check_presence in preconditions.if_not_present {
+                if let Some(value) = scripts.get(check_presence.as_str()) {
+                    // for upgrading from old versions of boltzmann: if the value of the runscript
+                    // target EXACTLY MATCHES what the candidate proposes to update it to, go ahead
+                    // and update it so we can add the "managed by boltzmann" suffix we'll use
+                    // going forward.
+                    if value.as_str().unwrap_or("") == candidate.value {
+                        continue
+                    }
+
+                    if !value.as_str().unwrap_or("").ends_with("# managed by boltzmann") {
+                        info!("        not updating runscript {}; {} is present and not managed by boltzmann", candidate.key.bold().magenta(), value);
+                        continue 'next
+                    }
+                }
+            }
+
+            info!("        updating runscript {}", candidate.key.bold().magenta());
+            scripts.insert(candidate.key, format!("{} # managed by boltzmann", candidate.value).into());
+        }
+    }
 
     info!("    writing updated package.json...");
     target.push("package.json");

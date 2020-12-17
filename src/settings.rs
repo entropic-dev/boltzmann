@@ -12,7 +12,7 @@ use super::Flags;
 #[derive(Deserialize, Default)]
 pub struct When {
     #[serde(default)]
-    pub(crate) feature: Option<String>,
+    pub(crate) all_of: Vec<String>,
     #[serde(default)]
     pub(crate) none_of: Vec<String>,
     #[serde(default)]

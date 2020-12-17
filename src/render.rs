@@ -101,24 +101,28 @@ fn render_dir(spec: DirSpec, cwd: &mut PathBuf, mode: u32, parents: &mut Vec<Str
                     .unwrap_or(false);
 
                 if has_feature {
+                    cwd.push(&basename[..]);
                     trace!("        skipping {} (because {} is activated)", basename.strikethrough().blue(), exclude);
+                    cwd.pop();
                     continue 'next
                 }
             }
 
-            if let Some(feature) = preconditions.feature {
-                let has_feature = mapped.get(feature.clone())
-                    .map(|xs| xs.as_bool().unwrap_or(false))
-                    .unwrap_or(false);
+            if !preconditions.all_of.is_empty() {
+                for include in preconditions.all_of {
+                    let has_feature = mapped.get(include.clone())
+                        .map(|xs| xs.as_bool().unwrap_or(false))
+                        .unwrap_or(false);
 
-                if !has_feature {
-                    trace!("        skipping {} ({} deactivated)", basename.strikethrough().blue(), feature);
-                    cwd.push(&basename[..]);
-                    if !created.contains(cwd.as_path()) && cwd.as_path().exists() {
-                        info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
+                    if !has_feature {
+                        cwd.push(&basename[..]);
+                        trace!("        skipping {} ({} deactivated)", basename.strikethrough().blue(), include);
+                        if !created.contains(cwd.as_path()) && cwd.as_path().exists() {
+                            info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
+                        }
+                        cwd.pop();
+                        continue 'next
                     }
-                    cwd.pop();
-                    continue
                 }
             }
 

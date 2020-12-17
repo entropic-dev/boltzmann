@@ -22,7 +22,7 @@
     version: "^1.0.2",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("esm"),
+      all_of: ["esm"],
     ))
   ),
   DependencySpec(
@@ -30,7 +30,7 @@
     version: "^3.2.1",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("templates"),
+      all_of: ["templates"],
     ))
   ),
   DependencySpec(
@@ -38,7 +38,7 @@
     version: "^0.9.15",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("oauth"),
+      all_of: ["oauth"],
     ))
   ),
   DependencySpec(
@@ -46,7 +46,7 @@
     version: "^2.4.6",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("esbuild"),
+      all_of: ["esbuild"],
     ))
   ),
   DependencySpec(
@@ -54,7 +54,7 @@
     version: "^2.4.6",
     kind: Normal,
     preconditions: Some(When(
-      feature: Some("staticfiles"),
+      all_of: ["staticfiles"],
     ))
   ),
   DependencySpec(
@@ -79,13 +79,13 @@
     name: "jsonwebtoken",
     version: "^8.5.1",
     kind: Normal,
-    preconditions: Some(When(feature: Some("jwt")))
+    preconditions: Some(When(all_of: ["jwt"]))
   ),
   DependencySpec(
     name: "jsonwebtoken",
     version: "^8.5.1",
     kind: Normal,
-    preconditions: Some(When(feature: Some("oauth")))
+    preconditions: Some(When(all_of: ["oauth"]))
   ),
   DependencySpec(
     name: "ajv",
@@ -109,37 +109,37 @@
     name: "csrf",
     version: "^3.1.0",
     kind: Normal,
-    preconditions: Some(When(feature: Some("csrf")))
+    preconditions: Some(When(all_of: ["csrf"]))
   ),
   DependencySpec(
     name: "honeycomb-beeline",
     version: "^2.1.1",
     kind: Normal,
-    preconditions: Some(When(feature: Some("honeycomb")))
+    preconditions: Some(When(all_of: ["honeycomb"]))
   ),
   DependencySpec(
     name: "on-headers",
     version: "^1.0.2",
     kind: Normal,
-    preconditions: Some(When(  feature: Some("honeycomb")))
+    preconditions: Some(When(  all_of: ["honeycomb"]))
   ),
   DependencySpec(
     name: "pg",
     version: "^8.3.3",
     kind: Normal,
-    preconditions: Some(When(  feature: Some("postgres")))
+    preconditions: Some(When(  all_of: ["postgres"]))
   ),
   DependencySpec(
     name: "handy-redis",
     version: "^1.8.1",
     kind: Normal,
-    preconditions: Some(When( feature: Some("redis")))
+    preconditions: Some(When( all_of: ["redis"]))
   ),
   DependencySpec(
     name: "redis",
     version: "^3.0.2",
     kind: Normal,
-    preconditions: Some(When(feature: Some("redis")))
+    preconditions: Some(When(all_of: ["redis"]))
   ),
 
   DependencySpec(
@@ -153,7 +153,7 @@
     name: "esbuild",
     version: "^0.8.6",
     kind: Development,
-    preconditions: Some(When(feature: Some("esbuild")))
+    preconditions: Some(When(all_of: ["esbuild"]))
   ),
   DependencySpec(
     name: "tap",
@@ -166,7 +166,7 @@
     version: "^4.0.1",
     kind: Development,
     preconditions: Some(When(
-      feature: Some("templates"),
+      all_of: ["templates"],
     ))
   ),
   DependencySpec(
@@ -247,7 +247,7 @@
     version: "^9.1.1",
     kind: Development,
     preconditions: Some(When(
-      feature: Some("typescript")
+      all_of: ["typescript"]
     ))
   ),
 
@@ -256,7 +256,7 @@
     version: "^4.1.3",
     kind: Development,
     preconditions: Some(When(
-      feature: Some("typescript")
+      all_of: ["typescript"]
     ))
   ),
 
@@ -265,7 +265,7 @@
     version: "^1.0.0",
     kind: Development,
     preconditions: Some(When(
-      feature: Some("typescript")
+      all_of: ["typescript"]
     ))
   ),
 ]
