@@ -293,13 +293,14 @@ description of how to use templates to build websites and the development conven
     single directory relative to the application root.
 -   `filters`: an object specifying [custom
     filters](https://mozilla.github.io/nunjucks/api#custom-filters) to add to the Nunjucks renderer.
-    Object keys are filter names, and the values must be filter functions.
+    Object keys are filter names, and the values must be filter functions. Boltzmann enhances the default
+    nunjucks behavior here, and allows you to register async functions as filters.
 -   `tags`: [custom tags](https://mozilla.github.io/nunjucks/api#custom-tags) that extend the nunjucks
     renderer. Object keys are tag/extention names, and the values are the extention implementations.
 -   `logger`: ; defaults to `bole('boltzmann:templates')`
 -   `opts`: a [configuration object](https://mozilla.github.io/nunjucks/api.html#configure) passed to
     nunjucks. Defaults to the single setting `noCache`, which is set to true if the app is run in
-    development mode, to support caching in production but livereload in development.
+    development mode, to support caching in production but live reloading in development.
 
 * * *
 
