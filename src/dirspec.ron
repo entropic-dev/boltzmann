@@ -2,15 +2,7 @@ Dir(DirSpec(
   children: [
     ("boltzmann.js", 0o755, Template(TemplateSpec(
       template_name: "boltzmann.js"
-    )), Some(When(
-      none_of: ["typescript"],
-    ))),
-
-    ("boltzmann.ts", 0o755, Template(TemplateSpec(
-      template_name: "boltzmann.js"
-    )), Some(When(
-      feature: Some("typescript"),
-    ))),
+    )), None),
 
     ("handlers.js", 0o644, Template(TemplateSpec(
       template_name: "handlers_cjs.js"
@@ -28,7 +20,7 @@ Dir(DirSpec(
     ))),
 
     ("handlers.ts", 0o644, Template(TemplateSpec(
-      template_name: "handlers_esm.js"
+      template_name: "handlers.ts"
     )), Some(When(
       feature: Some("typescript"),
       if_not_present: ["handlers.js", "handlers"]
@@ -50,7 +42,7 @@ Dir(DirSpec(
     ))),
 
     ("middleware.ts", 0o644, Template(TemplateSpec(
-      template_name: "middleware_esm.js",
+      template_name: "middleware.ts",
     )), Some(When(
       feature: Some("typescript"),
       if_not_present: ["middleware.js", "middleware"]
@@ -61,6 +53,12 @@ Dir(DirSpec(
     )), Some(When(
       feature: Some("typescript"),
       if_not_present: ["tsconfig.json"]
+    ))),
+
+    ("boltzmann.d.ts", 0o644, Template(TemplateSpec(
+      template_name: "boltzmann.d.ts",
+    )), Some(When(
+      feature: Some("typescript"),
     ))),
 
     ("nodemon.json", 0o644, Template(TemplateSpec(

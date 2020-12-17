@@ -2677,6 +2677,10 @@ function _processMiddleware (middleware) {
 // {% if esm %}
 async function _requireOr (target, value) {
   const candidates = [
+    // {% if typescript %}
+    `./${path.join(target, 'index.ts')}`,
+    `${target}.ts`,
+    // {% endif %}
     `./${path.join(target, 'index.mjs')}`,
     `${target}.mjs`,
     `./${path.join(target, 'index.js')}`,

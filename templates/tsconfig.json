@@ -4,6 +4,7 @@
     "experimentalDecorators": true,
     "noImplicitAny": true,
     "outDir": "target/release",
+    "allowJs": true,
     "sourceMap": true
   },
   "extends": "@tsconfig/node14/tsconfig.json",
