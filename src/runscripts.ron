@@ -55,8 +55,7 @@
         key: "boltzmann:tsbuild",
         value: "tsc --outDir target/release",
         preconditions: Some(When(
-            all_of: ["typescript"],
-            if_not_present: ["postinstall"]
+            all_of: ["typescript"]
         ))
     ),
 

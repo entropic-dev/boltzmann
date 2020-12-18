@@ -1,14 +1,11 @@
 declare module "./boltzmann.js";
-
 import { IncomingMessage, OutgoingMessage } from "http";
 import { URL } from "url";
 import { Accepts } from "accepts";
 import { Cookie } from "cookie";
-
 const TEMPLATE = Symbol.for('template')
 const HEADER = Symbol.for('headers')
 const STATUS = Symbol.for('status')
-
 export * from "./boltzmann.js";
 export declare type HttpMetadata     = {[HEADER]: {[key: string]: string}} & {[STATUS]: number};
 export declare type Response         = string | AsyncIterable<Buffer | string> | Buffer | Object;
@@ -19,10 +16,8 @@ export declare type Adaptor          = (next: Next) => Handler | Promise<Handler
 export declare interface Middleware {
   (...options?: [any]): Adaptor;
 };
-
 export declare class Context {
   public constructor(request: IncomingMessage, response: OutgoingMessage);
-
   public request: IncomingMessage;
   public start: number;
   public params: {[key: string]: string};
@@ -35,7 +30,6 @@ export declare class Context {
   private _response: OutgoingMessage;
   private _routed: any;
   private _cookie: Cookie;
-
   public get cookie(): Cookie;
   public get session(): Promise<Session>;
   public get method(): string;
@@ -45,8 +39,8 @@ export declare class Context {
   public get query(): {[key: string]: string};
   public get body(): Promise<{[key: string]: string}>;
   public get accepts(): Accepts;
+  [x: string]: any;
 };
-
 export namespace middleware {
   namespace validate {
     declare const body: Middleware;
@@ -57,13 +51,15 @@ export namespace middleware {
   declare const applyXFO: Middleware;
   declare const handleCORS: Middleware;
   declare const session: Middleware;
+  declare const template: Middleware;
+  declare const oauth: Middleware;
+  declare const staticfiles: Middleware;
+  declare const esbuild: Middleware;
 }
-
 export namespace body {
   declare const body: BodyParser;
   declare const urlEncoded: BodyParser;
 }
-
 export namespace decorators {
   namespace validate {
     declare const body: Middleware;
@@ -72,19 +68,15 @@ export namespace decorators {
   }
   declare const test: Middleware;
 }
-
 export class Cookie extends Map {
   constructor(values: Iterable<[any, any]>);
   public changed: Set<string>;
   private collect(): [string];
   static from(string): Cookie;
 }
-
 export class Session extends Map {
   constructor(id: string, values: Iterable<[any, any]>);
   public reissue(): void;
 }
-
 export class BadSessionError extends Error implements Response {
 };
-

@@ -444,13 +444,13 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                 if let Some(value) = scripts.get(check_presence.as_str()) {
                     // for upgrading from old versions of boltzmann: if the value of the runscript
                     // target EXACTLY MATCHES what the candidate proposes to update it to, go ahead
-                    // and update it so we can add the "managed by boltzmann" suffix we'll use
+                    // and update it so we can add the "B=1" prefix we'll use
                     // going forward.
                     if value.as_str().unwrap_or("") == candidate.value {
                         continue
                     }
 
-                    if !value.as_str().unwrap_or("").ends_with("# managed by boltzmann") {
+                    if !value.as_str().unwrap_or("").starts_with("B=1 ") {
                         info!("        not updating \"npm run {}\"; {} is present and not managed by boltzmann", candidate.key.bold().green(), value);
                         continue 'next
                     }
@@ -458,8 +458,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             }
         }
 
-        info!("        updating \"npm run {}\"", candidate.key.bold().green());
-        scripts.insert(candidate.key, format!("{} # managed by boltzmann", candidate.value).into());
+        let replacement = format!("B=1 {}", candidate.value);
+        if scripts.get(&candidate.key).unwrap_or(&false_sentinel).as_str().unwrap_or("") != replacement {
+            info!("        updating \"npm run {}\"", candidate.key.bold().green());
+            scripts.insert(candidate.key, replacement.into());
+        }
     }
     package_json.scripts.replace(scripts);
 
