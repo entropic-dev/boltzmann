@@ -1,14 +1,26 @@
 declare module "./boltzmann.js";
+/// <reference types="node" />
 import { IncomingMessage, OutgoingMessage } from "http";
 import { URL } from "url";
 import { Accepts } from "accepts";
 import { Cookie } from "cookie";
+{%- if postgres %}
+import { Client } from "pg";
+{%- endif -%}
+{%- if redis %}
+import { IHandyRedis } from "handy-redis";
+{% endif -%}
+
 const TEMPLATE = Symbol.for('template')
 const HEADER = Symbol.for('headers')
 const STATUS = Symbol.for('status')
+
 export * from "./boltzmann.js";
+export declare type BodyNext         = (readable: IncomingMessage) => Promise<{[key: string]: any}>
+export declare type BodyHandler      = (readable: IncomingMessage) => {[key: string]: any} | Promise<{[key: string]: any}>
+export declare type BodyParser       = (next: BodyNext) => BodyHandler;
 export declare type HttpMetadata     = {[HEADER]: {[key: string]: string}} & {[STATUS]: number};
-export declare type Response         = string | AsyncIterable<Buffer | string> | Buffer | Object;
+export declare type Response         = void | string | AsyncIterable<Buffer | string> | Buffer | Object;
 export declare type InternalResponse = (AsyncIterable<Buffer | string> | Buffer | Object) & HttpMetadata;
 export declare type Handler          = (context: Context, ...args: any[]) => Response | Promise<Response>;
 export declare type Next             = (context: Context, ...args: any[]) => Promise<InternalResponse>;
@@ -16,6 +28,7 @@ export declare type Adaptor          = (next: Next) => Handler | Promise<Handler
 export declare interface Middleware {
   (...options?: [any]): Adaptor;
 };
+
 export declare class Context {
   public constructor(request: IncomingMessage, response: OutgoingMessage);
   public request: IncomingMessage;
@@ -39,6 +52,16 @@ export declare class Context {
   public get query(): {[key: string]: string};
   public get body(): Promise<{[key: string]: string}>;
   public get accepts(): Accepts;
+  {%- if postgres %}
+  get postgresClient(): Promise<Client>;
+  {%- endif -%}
+  {%- if redis %}
+  get redisClient(): IHandyRedis;
+  {%- endif -%}
+  {%- if honeycomb %}
+  get traceURL(): string;
+  {% endif -%}
+
   [x: string]: any;
 };
 export namespace middleware {

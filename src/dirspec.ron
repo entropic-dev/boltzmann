@@ -23,7 +23,7 @@ Dir(DirSpec(
       template_name: "handlers.ts"
     )), Some(When(
       all_of: ["typescript"],
-      if_not_present: ["handlers.js", "handlers"]
+      if_not_present: ["handlers.js", "handlers", "handlers.ts"]
     ))),
 
     ("middleware.js", 0o644, Template(TemplateSpec(
@@ -45,7 +45,7 @@ Dir(DirSpec(
       template_name: "middleware.ts",
     )), Some(When(
       all_of: ["typescript"],
-      if_not_present: ["middleware.js", "middleware"]
+      if_not_present: ["middleware.js", "middleware", "middleware.ts"]
     ))),
 
     ("tsconfig.json", 0o644, Template(TemplateSpec(
