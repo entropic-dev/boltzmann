@@ -148,7 +148,7 @@ impl RunScripts {
     }
 
     fn docs_string() -> String {
-        "npx boltzmann-cli docs".to_string()
+        "npx boltzmann-cli --docs".to_string()
     }
 }
 
