@@ -34,6 +34,7 @@ jobs:
           command: build
 
       - uses: actions/cache@v2
+        if: runner.os != "macOS"
         with:
           path: |
             ~/.cargo/registry
@@ -42,6 +43,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
+      - uses: Swatinem/rust-cache@v1
+        if: runner.os == "macOS"
 
       - name: run cargo build --release for caching
         run: |
