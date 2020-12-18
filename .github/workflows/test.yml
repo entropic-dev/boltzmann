@@ -27,12 +27,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-
-      - uses: actions-rs/cargo@v1
-        timeout-minutes: 10
-        with:
-          command: build
-
       - uses: actions/cache@v2
         if: runner.os != 'macOS'
         with:
@@ -46,6 +40,11 @@ jobs:
 
       - uses: Swatinem/rust-cache@v1
         if: runner.os == 'macOS'
+
+      - uses: actions-rs/cargo@v1
+        timeout-minutes: 10
+        with:
+          command: build
 
       - name: run cargo build --release for caching
         run: |
