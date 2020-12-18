@@ -470,7 +470,16 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     match exit_status {
         ExitStatus::Exited(0) => {
-            warn!("Boltzmann at {} with {}", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").bold(), updated_settings);
+            let report = format!( "Boltzmann @ {} with {}", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").bold(), updated_settings);
+            warn!(
+                "{}",
+                textwrap::fill(
+                    &report,
+                    textwrap::Options::with_termwidth()
+                        .initial_indent("")
+                        .subsequent_indent("    ")
+                )
+            );
             Ok(())
         },
         _ => Err(anyhow!("npm install exited with non-zero status").into())
