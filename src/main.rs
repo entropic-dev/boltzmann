@@ -461,6 +461,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         info!("        updating runscript {}", candidate.key.bold().magenta());
         scripts.insert(candidate.key, format!("{} # managed by boltzmann", candidate.value).into());
     }
+    package_json.scripts.replace(scripts);
 
     info!("    writing updated package.json...");
     target.push("package.json");
