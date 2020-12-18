@@ -1,18 +1,49 @@
 ## TODO
 
+### 2020-12-10
+
+- [ ] typescript support
+  - [x] install tsconfig.json
+  - [x] node -r tsnode/register
+    - [x] add to run scripts
+  - [-] build script
+    - [ ] make sure it brings boltzmann.js in
+  - options
+    1. leave boltzmann as JS, generate TS for everything else <-- went this route
+      1. write a declaration file if they'll let us
+      2. somehow make it work without a declaration file
+    2. rewrite boltzmann in TS, compile to JS on scaffolding for non-TS targets
+
+CJ and Chris' type goals:
+
+- autocomplete in editor is gold
+- typechecking is good
+  - but we don't like transpiling server services
+    - debugging becomes harder -- what's checked into your repo is not what's running
+    - language version becomes something you have to care about (compile target)
+    - bitrot: typescript may be a fad
+    - explodes the state space
+    - as javascript experts, the juice is not worth the squeeze, so to speak
+      - rust has better type inference
+        - it's not an "infection" of a base language
+        - perf/reliability guarantees
+- we were asked to add typescript support (scaffolding a typescript project)
+
+
+
 ### 2020-12-04
 
-- [ ] documentation version picker
+- [x] documentation version picker
   - ideally fully static:
-    - [ ] download all versions of the docs
-    - [ ] find all version selectors
-    - [ ] update the selector with the new set of versions
-    - [ ] create a "latest" tag
-    - [ ] DONE
+    - [x] download all versions of the docs
+    - [x] find all version selectors
+    - [x] update the selector with the new set of versions
+    - [x] create a "latest" tag
+    - [x] DONE
 
 ### 2020-06-05
 
-- [ ] investigate static site generators
+- [x] investigate static site generators
     - remark?
 - [ ] finish off the docs
     - [ ] add more examples

@@ -451,14 +451,14 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                     }
 
                     if !value.as_str().unwrap_or("").ends_with("# managed by boltzmann") {
-                        info!("        not updating runscript {}; {} is present and not managed by boltzmann", candidate.key.bold().magenta(), value);
+                        info!("        not updating \"npm run {}\"; {} is present and not managed by boltzmann", candidate.key.bold().green(), value);
                         continue 'next
                     }
                 }
             }
         }
 
-        info!("        updating runscript {}", candidate.key.bold().magenta());
+        info!("        updating \"npm run {}\"", candidate.key.bold().green());
         scripts.insert(candidate.key, format!("{} # managed by boltzmann", candidate.value).into());
     }
     package_json.scripts.replace(scripts);
