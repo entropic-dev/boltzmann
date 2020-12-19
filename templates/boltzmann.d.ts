@@ -64,25 +64,47 @@ export declare class Context {
 
   [x: string]: any;
 };
+
 export namespace middleware {
+  declare const applyXFO: Middleware;
+  declare const handleCORS: Middleware;
+  declare const session: Middleware;
+  {%- if jwt %}
+  declare const authenticateJWT: Middleware;
+  {%- endif -%}
+  {%- if templates %}
+  declare const template: Middleware;
+  declare const templateContext: Middleware;
+  {%- endif -%}
+  {%- if oauth %}
+  declare const oauth: Middleware;
+  declare const handleOAuthLogin: Middleware;
+  declare const handleOAuthLogout: Middleware;
+  declare const handleOAuthCallback: Middleware;
+  {%- endif -%}
+  {%- if staticfiles %}
+  declare const staticfiles: Middleware;
+  {%- endif -%}
+  {%- if esbuild %}
+  declare const esbuild: Middleware;
+  {%- endif -%}
+  {%- if csrf %}
+  declare const applyCSRF: Middleware;
+  {%- endif %}
+
   namespace validate {
     declare const body: Middleware;
     declare const query: Middleware;
     declare const params: Middleware;
   }
   declare const test: Middleware;
-  declare const applyXFO: Middleware;
-  declare const handleCORS: Middleware;
-  declare const session: Middleware;
-  declare const template: Middleware;
-  declare const oauth: Middleware;
-  declare const staticfiles: Middleware;
-  declare const esbuild: Middleware;
 }
+
 export namespace body {
   declare const body: BodyParser;
   declare const urlEncoded: BodyParser;
 }
+
 export namespace decorators {
   namespace validate {
     declare const body: Middleware;
@@ -91,15 +113,18 @@ export namespace decorators {
   }
   declare const test: Middleware;
 }
+
 export class Cookie extends Map {
   constructor(values: Iterable<[any, any]>);
   public changed: Set<string>;
   private collect(): [string];
   static from(string): Cookie;
 }
+
 export class Session extends Map {
   constructor(id: string, values: Iterable<[any, any]>);
   public reissue(): void;
 }
+
 export class BadSessionError extends Error implements Response {
 };
