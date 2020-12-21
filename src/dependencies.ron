@@ -268,4 +268,13 @@
       all_of: ["typescript"]
     ))
   ),
+
+  DependencySpec(
+    name: "@types/tap",
+    version: "^14.10.1",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript"]
+    ))
+  ),
 ]
