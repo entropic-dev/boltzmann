@@ -16,17 +16,36 @@
     ),
 
     RunScriptSpec(
-        key: "test",
-        value: "tap test",
+        key: "pretest",
+        value: "tsc --noEmit tests/**.ts",
         preconditions: Some(When(
-            if_not_present: ["test"],
-            none_of: ["esm"]
+            if_not_present: ["pretest"],
+            all_of: ["typescript"]
         ))
     ),
 
     RunScriptSpec(
         key: "test",
-        value: "tap --no-esm test",
+        value: "tap tests",
+        preconditions: Some(When(
+            if_not_present: ["test"],
+            none_of: ["esm", "typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "tap --no-ts --node-arg=--require=ts-node/register tests/**.ts",
+        preconditions: Some(When(
+            if_not_present: ["test"],
+            none_of: ["esm"],
+            all_of: ["typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "tap --no-esm tests",
         preconditions: Some(When(
             if_not_present: ["test"],
             none_of: ["typescript"],

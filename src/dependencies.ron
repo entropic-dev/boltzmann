@@ -207,13 +207,13 @@
   ),
   DependencySpec(
     name: "@typescript-eslint/parser",
-    version: "^3.1.0",
+    version: "^4.11.0",
     kind: Development,
     preconditions: None
   ),
   DependencySpec(
     name: "@typescript-eslint/eslint-plugin",
-    version: "^3.1.0",
+    version: "^4.11.0",
     kind: Development,
     preconditions: None
   ),

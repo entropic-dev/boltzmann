@@ -121,6 +121,32 @@ Dir(DirSpec(
       template_name: "selftest.js",
     )), Some(When(
       all_of: ["selftest"],
-    )))
+    ))),
+
+    ("tests", 0o755, Dir(DirSpec(
+        children: [
+            ("00-example.js", 0o644, Template(TemplateSpec(
+              template_name: "test.js",
+            )), Some(When(
+              none_of: ["typescript", "esm"],
+            ))),
+
+            ("00-example.js", 0o644, Template(TemplateSpec(
+              template_name: "test_esm.js",
+            )), Some(When(
+              none_of: ["typescript"],
+              all_of: ["esm"],
+            ))),
+
+            ("00-example.ts", 0o644, Template(TemplateSpec(
+              template_name: "test.ts",
+            )), Some(When(
+              none_of: ["esm"],
+              all_of: ["typescript"],
+            )))
+        ]
+    )), Some(When(
+      if_not_present: ["tests"],
+    ))),
   ],
 ))
