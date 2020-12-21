@@ -3,7 +3,6 @@ compile_sass = true
 title = "Docs title"
 highlight_code = true
 highlight_theme = "kronuz"
-build_search_index = true
 
 taxonomies = [
     {name = "tags", rss = true},

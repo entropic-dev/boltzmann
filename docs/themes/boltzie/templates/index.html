@@ -17,7 +17,7 @@
             <button type="button" id="theme-light-button" class="theme-button" onclick="enableTheme('light', true)">&#9706;</button>
             <button type="button" id="theme-dark-button"  class="theme-button enabled" onclick="enableTheme('dark', true)">&#9705;</button>
           </form>
-          <a href="/search">&#8981;</a>
+          <input type="search" id="search" placeholder="Type to search" />
         </div>
 
       {% block nav %}
@@ -32,6 +32,9 @@
       </nav>
 
       <main>
+          <div class="search-results"></div>
+          <ul class="search-results__items">
+          </ul>
       {% block content %}
 
         {% set_global header_count = 4 %}
@@ -55,17 +58,8 @@
       {% endblock content %}
       </main>
 
+      <script type="text/javascript" src="{{ get_url(path="elasticlunr.min.js") }}"></script>
+      <script type="text/javascript" src="{{ get_url(path="search_index.en.js") }}"></script>
       <script type="text/javascript" src="{{ get_url(path="themes.js") | safe }}"></script>
-
-      <script>
-        function burger() {
-          var x = document.getElementById("bger");
-          if (x.style.display === "block") {
-            x.style.display = "none";
-          } else {
-            x.style.display = "block";
-          }
-        }
-        </script>
     </body>
 </html>

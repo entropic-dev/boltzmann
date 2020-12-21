@@ -5,6 +5,7 @@ highlight_theme = "kronuz"
 build_search_index = true
 theme = "boltzie"
 title = "Boltzmann: A JS HTTP Framework"
+insert_anchor_links = true
 
 taxonomies = [
     # You can enable/disable feeds

@@ -3,6 +3,7 @@ weight = 1
 title = "Boltzmann"
 description = "Introduction to Boltzmann"
 sort_by = "weight"
+insert_anchor_links = "left"
 +++
 
 # Getting started
