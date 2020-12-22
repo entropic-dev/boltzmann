@@ -13,6 +13,7 @@ use serde::{ Serialize, Deserialize };
 use structopt::clap::AppSettings::*;
 use structopt::StructOpt;
 use subprocess::{ Exec, ExitStatus, NullFile };
+use prettytable::Table;
 
 mod render;
 mod settings;
@@ -92,6 +93,9 @@ pub struct Flags {
 
     #[structopt(long, short, help = "Suppress all output except errors")]
     silent: bool,
+
+    #[structopt(long, short, help = "Suppress all output except errors")]
+    quiet: bool,
 
     #[structopt(long, help = "Build for a self-test")]
     selftest: bool, // turn on the oven in self-cleaning mode.
@@ -255,6 +259,21 @@ fn initialize_package_json(path: &PathBuf, verbosity: u64) -> Result<()> {
     }
 }
 
+fn print_table<T: std::fmt::Display + Clone>(input: Vec<T>, columns: usize, indent: usize) {
+    let mut data = input.clone();
+    let mut table = Table::new();
+    table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
+    table.get_format().indent(indent);
+
+    while data.len() > columns {
+        let (line, remainder) = data.split_at(columns);
+        table.add_row(line.into());
+        data = remainder.to_vec();
+    }
+    table.add_row(data.into());
+    table.printstd();
+}
+
 // data structures for dep lists
 #[derive(Deserialize)]
 enum DependencyType {
@@ -282,7 +301,7 @@ struct DependencySpec {
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut flags = Flags::from_args();
 
-    let verbosity: u64 = if flags.silent {
+    let verbosity: u64 = if flags.silent || flags.quiet {
         0
     } else {
         flags.verbose + 1
@@ -339,6 +358,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     check_git_status(&flags)?;
 
+    let mut first_scaffold = false;
+
     info!("Scaffolding a Boltzmann service in {}", flags.destination.to_str().unwrap().bold().blue());
     let default_settings = Settings {
         githubci: Some(true),
@@ -358,6 +379,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
         package_json
     } else {
+        first_scaffold = true;
         info!("    initializing a new NPM package...");
         initialize_package_json(&flags.destination, verbosity)
             .with_context(|| format!("Failed to run `npm init -y` in {:?}", flags.destination))?;
@@ -384,6 +406,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
     info!("    updating dependencies...");
 
+    let mut table = Table::new();
+    table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
+
+    let mut actions: Vec<String> = Vec::new();
+
     for candidate in candidates {
         let target = match candidate.kind {
             DependencyType::Normal => &mut dependencies,
@@ -404,24 +431,29 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             // Note that we log on a state change, but we always make the change to pick up new versions.
             if wants_feature {
                 if !has_dep_currently {
-                    info!("        adding {} @ {} ({} activated)", candidate.name.bold().magenta(), candidate.version, feature);
+                    actions.push(format!("{}@{} ({} enabled)", candidate.name.bold().magenta(), candidate.version, feature));
                 }
                 target.insert(candidate.name, candidate.version);
             } else if wants_feature != used_to_have {
                 if has_dep_currently {
-                    info!("        removing {} ({} deactivated)", candidate.name.magenta().strikethrough(), feature);
+                    actions.push(format!("ⅹ {} ({} disabled)", candidate.name.strikethrough().magenta(), feature));
                 }
                 target.remove(&candidate.name[..]);
             }
         } else if !has_dep_currently {
-            info!("        adding {} @ {} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind);
+            actions.push(format!("{}@{} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind));
             target.insert(candidate.name, candidate.version);
         } else if let Some(current_value) = target.get(&candidate.name[..]) {
             if current_value.as_str() != candidate.version.as_str() {
-                info!("        updating {} @ {} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind);
+                actions.push(format!("{}@{} ➜ {} {}", candidate.name.bold().magenta(), current_value, candidate.version, candidate.kind));
                 target.insert(candidate.name, candidate.version);
             }
         }
+    }
+
+    if verbosity > 1 || (verbosity == 1 && !first_scaffold) && !actions.is_empty() {
+        actions.sort_unstable();
+        print_table(actions, 2, 6);
     }
 
     let has_esm = if let Some(esm) = updated_settings.esm {
@@ -470,16 +502,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     match exit_status {
         ExitStatus::Exited(0) => {
-            let report = format!( "Boltzmann @ {} with {}", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").bold(), updated_settings);
-            warn!(
-                "{}",
-                textwrap::fill(
-                    &report,
-                    textwrap::Options::with_termwidth()
-                        .initial_indent("")
-                        .subsequent_indent("    ")
-                )
-            );
+            warn!("Boltzmann @ {} with:", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").bold().magenta());
+            let features = updated_settings.features();
+            print_table(features, 8, 3);
             Ok(())
         },
         _ => Err(anyhow!("npm install exited with non-zero status").into())

@@ -122,10 +122,8 @@ impl Settings {
             rest: HashMap::new()
         }
     }
-}
 
-impl fmt::Display for Settings {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub fn features(&self) -> Vec<&str> {
         let mut features = vec![];
         // I'm fairly horrified by this.
         if self.csrf.unwrap_or(false) {
@@ -178,7 +176,13 @@ impl fmt::Display for Settings {
             features.push("selftest");
         }
 
-        write!(f, "{}", features.join(", "))
+        features
+    }
+}
+
+impl fmt::Display for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.features().join(", "))
     }
 }
 
