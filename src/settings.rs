@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use serde::{ Serialize, Deserialize };
-use serde_json::{ Value, self };
+use serde::{Deserialize, Serialize};
+use serde_json::{self, Value};
 use tera::Context;
 
 use super::Flags;
@@ -16,7 +16,7 @@ pub struct When {
     #[serde(default)]
     pub(crate) none_of: Vec<String>,
     #[serde(default)]
-    pub(crate) if_not_present: Vec<String>
+    pub(crate) if_not_present: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
@@ -79,15 +79,18 @@ pub struct Settings {
 impl Settings {
     pub fn merge_flags(&self, version: String, flags: &Flags) -> Settings {
         // TODO: This is becoming horrifying.
-        let cast = |xs: &Option<Option<Flipper>>, default: &Option<bool>, set_by_group: bool| -> Option<bool> {
+        let cast = |xs: &Option<Option<Flipper>>,
+                    default: &Option<bool>,
+                    set_by_group: bool|
+         -> Option<bool> {
             if flags.selftest || set_by_group {
-                return Some(true)
+                return Some(true);
             }
             match xs {
-                Some(None) => Some(true),                       // e.g., --postgres
-                Some(Some(Flipper::On)) => Some(true),          // e.g., --postgres=on
-                Some(Some(Flipper::Off)) => Some(false),        // e.g., --postgres=off
-                None => default.map(|xs| xs)
+                Some(None) => Some(true),                // e.g., --postgres
+                Some(Some(Flipper::On)) => Some(true),   // e.g., --postgres=on
+                Some(Some(Flipper::Off)) => Some(false), // e.g., --postgres=off
+                None => default.map(|xs| xs),
             }
         };
 
@@ -96,20 +99,32 @@ impl Settings {
             Some(None) => true,
             Some(Some(Flipper::On)) => true,
             Some(Some(Flipper::Off)) => false,
-            None => self.esm.unwrap_or(false)
+            None => self.esm.unwrap_or(false),
         };
 
         Settings {
             // website features, grouped
             csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
-            staticfiles: cast(&flags.staticfiles, &self.staticfiles, flags.all || flags.website),
+            staticfiles: cast(
+                &flags.staticfiles,
+                &self.staticfiles,
+                flags.all || flags.website,
+            ),
             esbuild: cast(&flags.esbuild, &self.esbuild, flags.all || flags.website),
             jwt: cast(&flags.jwt, &self.jwt, flags.all || flags.website),
-            livereload: cast(&flags.livereload, &self.livereload, flags.all || flags.website),
+            livereload: cast(
+                &flags.livereload,
+                &self.livereload,
+                flags.all || flags.website,
+            ),
             oauth: cast(&flags.oauth, &self.oauth, flags.all || flags.website),
             ping: cast(&flags.ping, &self.ping, flags.all || flags.website),
             status: cast(&flags.status, &self.status, flags.all || flags.website),
-            templates: cast(&flags.templates, &self.templates, flags.all || flags.website),
+            templates: cast(
+                &flags.templates,
+                &self.templates,
+                flags.all || flags.website,
+            ),
 
             // non-website features
             githubci: cast(&flags.githubci, &self.githubci, flags.all),
@@ -122,12 +137,8 @@ impl Settings {
             version: Some(version),
             esm: if is_esm { Some(true) } else { None },
 
-            selftest: if flags.selftest {
-                Some(true)
-            } else {
-                None
-            },
-            rest: HashMap::new()
+            selftest: if flags.selftest { Some(true) } else { None },
+            rest: HashMap::new(),
         }
     }
 
@@ -217,7 +228,12 @@ impl Into<Context> for Settings {
         ctxt.insert("templates", &self.templates.unwrap_or(false));
         ctxt.insert("typescript", &self.typescript.unwrap_or(false));
         ctxt.insert("selftest", &self.selftest.unwrap_or(false));
-        ctxt.insert("version", &self.version.unwrap_or_else(|| "<unknown version>".to_string())[..]);
+        ctxt.insert(
+            "version",
+            &self
+                .version
+                .unwrap_or_else(|| "<unknown version>".to_string())[..],
+        );
 
         ctxt
     }
@@ -226,14 +242,14 @@ impl Into<Context> for Settings {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Flipper {
     Off,
-    On
+    On,
 }
 
 impl Into<bool> for Flipper {
     fn into(self) -> bool {
         match self {
             Flipper::On => true,
-            Flipper::Off => false
+            Flipper::Off => false,
         }
     }
 }
@@ -267,7 +283,7 @@ impl std::str::FromStr for Flipper {
             "OFF" => Flipper::Off,
             "off" => Flipper::Off,
 
-            _ => return Err(anyhow::anyhow!("This is not a valid feature flag value.").into())
+            _ => return Err(anyhow::anyhow!("This is not a valid feature flag value.").into()),
         })
     }
 }

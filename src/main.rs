@@ -3,21 +3,21 @@
 use std::io::prelude::*;
 use std::path::PathBuf;
 
-use anyhow::{ anyhow, Context as ErrorContext, Result };
+use anyhow::{anyhow, Context as ErrorContext, Result};
 use atty::Stream;
 use log::{info, warn};
 use owo_colors::OwoColorize;
-use serde_json::{ Value, self };
-use serde::{ Serialize, Deserialize };
+use prettytable::Table;
+use serde::{Deserialize, Serialize};
+use serde_json::{self, Value};
 use structopt::clap::AppSettings::*;
 use structopt::StructOpt;
-use subprocess::{ Exec, ExitStatus, NullFile };
-use prettytable::Table;
+use subprocess::{Exec, ExitStatus, NullFile};
 
 mod render;
 mod settings;
 
-use settings::{ Flipper, Settings, When };
+use settings::{Flipper, Settings, When};
 
 // Darn, I had to cap-case NPM. What a shame.
 #[cfg(not(target_os = "windows"))]
@@ -26,13 +26,16 @@ static NPM: &str = "npm";
 static NPM: &str = "npm.cmd";
 
 #[derive(Clone, Serialize, StructOpt)]
-#[structopt(name = "boltzmann", about = "Generate or update scaffolding for a Boltzmann service.
+#[structopt(
+    name = "boltzmann",
+    about = "Generate or update scaffolding for a Boltzmann service.
 To enable a feature, mention it or set the option to `on`.
 To remove a feature from an existing project, set it to `off`.
 
 Examples:
 boltzmann my-project --redis --website
-boltzmann my-project --githubci=off --honeycomb --jwt")]
+boltzmann my-project --githubci=off --honeycomb --jwt"
+)]
 #[structopt(global_setting(ColoredHelp), global_setting(ColorAuto))]
 pub struct Flags {
     #[structopt(long, help = "Enable redis")]
@@ -59,7 +62,10 @@ pub struct Flags {
     #[structopt(long, help = "Enable csrf protection middleware")]
     csrf: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable /monitor/status healthcheck endpoint; on by default")]
+    #[structopt(
+        long,
+        help = "Enable /monitor/status healthcheck endpoint; on by default"
+    )]
     status: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable /monitor/ping liveness endpoint; on by default")]
@@ -81,7 +87,10 @@ pub struct Flags {
     esbuild: Option<Option<Flipper>>,
 
     // Convenient option groups next. These aren't saved individually.
-    #[structopt(long, help = "Enable website feature set (templates, csrf, staticfiles, jwt, livereload, ping, status)")]
+    #[structopt(
+        long,
+        help = "Enable website feature set (templates, csrf, staticfiles, jwt, livereload, ping, status)"
+    )]
     website: bool,
 
     #[structopt(long, help = "Enable everything!")]
@@ -90,7 +99,12 @@ pub struct Flags {
     #[structopt(long, help = "Update a git-repo destination even if there are changes")]
     force: bool, // for enemies
 
-    #[structopt(short, long, parse(from_occurrences), help = "Pass -v or -vv to increase verbosity")]
+    #[structopt(
+        short,
+        long,
+        parse(from_occurrences),
+        help = "Pass -v or -vv to increase verbosity"
+    )]
     verbose: u64, // huge but this is what our logger wants
 
     #[structopt(long, short, help = "Suppress all output except errors")]
@@ -105,15 +119,19 @@ pub struct Flags {
     #[structopt(long, help = "Open the Boltzmann documentation in a web browser")]
     docs: bool,
 
-    #[structopt(parse(from_os_str), help = "The path to the Boltzmann service", default_value = "")]
-    destination: PathBuf
+    #[structopt(
+        parse(from_os_str),
+        help = "The path to the Boltzmann service",
+        default_value = ""
+    )]
+    destination: PathBuf,
 }
 
 #[derive(Deserialize)]
 struct RunScriptSpec {
     key: String,
     value: String,
-    preconditions: Option<When>
+    preconditions: Option<When>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -168,9 +186,9 @@ fn check_git_status(flags: &Flags) -> Result<()> {
     match exit_status {
         ExitStatus::Exited(129) => Ok(()), // target is not a git dir; this is fine
         ExitStatus::Exited(0) => Ok(()),   // target is clean
-        ExitStatus::Exited(1) => {
-          Err(anyhow!("git working directory is dirty; pass --force if you want to run anyway"))
-        },
+        ExitStatus::Exited(1) => Err(anyhow!(
+            "git working directory is dirty; pass --force if you want to run anyway"
+        )),
         // all other exit codes are are fine
         _ => Ok(()),
     }
@@ -179,19 +197,15 @@ fn check_git_status(flags: &Flags) -> Result<()> {
 fn initialize_package_json(path: &PathBuf, verbosity: u64) -> Result<()> {
     if let Err(e) = std::fs::DirBuilder::new().create(&path) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
-            return Err(e.into())
+            return Err(e.into());
         }
     }
 
-    let mut subproc = Exec::cmd(NPM)
-        .arg("init")
-        .arg("--yes")
-        .cwd(&path);
+    let mut subproc = Exec::cmd(NPM).arg("init").arg("--yes").cwd(&path);
 
-    subproc = if verbosity < 3 { // only noisy for trace
-        subproc
-            .stdout(NullFile)
-            .stderr(NullFile)
+    subproc = if verbosity < 3 {
+        // only noisy for trace
+        subproc.stdout(NullFile).stderr(NullFile)
     } else {
         subproc
     };
@@ -200,7 +214,7 @@ fn initialize_package_json(path: &PathBuf, verbosity: u64) -> Result<()> {
 
     match exit_status {
         ExitStatus::Exited(0) => Ok(()),
-        _ => Err(anyhow!("npm init exited with non-zero status"))
+        _ => Err(anyhow!("npm init exited with non-zero status")),
     }
 }
 
@@ -222,7 +236,7 @@ fn print_table<T: std::fmt::Display + Clone>(mut input: Vec<T>, columns: usize, 
 #[derive(Deserialize)]
 enum DependencyType {
     Normal,
-    Development
+    Development,
 }
 
 impl ::std::fmt::Display for DependencyType {
@@ -239,7 +253,7 @@ struct DependencySpec {
     name: String,
     version: String,
     kind: DependencyType,
-    preconditions: Option<When>
+    preconditions: Option<When>,
 }
 
 fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
@@ -259,7 +273,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         .init()
         .unwrap();
 
-    let version = option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").to_string();
+    let version = option_env!("CARGO_PKG_VERSION")
+        .unwrap_or_else(|| "0.0.0")
+        .to_string();
 
     if flags.docs {
         let subproc = match std::env::consts::OS {
@@ -270,7 +286,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         };
 
         let docssite = format!("https://www.boltzmann.dev/en/docs/v{}/", version);
-        info!("Opening documentation website at {}", docssite.blue().bold());
+        info!(
+            "Opening documentation website at {}",
+            docssite.blue().bold()
+        );
         subproc.arg(docssite).join()?;
         ::std::process::exit(0);
     }
@@ -284,11 +303,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         let mut buffer = String::new();
         std::io::stdin().read_line(&mut buffer)?;
         buffer.make_ascii_uppercase();
-        match &buffer[..]{
-            "Y\r\n" => {},
-            "YES\r\n" => {},
-            "Y\n" => {},
-            "YES\n" => {},
+        match &buffer[..] {
+            "Y\r\n" => {}
+            "YES\r\n" => {}
+            "Y\n" => {}
+            "YES\n" => {}
             _ => {
                 warn!("Exiting without scaffolding.");
                 ::std::process::exit(0);
@@ -304,7 +323,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     let mut first_scaffold = false;
 
-    info!("Scaffolding a Boltzmann service in {}", flags.destination.to_str().unwrap().bold().blue());
+    info!(
+        "Scaffolding a Boltzmann service in {}",
+        flags.destination.to_str().unwrap().bold().blue()
+    );
     let default_settings = Settings {
         githubci: Some(true),
         status: Some(true),
@@ -312,7 +334,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         ..Default::default()
     };
 
-    let mut package_json = if let Some(mut package_json) = load_package_json(&flags, default_settings.clone()) {
+    let mut package_json = if let Some(mut package_json) =
+        load_package_json(&flags, default_settings.clone())
+    {
         info!("    loaded settings from existing package.json");
         package_json.scripts = package_json.scripts.or_else(Default::default);
         package_json
@@ -333,14 +357,19 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let settings = package_json.boltzmann.take().unwrap();
     let updated_settings = settings.merge_flags(version, &flags);
 
-    render::scaffold(&mut target, &updated_settings)
-        .context("Failed to render Boltzmann files")?;
+    render::scaffold(&mut target, &updated_settings).context("Failed to render Boltzmann files")?;
 
     let old = serde_json::to_value(settings)?;
     let new = serde_json::to_value(&updated_settings)?;
 
-    let mut dependencies = package_json.dependencies.take().unwrap_or_else(Default::default);
-    let mut devdeps = package_json.dev_dependencies.take().unwrap_or_else(Default::default);
+    let mut dependencies = package_json
+        .dependencies
+        .take()
+        .unwrap_or_else(Default::default);
+    let mut devdeps = package_json
+        .dev_dependencies
+        .take()
+        .unwrap_or_else(Default::default);
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
     info!("    updating dependencies...");
 
@@ -353,50 +382,66 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     for candidate in candidates {
         let target = match candidate.kind {
             DependencyType::Normal => &mut dependencies,
-            DependencyType::Development => &mut devdeps
+            DependencyType::Development => &mut devdeps,
         };
 
         let has_dep_currently = target.contains_key(&candidate.name[..]);
 
         if let Some(preconditions) = candidate.preconditions {
-            let wants_feature = preconditions.all_of.iter()
-                .all(|feature| {
-                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
-                    has_feature.as_bool().unwrap_or(false)
-                }) && !preconditions.none_of.iter()
-                .any(|feature| {
-                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
-                    has_feature.as_bool().unwrap_or(false)
-                });
+            let wants_feature = preconditions.all_of.iter().all(|feature| {
+                let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            }) && !preconditions.none_of.iter().any(|feature| {
+                let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            });
 
-            let used_to_have = preconditions.all_of.iter()
-                .all(|feature| {
-                    let has_feature = old.get(feature).unwrap_or(&false_sentinel);
-                    has_feature.as_bool().unwrap_or(false)
-                }) && !preconditions.none_of.iter()
-                .any(|feature| {
-                    let has_feature = old.get(feature).unwrap_or(&false_sentinel);
-                    has_feature.as_bool().unwrap_or(false)
-                });
+            let used_to_have = preconditions.all_of.iter().all(|feature| {
+                let has_feature = old.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            }) && !preconditions.none_of.iter().any(|feature| {
+                let has_feature = old.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            });
 
             // Note that we log on a state change, but we always make the change to pick up new versions.
             if wants_feature {
                 if !has_dep_currently {
-                    actions.push(format!("{}@{} ({} enabled)", candidate.name.bold().magenta(), candidate.version, preconditions.all_of.join(", ")));
+                    actions.push(format!(
+                        "{}@{} ({} enabled)",
+                        candidate.name.bold().magenta(),
+                        candidate.version,
+                        preconditions.all_of.join(", ")
+                    ));
                 }
                 target.insert(candidate.name, candidate.version.into());
             } else if wants_feature != used_to_have {
                 if has_dep_currently {
-                    actions.push(format!("ⅹ {} ({} disabled)", candidate.name.strikethrough().magenta(), preconditions.all_of.join(", ")));
+                    actions.push(format!(
+                        "ⅹ {} ({} disabled)",
+                        candidate.name.strikethrough().magenta(),
+                        preconditions.all_of.join(", ")
+                    ));
                 }
                 target.remove(&candidate.name[..]);
             }
         } else if !has_dep_currently {
-            actions.push(format!("{}@{} {}", candidate.name.bold().magenta(), candidate.version, candidate.kind));
+            actions.push(format!(
+                "{}@{} {}",
+                candidate.name.bold().magenta(),
+                candidate.version,
+                candidate.kind
+            ));
             target.insert(candidate.name, candidate.version.into());
         } else if let Some(current_value) = target.get(&candidate.name[..]) {
             if current_value.as_str().unwrap_or("") != candidate.version.as_str() {
-                actions.push(format!("{}@{} ➜ {} {}", candidate.name.bold().magenta(), current_value, candidate.version, candidate.kind));
+                actions.push(format!(
+                    "{}@{} ➜ {} {}",
+                    candidate.name.bold().magenta(),
+                    current_value,
+                    candidate.version,
+                    candidate.kind
+                ));
                 target.insert(candidate.name, candidate.version.into());
             }
         }
@@ -418,26 +463,22 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     package_json.boltzmann.replace(updated_settings.clone());
 
-
     // Update package.json run scripts:
     let candidates: Vec<RunScriptSpec> = ron::de::from_str(include_str!("runscripts.ron"))?;
     let mut scripts = package_json.scripts.take().unwrap();
 
-    'next:
-    for candidate in candidates {
+    'next: for candidate in candidates {
         if let Some(preconditions) = candidate.preconditions {
-            let wants_feature = preconditions.all_of.iter()
-                .all(|feature| {
-                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
-                    has_feature.as_bool().unwrap_or(false)
-                }) && !preconditions.none_of.iter()
-                .any(|feature| {
-                    let has_feature = new.get(feature).unwrap_or(&false_sentinel);
-                    has_feature.as_bool().unwrap_or(false)
-                });
+            let wants_feature = preconditions.all_of.iter().all(|feature| {
+                let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            }) && !preconditions.none_of.iter().any(|feature| {
+                let has_feature = new.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            });
 
             if !wants_feature {
-                continue
+                continue;
             }
 
             for check_presence in preconditions.if_not_present {
@@ -447,20 +488,29 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                     // and update it so we can add the "B=1" prefix we'll use
                     // going forward.
                     if value.as_str().unwrap_or("") == candidate.value {
-                        continue
+                        continue;
                     }
 
                     if !value.as_str().unwrap_or("").starts_with("B=1 ") {
                         info!("        not updating \"npm run {}\"; {} is present and not managed by boltzmann", candidate.key.bold().green(), value);
-                        continue 'next
+                        continue 'next;
                     }
                 }
             }
         }
 
         let replacement = format!("B=1 {}", candidate.value);
-        if scripts.get(&candidate.key).unwrap_or(&false_sentinel).as_str().unwrap_or("") != replacement {
-            info!("        updating \"npm run {}\"", candidate.key.bold().green());
+        if scripts
+            .get(&candidate.key)
+            .unwrap_or(&false_sentinel)
+            .as_str()
+            .unwrap_or("")
+            != replacement
+        {
+            info!(
+                "        updating \"npm run {}\"",
+                candidate.key.bold().green()
+            );
             scripts.insert(candidate.key, replacement.into());
         }
     }
@@ -468,19 +518,19 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     info!("    writing updated package.json...");
     target.push("package.json");
-    let mut fd = std::fs::OpenOptions::new().create(true).truncate(true).write(true).open(&target)
+    let mut fd = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(&target)
         .with_context(|| format!("Failed to update {:?}", target))?;
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
     target.pop();
 
-    let mut subproc = Exec::cmd(NPM)
-        .arg("i")
-        .cwd(&target);
+    let mut subproc = Exec::cmd(NPM).arg("i").cwd(&target);
 
     subproc = if verbosity < 2 {
-        subproc
-            .stdout(NullFile)
-            .stderr(NullFile)
+        subproc.stdout(NullFile).stderr(NullFile)
     } else {
         subproc
     };
@@ -489,11 +539,17 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     match exit_status {
         ExitStatus::Exited(0) => {
-            warn!("Boltzmann @ {} with:", option_env!("CARGO_PKG_VERSION").unwrap_or_else(|| "0.0.0").bold().magenta());
+            warn!(
+                "Boltzmann @ {} with:",
+                option_env!("CARGO_PKG_VERSION")
+                    .unwrap_or_else(|| "0.0.0")
+                    .bold()
+                    .magenta()
+            );
             let features = updated_settings.features();
             print_table(features, 8, 3);
             Ok(())
-        },
-        _ => Err(anyhow!("npm install exited with non-zero status").into())
+        }
+        _ => Err(anyhow!("npm install exited with non-zero status").into()),
     }
 }
