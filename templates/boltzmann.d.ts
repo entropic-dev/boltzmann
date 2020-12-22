@@ -5,7 +5,6 @@ import { IncomingMessage, OutgoingMessage } from 'http'
 import { URL } from 'url'
 import { Accepts } from 'accepts'
 import { Cookie } from 'cookie'
-import { Test } from 'tap'
 {%- if postgres %}
 import { Client } from 'pg'
 {%- endif -%}
@@ -69,7 +68,7 @@ export declare class Context {
   [x: string]: any
 }
 
-declare type TestHandler = (t: Test) => Promise<any | void> | any | void
+declare type TestHandler = (t) => Promise<any | void> | any | void
 
 export namespace middleware {
   export const applyXFO: Middleware
