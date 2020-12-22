@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "module": "{% if esm %}ES2020{% else %}CommonJS{% endif %}",
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "outDir": "target/release",
+    "allowJs": true,
+    "sourceMap": true
+  },
+  "extends": "@tsconfig/node14/tsconfig.json",
+  "include": ["./*.ts", "./**/*.ts"],
+  "exclude": ["node_modules"]
+}

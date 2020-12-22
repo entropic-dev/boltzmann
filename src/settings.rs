@@ -11,7 +11,11 @@ use super::Flags;
 
 #[derive(Deserialize, Default)]
 pub struct When {
-    pub(crate) feature: Option<String>,
+    #[serde(default)]
+    pub(crate) all_of: Vec<String>,
+    #[serde(default)]
+    pub(crate) none_of: Vec<String>,
+    #[serde(default)]
     pub(crate) if_not_present: Vec<String>
 }
 
@@ -65,6 +69,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) templates: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) typescript: Option<bool>,
+
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
 }
@@ -111,6 +118,7 @@ impl Settings {
             redis: cast(&flags.redis, &self.redis, flags.all),
 
             // oddballs:
+            typescript: cast(&flags.typescript, &self.typescript, false),
             version: Some(version),
             esm: if is_esm { Some(true) } else { None },
 
@@ -168,6 +176,9 @@ impl Settings {
         if self.templates.unwrap_or(false) {
             features.push("templates");
         }
+        if self.typescript.unwrap_or(false) {
+            features.push("typescript");
+        }
         // In case we have some bad people who don't alphabetize the above.
         features.sort_unstable();
 
@@ -204,6 +215,7 @@ impl Into<Context> for Settings {
         ctxt.insert("redis", &self.redis.unwrap_or(false));
         ctxt.insert("status", &self.status.unwrap_or(false));
         ctxt.insert("templates", &self.templates.unwrap_or(false));
+        ctxt.insert("typescript", &self.typescript.unwrap_or(false));
         ctxt.insert("selftest", &self.selftest.unwrap_or(false));
         ctxt.insert("version", &self.version.unwrap_or_else(|| "<unknown version>".to_string())[..]);
 

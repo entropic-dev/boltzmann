@@ -1,0 +1,151 @@
+[
+    RunScriptSpec(
+        key: "lint",
+        value: "eslint .",
+        preconditions: Some(When(
+            if_not_present: ["lint"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "posttest",
+        value: "npm run lint",
+        preconditions: Some(When(
+            if_not_present: ["posttest"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "pretest",
+        value: "tsc --noEmit tests/**.ts",
+        preconditions: Some(When(
+            if_not_present: ["pretest"],
+            all_of: ["typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "tap tests",
+        preconditions: Some(When(
+            if_not_present: ["test"],
+            none_of: ["esm", "typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "tap --no-ts --node-arg=--require=ts-node/register tests/**.ts",
+        preconditions: Some(When(
+            if_not_present: ["test"],
+            none_of: ["esm"],
+            all_of: ["typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "tap --no-esm tests",
+        preconditions: Some(When(
+            if_not_present: ["test"],
+            none_of: ["typescript"],
+            all_of: ["esm"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "start",
+        value: "nodemon ./boltzmann.js",
+        preconditions: Some(When(
+            if_not_present: ["lint"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "postinstall",
+        value: "npm run boltzmann:tsbuild",
+        preconditions: Some(When(
+            all_of: ["typescript"],
+            if_not_present: ["postinstall"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:tsbuild",
+        value: "tsc --outDir target/release && cp boltzmann.js target/release",
+        preconditions: Some(When(
+            all_of: ["typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:upgrade",
+        value: "npx boltzmann-cli",
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:routes",
+        value: "node -e 'require(\"./boltzmann\").printRoutes()'",
+        preconditions: Some(When(
+            none_of: ["esm", "typescript"],
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:routes",
+        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.printRoutes())",
+        preconditions: Some(When(
+            none_of: ["typescript"],
+            all_of: ["esm"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:routes",
+        value: "node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
+        preconditions: Some(When(
+            none_of: ["esm"],
+            all_of: ["typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:esbuild",
+        value: "node -r ts-node/register -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'",
+        preconditions: Some(When(
+            none_of: ["typescript", "esm"],
+            all_of: ["esbuild"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:esbuild",
+        value: "node -r ts-node/register -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'",
+        preconditions: Some(When(
+            none_of: ["esm"],
+            all_of: ["esbuild", "typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:esbuild",
+        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'",
+        preconditions: Some(When(
+            none_of: ["typescript"],
+            all_of: ["esbuild", "esm"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:esbuild",
+        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'",
+        preconditions: Some(When(
+            all_of: ["esbuild", "esm", "typescript"]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "boltzmann:docs",
+        value: "npx boltzmann-cli --docs"
+    )
+]
