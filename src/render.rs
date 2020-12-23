@@ -103,58 +103,32 @@ fn render_dir(
     // Track files we created in prior iterations of the loop. If we created them on this run, do
     // not log the "git rm" message when skipping.
     let mut created = HashSet::new();
+
     'next: for (basename, mode, node, when) in spec.children {
         if let Some(preconditions) = when {
             // first, skip what we skip if they already exist...
             let mut cloned_cwd = cwd.clone();
-            for dir in preconditions.if_not_present {
+            for dir in &preconditions.if_not_present {
                 // if any of these directories exist, bail
                 cloned_cwd.push(dir);
                 if cloned_cwd.as_path().exists() {
+                    trace!("        skipping {:?}; already exists", cloned_cwd);
                     continue 'next;
                 }
                 cloned_cwd.pop();
             }
 
-            for exclude in preconditions.none_of {
-                let has_feature = mapped
-                    .get(exclude.clone())
-                    .map(|xs| xs.as_bool().unwrap_or(false))
-                    .unwrap_or(false);
-
-                if has_feature {
-                    cwd.push(&basename[..]);
-                    trace!(
-                        "        skipping {} (because {} is activated)",
-                        basename.strikethrough().blue(),
-                        exclude
-                    );
-                    cwd.pop();
-                    continue 'next;
+            let wants_item = preconditions.are_satisfied_by(&mapped);
+            if wants_item {
+                trace!("        prereqs met for {}", basename.blue().bold());
+            } else {
+                trace!("        skipping {}", basename.strikethrough().blue());
+                cwd.push(&basename[..]);
+                if !created.contains(cwd.as_path()) && cwd.as_path().exists() {
+                    info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
                 }
-            }
-
-            if !preconditions.all_of.is_empty() {
-                for include in preconditions.all_of {
-                    let has_feature = mapped
-                        .get(include.clone())
-                        .map(|xs| xs.as_bool().unwrap_or(false))
-                        .unwrap_or(false);
-
-                    if !has_feature {
-                        cwd.push(&basename[..]);
-                        trace!(
-                            "        skipping {} ({} deactivated)",
-                            basename.strikethrough().blue(),
-                            include
-                        );
-                        if !created.contains(cwd.as_path()) && cwd.as_path().exists() {
-                            info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
-                        }
-                        cwd.pop();
-                        continue 'next;
-                    }
-                }
+                cwd.pop();
+                continue 'next;
             }
         }
 

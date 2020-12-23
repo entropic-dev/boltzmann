@@ -232,31 +232,6 @@ fn print_table<T: std::fmt::Display + Clone>(mut input: Vec<T>, columns: usize, 
     table.printstd();
 }
 
-fn dep_wanted(preconditions: &When, settings: &serde_json::Value) -> bool {
-    let false_sentinel = Value::Bool(false);
-
-    let has_a_prereq = if !preconditions.all_of.is_empty() {
-        preconditions.all_of.iter().all(|feature| {
-            let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
-            has_feature.as_bool().unwrap_or(false)
-        })
-    } else if !preconditions.any_of.is_empty() {
-        preconditions.any_of.iter().any(|feature| {
-            let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
-            has_feature.as_bool().unwrap_or(false)
-        })
-    } else {
-        false
-    };
-
-    let has_no_exclusions = !preconditions.none_of.iter().any(|feature| {
-        let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
-        has_feature.as_bool().unwrap_or(false)
-    });
-
-    has_a_prereq && has_no_exclusions
-}
-
 // data structures for dep lists
 #[derive(Deserialize)]
 enum DependencyType {
@@ -412,8 +387,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         let has_dep_currently = target.contains_key(&candidate.name[..]);
 
         if let Some(preconditions) = candidate.preconditions {
-            let wants_feature = dep_wanted(&preconditions, &new);
-            let used_to_have = dep_wanted(&preconditions, &old);
+            let wants_feature = preconditions.are_satisfied_by(&new);
+            let used_to_have = preconditions.are_satisfied_by(&old);
 
             // Note that we log on a state change, but we always make the change to pick up new versions.
             if wants_feature {

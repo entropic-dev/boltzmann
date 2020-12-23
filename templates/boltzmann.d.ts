@@ -5,10 +5,10 @@ import { IncomingMessage, OutgoingMessage } from 'http'
 import { URL } from 'url'
 import { Accepts } from 'accepts'
 import { Cookie } from 'cookie'
-{%- if postgres %}
+{% if postgres -%}
 import { Client } from 'pg'
 {% endif -%}
-{%- if redis %}
+{% if redis -%}
 import { IHandyRedis } from 'handy-redis'
 {% endif -%}
 
@@ -55,13 +55,13 @@ export declare class Context {
   public get query(): { [key: string]: string }
   public get body(): Promise<{ [key: string]: string }>
   public get accepts(): Accepts
-  {%- if postgres %}
+  {% if postgres -%}
   get postgresClient(): Promise<Client>
   {% endif -%}
-  {%- if redis %}
+  {% if redis -%}
   get redisClient(): IHandyRedis
   {% endif -%}
-  {%- if honeycomb %}
+  {% if honeycomb -%}
   get traceURL(): string
   {% endif -%}
 
@@ -74,26 +74,26 @@ export namespace middleware {
   export const applyXFO: Middleware
   export const handleCORS: Middleware
   export const session: Middleware
-  {%- if jwt %}
+  {% if jwt -%}
   export const authenticateJWT: Middleware
   {% endif -%}
-  {%- if templates %}
+  {% if templates -%}
   export const template: Middleware
   export const templateContext: Middleware
   {% endif -%}
-  {%- if oauth %}
+  {% if oauth -%}
   export const oauth: Middleware
   export const handleOAuthLogin: Middleware
   export const handleOAuthLogout: Middleware
   export const handleOAuthCallback: Middleware
   {% endif -%}
-  {%- if staticfiles %}
+  {% if staticfiles -%}
   export const staticfiles: Middleware
   {% endif -%}
-  {%- if esbuild %}
+  {% if esbuild -%}
   export const esbuild: Middleware
   {% endif -%}
-  {%- if csrf %}
+  {% if csrf -%}
   export const applyCSRF: Middleware
   {% endif %}
 
