@@ -17,6 +17,8 @@ pub struct When {
     pub(crate) none_of: Vec<String>,
     #[serde(default)]
     pub(crate) if_not_present: Vec<String>,
+    #[serde(default)]
+    pub(crate) any_of: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]

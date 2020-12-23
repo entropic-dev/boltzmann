@@ -105,6 +105,17 @@ fn render_dir(
     let mut created = HashSet::new();
     'next: for (basename, mode, node, when) in spec.children {
         if let Some(preconditions) = when {
+            // first, skip what we skip if they already exist...
+            let mut cloned_cwd = cwd.clone();
+            for dir in preconditions.if_not_present {
+                // if any of these directories exist, bail
+                cloned_cwd.push(dir);
+                if cloned_cwd.as_path().exists() {
+                    continue 'next;
+                }
+                cloned_cwd.pop();
+            }
+
             for exclude in preconditions.none_of {
                 let has_feature = mapped
                     .get(exclude.clone())
@@ -144,16 +155,6 @@ fn render_dir(
                         continue 'next;
                     }
                 }
-            }
-
-            let mut cloned_cwd = cwd.clone();
-            for dir in preconditions.if_not_present {
-                // if any of these directories exist, bail
-                cloned_cwd.push(dir);
-                if cloned_cwd.as_path().exists() {
-                    continue 'next;
-                }
-                cloned_cwd.pop();
             }
         }
 

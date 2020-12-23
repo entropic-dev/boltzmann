@@ -232,6 +232,31 @@ fn print_table<T: std::fmt::Display + Clone>(mut input: Vec<T>, columns: usize, 
     table.printstd();
 }
 
+fn dep_wanted(preconditions: &When, settings: &serde_json::Value) -> bool {
+    let false_sentinel = Value::Bool(false);
+
+    let has_a_prereq = if !preconditions.all_of.is_empty() {
+        preconditions.all_of.iter().all(|feature| {
+            let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
+            has_feature.as_bool().unwrap_or(false)
+        })
+    } else if !preconditions.any_of.is_empty() {
+        preconditions.any_of.iter().any(|feature| {
+            let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
+            has_feature.as_bool().unwrap_or(false)
+        })
+    } else {
+        false
+    };
+
+    let has_no_exclusions = !preconditions.none_of.iter().any(|feature| {
+        let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
+        has_feature.as_bool().unwrap_or(false)
+    });
+
+    has_a_prereq && has_no_exclusions
+}
+
 // data structures for dep lists
 #[derive(Deserialize)]
 enum DependencyType {
@@ -371,7 +396,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         .take()
         .unwrap_or_else(Default::default);
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
-    info!("    updating dependencies...");
 
     let mut table = Table::new();
     table.set_format(*prettytable::format::consts::FORMAT_CLEAN);
@@ -388,39 +412,36 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         let has_dep_currently = target.contains_key(&candidate.name[..]);
 
         if let Some(preconditions) = candidate.preconditions {
-            let wants_feature = preconditions.all_of.iter().all(|feature| {
-                let has_feature = new.get(feature).unwrap_or(&false_sentinel);
-                has_feature.as_bool().unwrap_or(false)
-            }) && !preconditions.none_of.iter().any(|feature| {
-                let has_feature = new.get(feature).unwrap_or(&false_sentinel);
-                has_feature.as_bool().unwrap_or(false)
-            });
-
-            let used_to_have = preconditions.all_of.iter().all(|feature| {
-                let has_feature = old.get(feature).unwrap_or(&false_sentinel);
-                has_feature.as_bool().unwrap_or(false)
-            }) && !preconditions.none_of.iter().any(|feature| {
-                let has_feature = old.get(feature).unwrap_or(&false_sentinel);
-                has_feature.as_bool().unwrap_or(false)
-            });
+            let wants_feature = dep_wanted(&preconditions, &new);
+            let used_to_have = dep_wanted(&preconditions, &old);
 
             // Note that we log on a state change, but we always make the change to pick up new versions.
             if wants_feature {
                 if !has_dep_currently {
+                    let why = if !preconditions.all_of.is_empty() {
+                        preconditions.all_of.join(", ")
+                    } else {
+                        "prereqs".to_string()
+                    };
                     actions.push(format!(
                         "{}@{} ({} enabled)",
                         candidate.name.bold().magenta(),
                         candidate.version,
-                        preconditions.all_of.join(", ")
+                        why
                     ));
                 }
                 target.insert(candidate.name, candidate.version.into());
             } else if wants_feature != used_to_have {
                 if has_dep_currently {
+                    let why = if !preconditions.all_of.is_empty() {
+                        preconditions.all_of.join(", ")
+                    } else {
+                        "prereqs".to_string()
+                    };
                     actions.push(format!(
                         "ⅹ {} ({} disabled)",
                         candidate.name.strikethrough().magenta(),
-                        preconditions.all_of.join(", ")
+                        why
                     ));
                 }
                 target.remove(&candidate.name[..]);
@@ -447,9 +468,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         }
     }
 
-    if verbosity > 1 || (verbosity == 1 && !first_scaffold) && !actions.is_empty() {
-        actions.sort_unstable();
-        print_table(actions, 2, 6);
+    if verbosity > 0 && !actions.is_empty() {
+        // There is something to log, and we're not silent...
+        if verbosity == 1 && first_scaffold {
+            info!("    {} dependencies added", actions.len());
+        } else {
+            info!("    managing dependencies...");
+            actions.sort_unstable();
+            print_table(actions, 2, 7);
+        }
     }
 
     package_json.dependencies.replace(dependencies);
@@ -464,6 +491,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     package_json.boltzmann.replace(updated_settings.clone());
 
     // Update package.json run scripts:
+    actions = Vec::new();
     let candidates: Vec<RunScriptSpec> = ron::de::from_str(include_str!("runscripts.ron"))?;
     let mut scripts = package_json.scripts.take().unwrap();
 
@@ -478,6 +506,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             });
 
             if !wants_feature {
+                // TODO consider removing a boltzmann-managed run script if the feature is now unwanted.
                 continue;
             }
 
@@ -492,7 +521,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                     }
 
                     if !value.as_str().unwrap_or("").starts_with("B=1 ") {
-                        info!("        not updating \"npm run {}\"; {} is present and not managed by boltzmann", candidate.key.bold().green(), value);
+                        actions.push(format!("{} left in place", format!("npm run {}", candidate.key).bold().green()));
                         continue 'next;
                     }
                 }
@@ -507,14 +536,16 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             .unwrap_or("")
             != replacement
         {
-            info!(
-                "        updating \"npm run {}\"",
-                candidate.key.bold().green()
-            );
+            actions.push(format!("{} set", format!("npm run {}", candidate.key).bold().green()));
             scripts.insert(candidate.key, replacement.into());
         }
     }
     package_json.scripts.replace(scripts);
+    if !actions.is_empty() && verbosity > 0 {
+        info!("    managing run scripts...");
+        actions.sort_unstable();
+        print_table(actions, 3, 6);
+    }
 
     info!("    writing updated package.json...");
     target.push("package.json");
@@ -543,8 +574,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                 "Boltzmann @ {} with:",
                 option_env!("CARGO_PKG_VERSION")
                     .unwrap_or_else(|| "0.0.0")
+                    .green()
                     .bold()
-                    .magenta()
             );
             let features = updated_settings.features();
             print_table(features, 8, 3);
