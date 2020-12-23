@@ -7,7 +7,7 @@ import { Accepts } from 'accepts'
 import { Cookie } from 'cookie'
 {%- if postgres %}
 import { Client } from 'pg'
-{%- endif -%}
+{% endif -%}
 {%- if redis %}
 import { IHandyRedis } from 'handy-redis'
 {% endif -%}
@@ -57,10 +57,10 @@ export declare class Context {
   public get accepts(): Accepts
   {%- if postgres %}
   get postgresClient(): Promise<Client>
-  {%- endif -%}
+  {% endif -%}
   {%- if redis %}
   get redisClient(): IHandyRedis
-  {%- endif -%}
+  {% endif -%}
   {%- if honeycomb %}
   get traceURL(): string
   {% endif -%}
@@ -76,26 +76,26 @@ export namespace middleware {
   export const session: Middleware
   {%- if jwt %}
   export const authenticateJWT: Middleware
-  {%- endif -%}
+  {% endif -%}
   {%- if templates %}
   export const template: Middleware
   export const templateContext: Middleware
-  {%- endif -%}
+  {% endif -%}
   {%- if oauth %}
   export const oauth: Middleware
   export const handleOAuthLogin: Middleware
   export const handleOAuthLogout: Middleware
   export const handleOAuthCallback: Middleware
-  {%- endif -%}
+  {% endif -%}
   {%- if staticfiles %}
   export const staticfiles: Middleware
-  {%- endif -%}
+  {% endif -%}
   {%- if esbuild %}
   export const esbuild: Middleware
-  {%- endif -%}
+  {% endif -%}
   {%- if csrf %}
   export const applyCSRF: Middleware
-  {%- endif %}
+  {% endif %}
 
   export namespace validate {
     export const body: Middleware
