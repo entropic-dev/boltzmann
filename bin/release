@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 print_help() {
   cat >&2 <<EOF
 USAGE: bin/release [level]
