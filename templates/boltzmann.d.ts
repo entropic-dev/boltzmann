@@ -5,10 +5,10 @@ import { IncomingMessage, OutgoingMessage } from 'http'
 import { URL } from 'url'
 import { Accepts } from 'accepts'
 import { Cookie } from 'cookie'
-{%- if postgres %}
+{% if postgres -%}
 import { Client } from 'pg'
-{%- endif -%}
-{%- if redis %}
+{% endif -%}
+{% if redis -%}
 import { IHandyRedis } from 'handy-redis'
 {% endif -%}
 
@@ -55,13 +55,13 @@ export declare class Context {
   public get query(): { [key: string]: string }
   public get body(): Promise<{ [key: string]: string }>
   public get accepts(): Accepts
-  {%- if postgres %}
+  {% if postgres -%}
   get postgresClient(): Promise<Client>
-  {%- endif -%}
-  {%- if redis %}
+  {% endif -%}
+  {% if redis -%}
   get redisClient(): IHandyRedis
-  {%- endif -%}
-  {%- if honeycomb %}
+  {% endif -%}
+  {% if honeycomb -%}
   get traceURL(): string
   {% endif -%}
 
@@ -74,28 +74,28 @@ export namespace middleware {
   export const applyXFO: Middleware
   export const handleCORS: Middleware
   export const session: Middleware
-  {%- if jwt %}
+  {% if jwt -%}
   export const authenticateJWT: Middleware
-  {%- endif -%}
-  {%- if templates %}
+  {% endif -%}
+  {% if templates -%}
   export const template: Middleware
   export const templateContext: Middleware
-  {%- endif -%}
-  {%- if oauth %}
+  {% endif -%}
+  {% if oauth -%}
   export const oauth: Middleware
   export const handleOAuthLogin: Middleware
   export const handleOAuthLogout: Middleware
   export const handleOAuthCallback: Middleware
-  {%- endif -%}
-  {%- if staticfiles %}
+  {% endif -%}
+  {% if staticfiles -%}
   export const staticfiles: Middleware
-  {%- endif -%}
-  {%- if esbuild %}
+  {% endif -%}
+  {% if esbuild -%}
   export const esbuild: Middleware
-  {%- endif -%}
-  {%- if csrf %}
+  {% endif -%}
+  {% if csrf -%}
   export const applyCSRF: Middleware
-  {%- endif %}
+  {% endif %}
 
   export namespace validate {
     export const body: Middleware

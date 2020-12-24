@@ -12,6 +12,14 @@
     preconditions: None
   ),
   DependencySpec(
+    name: "oblique-strategies",
+    version: "*",
+    kind: Normal,
+    preconditions: Some(When(
+      none_of: [ "typescript" ]
+    ))
+  ),
+  DependencySpec(
     name: "@hapi/iron",
     version: "^6.0.0",
     kind: Normal,
@@ -46,15 +54,7 @@
     version: "^2.4.6",
     kind: Normal,
     preconditions: Some(When(
-      all_of: ["esbuild"],
-    ))
-  ),
-  DependencySpec(
-    name: "mime",
-    version: "^2.4.6",
-    kind: Normal,
-    preconditions: Some(When(
-      all_of: ["staticfiles"],
+      any_of: ["esbuild", "staticfiles"],
     ))
   ),
   DependencySpec(

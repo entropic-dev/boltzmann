@@ -17,6 +17,38 @@ pub struct When {
     pub(crate) none_of: Vec<String>,
     #[serde(default)]
     pub(crate) if_not_present: Vec<String>,
+    #[serde(default)]
+    pub(crate) any_of: Vec<String>,
+}
+
+impl When {
+    /// Returns true if the passed-in settings meet the conditions described by the When.
+    /// Does not consider `if_not_present` because the test for presence varies depending
+    /// on what the spec is for: files vs runscripts.
+    pub fn are_satisfied_by(&self, settings: &serde_json::Value) -> bool {
+        let false_sentinel = Value::Bool(false);
+
+        let has_a_prereq = if !self.all_of.is_empty() {
+            self.all_of.iter().all(|feature| {
+                let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            })
+        } else if !self.any_of.is_empty() {
+            self.any_of.iter().any(|feature| {
+                let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
+                has_feature.as_bool().unwrap_or(false)
+            })
+        } else {
+            true
+        };
+
+        let has_no_exclusions = !self.none_of.iter().any(|feature| {
+            let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
+            has_feature.as_bool().unwrap_or(false)
+        });
+
+        has_a_prereq && has_no_exclusions
+    }
 }
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]

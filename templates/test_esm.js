@@ -1,4 +1,5 @@
-import { test } from 'tap'
+import tap from 'tap'
+const { test } = tap
 import { middleware } from '../boltzmann.js'
 
 const _ = middleware.test({
