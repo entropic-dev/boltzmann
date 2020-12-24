@@ -134,6 +134,13 @@ impl Settings {
             None => self.esm.unwrap_or(false),
         };
 
+        let is_typescript = match &flags.typescript {
+            Some(None) => true,
+            Some(Some(Flipper::On)) => true,
+            Some(Some(Flipper::Off)) => false,
+            None => self.typescript.unwrap_or(false),
+        };
+
         Settings {
             // website features, grouped
             csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
@@ -165,7 +172,7 @@ impl Settings {
             redis: cast(&flags.redis, &self.redis, flags.all),
 
             // oddballs:
-            typescript: cast(&flags.typescript, &self.typescript, false),
+            typescript: if is_typescript { Some(true) } else { None },
             version: Some(version),
             esm: if is_esm { Some(true) } else { None },
 
