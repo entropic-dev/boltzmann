@@ -92,13 +92,29 @@ Dir(DirSpec(
     (".eslintrc.js", 0o644, Template(TemplateSpec(
       template_name: "eslintrc.js"
     )), Some(When(
-      if_not_present: [".eslintrc.js", ".eslintrc"]
+      if_not_present: [".eslintrc.js", ".eslintrc"],
+      none_of: ["esm"]
+    ))),
+
+    (".eslintrc.cjs", 0o644, Template(TemplateSpec(
+      template_name: "eslintrc.js"
+    )), Some(When(
+      if_not_present: [".eslintrc.js", ".eslintrc"],
+      all_of: ["esm"],
     ))),
 
     (".prettierrc.js", 0o644, Template(TemplateSpec(
       template_name: "prettierrc.js"
     )), Some(When(
-      if_not_present: [".prettierrc.js", ".prettierrc" ]
+      if_not_present: [".prettierrc.js", ".prettierrc" ],
+      none_of: ["esm"]
+    ))),
+
+    (".prettierrc.cjs", 0o644, Template(TemplateSpec(
+      template_name: "prettierrc.js"
+    )), Some(When(
+      if_not_present: [".prettierrc.cjs", ".prettierrc" ],
+      all_of: ["esm"]
     ))),
 
     (".github", 0o755, Dir(DirSpec(
