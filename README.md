@@ -17,7 +17,7 @@ Our design goals:
 - Rely on a little bit of documented convention to avoid configuration.
 - Making throwing Boltzmann away if you need to move on _possible_.
 
-Boltzmann provides Typescript definitions for its exports, for your development convenience, but it does not require you to opt-in to Typescript or do any transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
+Boltzmann is implemented in vanilla JavaScript and scaffolds a JavaScript project by default, with TypeScript definitions for your development convenience. It can scaffold a TypeScript project if you choose, but does not otherwise require you to opt into transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
 
 For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/0.2.0/).
 

@@ -44,7 +44,7 @@ pub struct Flags {
     #[structopt(long, help = "Enable postgres")]
     postgres: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable honeycomb")]
+    #[structopt(long, help = "Enable tracing via Honeycomb")]
     honeycomb: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable GitHub actions CI")]
@@ -53,7 +53,7 @@ pub struct Flags {
     #[structopt(long, help = "Enable Nunjucks templates")]
     templates: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable typescript")]
+    #[structopt(long, help = "Scaffold a project implemented in TypeScript", conflicts_with = "esm")]
     typescript: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Scaffold project using ES Modules")]
