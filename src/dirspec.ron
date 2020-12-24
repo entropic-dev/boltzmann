@@ -163,6 +163,7 @@ Dir(DirSpec(
         ]
     )), Some(When(
       if_not_present: ["tests"],
+      none_of: ["selftest"]
     ))),
   ],
 ))

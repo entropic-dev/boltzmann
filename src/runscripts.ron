@@ -29,7 +29,16 @@
         value: "tap tests",
         preconditions: Some(When(
             if_not_present: ["test"],
-            none_of: ["esm", "typescript"]
+            none_of: ["esm", "typescript", "selftest" ]
+        ))
+    ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "node test.js",
+        preconditions: Some(When(
+            if_not_present: ["test.js"],
+            all_of: ["selftest"]
         ))
     ),
 
@@ -39,7 +48,7 @@
         preconditions: Some(When(
             if_not_present: ["test"],
             none_of: ["esm"],
-            all_of: ["typescript"]
+            all_of: ["typescript", "selftest"]
         ))
     ),
 
