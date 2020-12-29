@@ -1,8 +1,26 @@
 @charset "utf-8";
 
+@font-face {
+  font-family: "Open Sans";
+  src: url("/fonts/OpenSans-Regular-webfont.woff2") format("woff2"),
+       url("/fonts/OpenSans-Regular-webfont.woff") format("woff");
+
+}
+
+@mixin lhCrop($line-height) {
+  &::before {
+    content: '';
+    display: block;
+    height: 0;
+    width: 0;
+    margin-top: calc((1 - #{$line-height}) * 0.5em);
+  }
+}
+
 * {
   padding:0;
   margin: 0;
+  box-sizing: border-box;
 
   ::selection {
     background: #222;
@@ -14,7 +32,8 @@
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
 
-    &.theme-change-active {
+
+    &.threme-change-active {
       animation: fade-in ease-out 0.6s;
     }
   }
@@ -24,21 +43,29 @@
 body {
   text-rendering: optimizeLegibility;
   font-family: sans-serif;
-  line-height:1.5;
+  line-height:1.333;
   display: flex;
   flex-flow: column nowrap;
-  hyphens: auto;
+  width: 100%;
+}
+
+body.grid {
+  background: linear-gradient(rgba(0,128,128,0.7) 0px, transparent 0.1rem, transparent 1.3333rem, rgba(0,128,128,0.7) 1.3333rem, transparent 1.4333rem) top left/2rem 2rem,
+  linear-gradient(90deg, rgba(0,128,128,0.7) 0.1rem, transparent 0.1rem) top left/1.666rem 1.666rem;
 }
 
 pre {
   overflow: auto;
-  font:1rem "SF Mono", monospace;
-  padding:1rem;
-  border-radius: 4px;
+  font:1rem "SF Mono", SFMono-Regular, ui-monospace, monospace;
+  line-height: 1.666;
+}
+
+pre * {
+  text-decoration: none !important;
 }
 
 code {
-  font:1rem "SF Mono", monospace;
+  font-family: "SF Mono", SFMono-Regular, ui-monospace, monospace;
 }
 
 a:link {
@@ -47,13 +74,21 @@ a:link {
 }
 
 a:hover {
+  color: royalblue;
 }
 
 a:visited {
+  color: royalblue;
 }
 
 h1, h2, h3, h4, h5 {
+  position: relative;
+  padding-left: 1.25rem;
+  left: -1.25rem;
+
   .anchor {
+    position: absolute;
+    left: -1.25rem;
     visibility: hidden;
     text-decoration: none;
     border-bottom-color: transparent;
@@ -68,38 +103,248 @@ h1, h2, h3, h4, h5 {
   }
 }
 
+body > header {
+  background: #363333;
+  color: white;
+  margin-bottom: 2.0rem;
+  position: fixed;
+  width: 100%;
+  z-index: 10000;
 
-h2, h3 {
+  nav {
+    display: flex;
+    justify-content: center;
+    max-width: 76rem;
+    align-items: center;
+    margin: 0 auto;
+    padding: 1.6666rem 0.1rem 0.3333rem 0.1rem;
+
+    h1 {
+      padding: 0;
+      margin: 0;
+      font-size: 2.6666rem;
+      line-height:0;
+    }
+
+    input#search {
+      display: block;
+      font-size: 1.166rem;
+      line-height:0;
+      width: 100%;
+      max-width: 46rem;
+
+      border: none;
+      border-bottom: 1px solid #CCC;
+      background: none;
+      color: white;
+
+      &::placeholder {
+        color: white;
+      }
+    }
+
+    #versions {
+      position: relative;
+
+      &>a:first-child {
+        color: white;
+
+        &:before {
+          content: 'Current Version ';
+        }
+      }
+
+      &:target div,
+      &.open div {
+        display: block;
+      }
+
+      &.prerelease .prerelease {
+        display: block;
+        position: relative;
+        a {
+          color: #ccc;
+        }
+      }
+
+      div {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: -3em;
+        padding: 0em 1.5em 1.5em 1.5em;
+
+        ul {
+          background:#333;
+          padding: 0em 1.6666em 0.25em 1.6666em;
+          min-height: 16vh;
+          max-height: 24vh;
+          overflow: scroll;
+          li {
+            list-style: none;
+            line-height: 2;
+            position: relative;
+            a {
+              color: #eee;
+            }
+
+            &.active:before {
+              content: '→';
+              position: absolute;
+              left: -1.25em;
+            }
+
+            &.active a {
+              text-decoration: underline;
+            }
+          }
+          li.prerelease {
+            display: none;
+          }
+        }
+
+        p {
+          min-width: 16em;
+          background:#333;
+          font-style: italic;
+          padding: 0.75em 1.6666em; 
+          label {
+          position: relative;
+          left: -0.666em;
+          }
+        }
+      }
+    }
+  }
 }
 
-h1 {
-}
-
-nav {
-  button {
-  }
-
-  ul {
-  }
-
-  em {
+body > footer {
+  background: #363333;
+  color: white;
+  margin-top: 2.0rem;
+  nav {
+    display: flex;
+    justify-content: center;
+    max-width: 76rem;
+    align-items: center;
+    margin: 0 auto;
+    padding: 1.6666rem 0.1rem 0.3333rem 0.1rem;
   }
 }
 
 main {
   display: flex;
-  flex-flow: column nowrap;
+  justify-content: center;
+  min-width: 72rem;
+  align-items: flex-start;
+  margin: 0 auto;
+  padding-top: 6.12em;
 
-  p {
+  nav {
+    padding-top: 0.75rem;
+    width: 16.666rem;
+    position: sticky;
+    height: calc(100vh - 6.12em);
+    overflow: scroll;
+    top: 6.12em;
+
+    ul {
+      list-style:none;
+      line-height: 2;
+
+      li {
+        padding: 0 0.875rem;
+        li {
+          padding: 0 0 0 1.6666rem;
+        }
+
+        code {
+          white-space: nowrap;
+        }
+      }
+
+      li {
+        border-left: 3px solid transparent;
+        position: relative;
+        left:-3px;
+
+        &:after {
+          content: '';
+          position: absolute;
+          width: calc(100% - 2rem);
+          height: 1px;
+          display: block;
+          bottom: 1px;
+          border-top: 1px solid #eee;
+        }
+      }
+
+      li.active {
+        border-left: 3px solid #0ce;
+      }
+
+      li:hover {
+        border-left: 3px solid #cce;
+      }
+
+      &>li>ul>li:last-child {
+        padding-bottom:0;
+      }
+    }
+
+    .subsections {
+      display: none;
+    }
+
+    .open .subsections {
+      display: block;
+    }
   }
 
-  article {
+  &>article {
+    .search-results__items {
+      display: none;
+    }
+
+    font-size:1.1666rem;
+    line-height: 1.75;
+    padding: 0 0.8666rem;
+    color: #222;
+
+    max-width: 50rem;
+    width: 100%;
+    p {
+      word-break: break-word;
+      margin-bottom: 2rem;
+      code {
+        white-space: nowrap;
+      }
+    }
+
+    h1 {
+      margin-bottom: 0.75rem;
+    }
+
+    h1, h2, h3, h4, h5 {
+      scroll-margin-top: 4em;
+    }
+
     ul, ol {
-      list-style-position: inside;
+      list-style-position: outside;
+      margin-bottom: 2rem;
+    }
+
+    pre {
+      margin-bottom: 2rem;
+    }
+
+    hr {
+      margin-bottom: 2rem;
+      border: 1px solid #ccc;
     }
 
     a:visited {
-      color:blueviolet;
+      color: royalblue;
     }
   }
 
@@ -120,9 +365,6 @@ main {
 
   body {
     font-size:1rem;
-  }
-
-  nav, main {
   }
 
   #mobile {

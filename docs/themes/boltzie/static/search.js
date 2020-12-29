@@ -1,18 +1,18 @@
 function debounce(func, wait) {
     var timeout;
-  
+
     return function () {
       var context = this;
       var args = arguments;
       clearTimeout(timeout);
-  
+
       timeout = setTimeout(function () {
         timeout = null;
         func.apply(context, args);
       }, wait);
     };
   }
-  
+
   // Taken from mdbook
   // The strategy is as follows:
   // First, assign a value to each word in the document:
@@ -28,24 +28,24 @@ function debounce(func, wait) {
     var NORMAL_WORD_WEIGHT = 2;
     var FIRST_WORD_WEIGHT = 8;
     var TEASER_MAX_WORDS = 30;
-  
+
     var stemmedTerms = terms.map(function (w) {
       return elasticlunr.stemmer(w.toLowerCase());
     });
     var termFound = false;
     var index = 0;
     var weighted = []; // contains elements of ["word", weight, index_in_document]
-  
+
     // split in sentences, then words
     var sentences = body.toLowerCase().split(". ");
-  
+
     for (var i in sentences) {
       var words = sentences[i].split(" ");
       var value = FIRST_WORD_WEIGHT;
-  
+
       for (var j in words) {
         var word = words[j];
-  
+
         if (word.length > 0) {
           for (var k in stemmedTerms) {
             if (elasticlunr.stemmer(word).startsWith(stemmedTerms[k])) {
@@ -56,18 +56,18 @@ function debounce(func, wait) {
           weighted.push([word, value, index]);
           value = NORMAL_WORD_WEIGHT;
         }
-  
+
         index += word.length;
         index += 1;  // ' ' or '.' if last word in sentence
       }
-  
+
       index += 1;  // because we split at a two-char boundary '. '
     }
-  
+
     if (weighted.length === 0) {
       return body;
     }
-  
+
     var windowWeights = [];
     var windowSize = Math.min(weighted.length, TEASER_MAX_WORDS);
     // We add a window with all the weights first
@@ -76,13 +76,13 @@ function debounce(func, wait) {
       curSum += weighted[i][1];
     }
     windowWeights.push(curSum);
-  
+
     for (var i = 0; i < weighted.length - windowSize; i++) {
       curSum -= weighted[i][1];
       curSum += weighted[i + windowSize][1];
       windowWeights.push(curSum);
     }
-  
+
     // If we didn't find the term, just pick the first window
     var maxSumIndex = 0;
     if (termFound) {
@@ -95,7 +95,7 @@ function debounce(func, wait) {
         }
       }
     }
-  
+
     var teaser = [];
     var startIndex = weighted[maxSumIndex][2];
     for (var i = maxSumIndex; i < maxSumIndex + windowSize; i++) {
@@ -105,14 +105,14 @@ function debounce(func, wait) {
         teaser.push(body.substring(startIndex, word[2]));
         startIndex = word[2];
       }
-  
+
       // add <em/> around search terms
       if (word[1] === TERM_WEIGHT) {
         teaser.push("<b>");
       }
       startIndex = word[2] + word[0].length;
       teaser.push(body.substring(word[2], startIndex));
-  
+
       if (word[1] === TERM_WEIGHT) {
         teaser.push("</b>");
       }
@@ -120,7 +120,7 @@ function debounce(func, wait) {
     teaser.push("…");
     return teaser.join("");
   }
-  
+
   function formatSearchResultItem(item, terms) {
     var li = document.createElement("li");
     li.classList.add("search-results__item");
@@ -128,19 +128,26 @@ function debounce(func, wait) {
     li.innerHTML += `<div class="search-results__teaser">${makeTeaser(item.doc.body, terms)}</div>`;
     return li;
   }
-  
+
   function initSearch() {
+    console.log('addin it')
+    document.addEventListener('keydown', logKey);
+
+    function logKey(e) {
+      console.log(e.code)
+    }
+
     var $searchInput = document.getElementById("search");
     if (!$searchInput) {
       return;
     }
-  
-  
+
+
     var $searchResults = document.querySelector(".search-results");
     var $searchResultsHeader = document.querySelector(".search-results__header");
     var $searchResultsItems = document.querySelector(".search-results__items");
     var MAX_ITEMS = 100;
-  
+
     var options = {
       bool: "AND",
       fields: {
@@ -150,18 +157,18 @@ function debounce(func, wait) {
     };
     var currentTerm = "";
     var index = elasticlunr.Index.load(window.searchIndex);
-  
+
     $searchInput.addEventListener("keyup", debounce(function() {
       var term = $searchInput.value.trim();
       if (term === currentTerm || !index) {
         return;
       }
-      
+
       $searchResultsItems.innerHTML = "";
       if (term === "") {
         return;
       }
-  
+
       var results = index.search(term, options).filter(function (r) {
         return r.doc.body !== "";
       });
@@ -169,7 +176,7 @@ function debounce(func, wait) {
         $searchResultsHeader.innerText = `Nothing like «${term}»`;
         return;
       }
-  
+
       currentTerm = term;
         $searchResultsHeader.innerText = `${results.length} for «${term}»:`;
       for (var i = 0; i < Math.min(results.length, MAX_ITEMS); i++) {
@@ -183,7 +190,7 @@ function debounce(func, wait) {
       }
     }, 150));
   }
-  
+
   if (document.readyState === "complete" ||
       (document.readyState !== "loading" && !document.documentElement.doScroll)
   ) {

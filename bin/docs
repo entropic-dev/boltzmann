@@ -14,20 +14,10 @@ function run_setup() {
   if [ ! -e bin/zola ]; then
     download_zola
   fi
-
-  if [ -z "$(git branch | grep gh-pages)" ]; then
-    git fetch
-    git branch --track gh-pages origin/gh-pages
-  fi
-
-  if [ ! -e docs/output ]; then
-    git worktree add docs/output --checkout gh-pages
-  fi
 }
 help_setup=$(cat <<-EOF
-    setup                 installs zola and sets up a git worktree
-                          in docs/output. Automatically run by both
-                          build and serve.
+    setup                 installs zola in docs/output. Automatically
+                          run by both build and serve.
 EOF
 )
 

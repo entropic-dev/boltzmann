@@ -29,7 +29,7 @@ jobs:
 
           function get_active_docs() {
             local active=$1
-            echo '<a href="#">&rarr;'"$active"'</a>'
+            echo '<a href="#versions">'"$active"'</a>'
             echo "<div>"
             echo "<ul>"
             for tag in $all_tags; do
@@ -46,7 +46,7 @@ jobs:
           curl -sL $download_url | tar zx -C docs
           cd docs
           for file in $(find . -type f -name '*.html'); do
-            contents=$(cat $file | hq 'nav#versions' @<(get_active_docs ${current_tag}))
+            contents=$(cat $file | hq '#versions' @<(get_active_docs ${current_tag}))
             echo "$contents" > $file
           done
           aws s3 cp --recursive . s3://www.boltzmann.dev/en/docs/${current_tag} --acl public-read
@@ -65,7 +65,7 @@ jobs:
             aws s3 sync s3://www.boltzmann.dev/en/docs/${tag} .
 
             for file in $(find . -type f -name '*.html'); do
-              contents=$(cat $file | hq 'nav#versions' @<(get_active_docs ${tag}))
+              contents=$(cat $file | hq '#versions' @<(get_active_docs ${tag}))
               echo "$contents" > $file
             done
 

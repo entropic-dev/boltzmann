@@ -487,7 +487,7 @@ async function greeting(/** @type {Context} */ context) {
 
 This middleware is added to your service if you have enabled the `honeycomb` feature.
 This feature sends trace data to the [Honeycomb](https://www.honeycomb.io) service for
-deep observability of theperformance of your handlers.
+deep observability of the performance of your handlers.
 
 To configure this middleware, set the following environment variables:
 

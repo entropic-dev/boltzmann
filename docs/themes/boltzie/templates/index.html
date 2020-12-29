@@ -1,65 +1,23 @@
+{% extends "base.html" %}
 {% import "macro.html" as macro %}
 
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-      <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta http-equiv="content-type" content="text/html; charset=utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-      <title>{% block title %}{{ config.title }}{% endblock title %}</title>
-      <link rel="stylesheet" href="{{ get_url(path="main.css") | safe }}">
-    </head>
+{% block content %}
+{{ section.content | safe }}
+{% endblock %}
 
-    <body>
-      <nav>
-        <div id="subnav">
-          <form class="theme-selector">
-            <button type="button" id="theme-light-button" class="theme-button" onclick="enableTheme('light', true)">&#9706;</button>
-            <button type="button" id="theme-dark-button"  class="theme-button enabled" onclick="enableTheme('dark', true)">&#9705;</button>
-          </form>
-          <input type="search" id="search" placeholder="Type to search" />
-        </div>
+{% block toc %}
+{% set_global header_count = 4 %}
 
-      {% block nav %}
-        <h1>{{ config.title }}</h1>
-          {{ macro::tree() }}
-          <a href="https://github.com/entropic-dev/boltzmann">GitHub repo</a></li>
-      {% endblock nav %}
-      </nav>
-
-      <nav id="versions">
-        <!-- these contents will be replaced by the github release workflow. -->
-      </nav>
-
-      <main>
-          <div class="search-results"></div>
-          <ul class="search-results__items">
-          </ul>
-      {% block content %}
-
-        {% set_global header_count = 4 %}
-
-        <ul id="toc">
-          {% for h2 in section.toc %}
-            <li><a href="{{ h2.permalink | safe }}">{{ h2.title }}</a>
-            {% if h2.children %}<ul>
-              {% for h3 in h2.children %}
-              <li><a href="{{ h3.permalink | safe }}">{{ h3.title }}</a></li>
-              {% endfor %}
-          </ul>
-            {% endif %}
-          </li>
-          {% endfor %}
-        </ul>
-
-        <article>
-        {{ section.content | safe }}
-        </article>
-      {% endblock content %}
-      </main>
-
-      <script type="text/javascript" src="{{ get_url(path="elasticlunr.min.js") }}"></script>
-      <script type="text/javascript" src="{{ get_url(path="search_index.en.js") }}"></script>
-      <script type="text/javascript" src="{{ get_url(path="themes.js") | safe }}"></script>
-    </body>
-</html>
+<ul id="toc">
+  {% for h2 in section.toc %}
+    <li><a href="{{ h2.permalink | safe }}">{{ h2.title }}</a>
+    {% if h2.children %}<ul>
+      {% for h3 in h2.children %}
+      <li><a href="{{ h3.permalink | safe }}">{{ h3.title }}</a></li>
+      {% endfor %}
+  </ul>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
