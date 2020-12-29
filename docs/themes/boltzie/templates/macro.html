@@ -1,14 +1,46 @@
 {% macro tree() %}
-  <ul id="bger">
-  {% for subsection in section.subsections | sort %}
-    {% set subsection_item = get_section(path=subsection) %}
-    <li><a href="{{ subsection_item.permalink | safe }}">{{ subsection_item.title  }}</a></li>
+  {% set top = get_section(path="_index.md") %}
+
+  <ul id="subsections">
+  {% for p in top.subsections %}
+      {% set subsection = get_section(path=p) %}
+      <li class="{% if current_path is starting_with(subsection.path) %}open active{% endif %}">
+        <a class="documentation__sidebar__title" onclick="javascript:this.parentNode.classList.toggle('open'); return false" href="{{subsection.permalink}}">{{ subsection.title }}</a>
+          <ul class="subsections">
+              {% for page in subsection.pages %}
+                  <li class="{% if current_path == page.path %}active{% endif %}">
+                      <a href="{{page.permalink}}">{{page.title}}</a>
+                  </li>
+              {% endfor %}
+          </ul>
+      </li>
   {% endfor %}
-  {% for subpage in section.pages %}
+
+  {% for subpage in top.pages %}
     <li><a href="{{ subpage.permalink | safe }}">{{ subpage.title  }}</a></li>
   {% endfor %}
   </ul>
 {% endmacro tree %}
+
+{% macro toclink(item) %}
+{# TODO: refine this -- allow page metadata to mark titles as "code", maybe? #}
+{% set is_code=false %}
+{% if item.title is matching("JavaScript") or item.title is matching("Node.JS") %}
+  {% set is_code=false %}
+{% elif item.title is matching("^--") %}
+  {% set is_code=true %}
+{% elif item.title is matching("[a-z][A-Z]") %}
+  {% set is_code=true %}
+{% elif item.title is matching("[\\.'()]") %}
+  {% set is_code=true %}
+{% endif %}
+
+<a href="{{ item.permalink | safe }}">
+  {% if is_code %}<code>{% endif %}
+  {{ item.title }}
+  {% if is_code %}</code>{% endif %}
+</a>
+{% endmacro toclink %}
 
 {% macro meta(page) %}
     <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"

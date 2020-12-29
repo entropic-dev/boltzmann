@@ -1,7 +1,7 @@
-base_url = "https://entropic-dev.github.io/boltzmann"
+base_url = "https://www.neversaw.us/scratch/boltzmann"
 compile_sass = true
 highlight_code = true
-highlight_theme = "kronuz"
+highlight_theme = "ir-white"
 build_search_index = true
 theme = "boltzie"
 title = "Boltzmann: A JS HTTP Framework"

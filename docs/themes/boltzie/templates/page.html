@@ -1,4 +1,4 @@
-{% extends "index.html" %}
+{% extends "base.html" %}
 
 {% block title %} {{ config.title }} | {{ page.title }} {% endblock title %}
 
@@ -13,6 +13,11 @@
 {% endblock nav %}
 
 {% block content %}
+<h1>{{ page.title }}</h1>
+{{ page.content | safe }}
+{% endblock content %}
+
+{% block toc %}
   {% set_global header_count = 0 %}
   {% for h2 in page.toc %}
     {% set_global header_count = header_count + 1 %}
@@ -24,23 +29,29 @@
     {% endfor %}
   {% endfor %}
 
-  {% if header_count > 4 %}
       <ul id="toc">
         {% for h2 in page.toc %}
-          <li><a href="{{ h2.permalink | safe }}">{{ h2.title }}</a>
-          {% if h2.children %}<ul>        
-            {% for h3 in h2.children %}
-            <li><a href="{{ h3.permalink | safe }}">{{ h3.title }}</a></li>
-          {% endfor %}
-         </ul>
-  {% endif %}
-        </li>
-  {% endfor %}
+          <li>
+            {{ macro::toclink(item=h2) }}
+            {% if h2.children %}
+            <ul>
+              {% for h3 in h2.children %}
+              <li>
+                {{ macro::toclink(item=h3) }}
+                {% if h3.children %}
+                <ul>
+                  {% for h4 in h3.children %}
+                  <li>
+                    {{ macro::toclink(item=h4) }}
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </li>
+        {% endfor %}
       </ul>
-  {% endif %}
-
-  <article>
-    {{ page.content | safe }}
-  </article>
-{% endblock content %}
-
+{% endblock %}

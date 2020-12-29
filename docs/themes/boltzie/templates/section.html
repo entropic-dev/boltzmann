@@ -1,26 +1,12 @@
-{% extends "index.html" %}
+{% extends "base.html" %}
 
 {% block title %} {{ config.title }} | {{ section.title }} {% endblock title %}
 
-{% block nav %}
-    <ul id="breadcrumbs">
-        {% for parent in section.ancestors %}
-            {% set s = get_section(path=parent, include_pages=false) %}
-            <li><a href="{{s.permalink}}">{{s.title}}</a>&nbsp;/&nbsp; </li>
-        {% endfor %}
-        <li>{{ section.title }}</li>
-    </ul>
-    <h1>{{ section.title }}</h1>
-    {{ macro::tree() }}
-{% endblock nav %}
-
 {% block content %}
-<article>
+<h1>{{ section.title }}</h1>
 {{ section.content | safe }}
-</article>
 
 {% for page in paginator.pages %}
     {{ macro::page_in_list(page=page) }}
 {% endfor %}
-
 {% endblock content %}

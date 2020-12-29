@@ -6,8 +6,6 @@ slug="handlers"
 tags = ["reference"]
 +++
 
-## Handler Options
-
 ## Context
 
 ### `accepts`

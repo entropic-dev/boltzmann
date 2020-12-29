@@ -1,0 +1,30 @@
+- body
+  - nav
+    - div#subnav
+      - input#search
+    - h1
+  - nav#versions
+  - main
+    - div.search-results
+    - ul.search-results__items
+    - article
+    - ul#toc
+
+TODO:
+
+- [x] pick a grid
+- [x] basic header style
+- [x] basic version picker style
+- [x] fix body width
+  - [X] section lists
+- [x] basic style for table of contents
+  - [x] open
+  - [x] active
+- [ ] footer
+  - [x] footer content
+  - [ ] style footer
+- [ ] style links
+- [ ] mobile views
+  - [x] fix header scroll
+
+grid: 1.75rem between columns; 2rem from row to row; 1.5rem from row to gutter

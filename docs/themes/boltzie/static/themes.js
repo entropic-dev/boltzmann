@@ -129,6 +129,51 @@ function formatSearchResultItem(item, terms) {
 }
 
 function initSearch() {
+  const versions = document.getElementById('versions')
+  const COUNTDOWN_DEFAULT = 250;
+
+  let timer = null;
+  let timerCountdown = COUNTDOWN_DEFAULT;
+  versions.querySelector('[href="#versions"]').addEventListener('click', ev => {
+    ev.preventDefault()
+  })
+
+  versions.addEventListener('mouseenter', ev => {
+    clearTimeout(timer)
+    versions.classList.add('open')
+  })
+
+  versions.addEventListener('mouseleave', ev => {
+    timer = setTimeout(() => {
+      versions.classList.remove('open')
+      timerCountdown = COUNTDOWN_DEFAULT
+    }, timerCountdown)
+  })
+
+  const prereleases = document.getElementById('prerelease')
+  prereleases.addEventListener('change', handlePrereleaseChange)
+
+  function handlePrereleaseChange (ev) {
+    if (prereleases.checked) {
+      window.localStorage.setItem('show-prerelease', 1)
+      versions.classList.add('prerelease')
+    } else {
+      window.localStorage.setItem('show-prerelease', '')
+      versions.classList.remove('prerelease')
+      // give the user some time to react to the size of the dropdown changing
+      timerCountdown = 750
+    }
+  }
+  const value = window.localStorage.getItem('show-prerelease')
+  prereleases.checked = Boolean(value)
+  handlePrereleaseChange()
+
+  // press "x" for grid
+  document.addEventListener('keyup', ev => {
+    if (ev.keyCode == 88) {
+      document.body.classList.toggle("grid")
+    }
+  }, true)
   var $searchInput = document.getElementById("search");
   var $searchResults = document.querySelector(".search-results");
   var $searchResultsItems = document.querySelector(".search-results__items");
@@ -174,6 +219,7 @@ function initSearch() {
 if (document.readyState === "complete" ||
     (document.readyState !== "loading" && !document.documentElement.doScroll)
 ) {
+    console.log('uhhhhh errr')
   initSearch();
 } else {
   document.addEventListener("DOMContentLoaded", initSearch);
