@@ -104,12 +104,15 @@ h1, h2, h3, h4, h5 {
 }
 
 body > header {
-  background: #363333;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background:rgba(33,33,33,0.5);
   color: white;
   margin-bottom: 2.0rem;
   position: fixed;
   width: 100%;
   z-index: 10000;
+  border-bottom: 3px wavy white;
 
   nav {
     display: flex;

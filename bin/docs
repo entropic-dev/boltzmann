@@ -25,6 +25,7 @@ function run_build() {
   tmpdir=$(mktemp -d)
   cd docs
   ../bin/zola build -o $tmpdir
+  mkdir output
   mv $tmpdir/* ./output
   rmdir $tmpdir
 }
