@@ -46,29 +46,15 @@ npx: installed 1 in 2.659s
 Scaffolding a Boltzmann service in /Users/cj/code/hello
     initializing a new NPM package...
     writing boltzmann files...
-    updating dependencies...
-        adding are-we-dev @ ^1.0.0
-        adding culture-ships @ ^1.0.0
-        adding find-my-way @ ^2.2.1
-        adding bole @ ^4.0.0
-        adding ajv @ ^6.12.2
-        adding dotenv @ ^8.2.0
-        adding accepts @ ^1.3.7
-        adding handy-redis @ ^1.8.1 (redis activated)
-        adding redis @ ^3.0.2 (redis activated)
-        adding cookie @ ^0.4.1
-        adding tap @ ^14.10.7 (dev)
-        adding @hapi/shot @ ^4.1.2 (dev)
-        adding bistre @ ^1.0.1 (dev)
-        adding eslint @ ^7.1.0 (dev)
-        adding @typescript-eslint/parser @ ^3.1.0 (dev)
-        adding @typescript-eslint/eslint-plugin @ ^3.1.0 (dev)
-        adding eslint-config-prettier @ ^6.11.0 (dev)
-        adding eslint-plugin-prettier @ ^3.1.3 (dev)
-        adding prettier @ ^2.0.5 (dev)
+    25 dependencies added
+    managing run scripts...
+       npm run boltzmann:docs set  npm run boltzmann:routes set  npm run boltzmann:upgrade set
+       npm run lint set            npm run posttest set          npm run start set
+       npm run test set
     writing updated package.json...
     running package install...
-Boltzmann at 0.1.2 with redis, githubci, status, ping
+Boltzmann @ 0.3.0-rc.1 with:
+    githubci  ping  redis  status
 ```
 
 Pass `--feature=off` to remove a feature you have previously enabled. For example, if you decide you don't need redis after all:
@@ -79,12 +65,12 @@ npx: installed 1 in 0.809s
 Scaffolding a Boltzmann service in /Users/cj/code/hello
     loaded settings from existing package.json
     writing boltzmann files...
-    updating dependencies...
-        removing handy-redis (redis deactivated)
-        removing redis (redis deactivated)
+    managing dependencies...
+        ⅹ handy-redis (redis disabled)  ⅹ redis (redis disabled)
     writing updated package.json...
     running package install...
-Boltzmann at 0.1.2 with githubci, status, ping
+Boltzmann @ 0.3.0-rc.1 with:
+    githubci  ping  status
 ```
 
 Boltzmann will manage its dependencies when a feature is flipped on or off, but
@@ -165,6 +151,12 @@ $ npx boltzmann-cli --force . # if run without --force, boltzmann would
                               # refuse to update the directory since it
                               # contains uncommitted changes.
 ```
+#### `--quiet`
+
+_Added in version `0.3.0`._
+
+Suppress all output except errors. An alias of `--quiet`.
+
 
 #### `--silent`
 
@@ -243,6 +235,8 @@ syntax]. Turning this flag on will set the `package.json` `"type"` field to
 [`"module"` mode]. This flag is experimental, but we intend to eventually make
 it the default.
 
+This option cannot be used along with the `--typescript` option.
+
 **Example use:**
 
 ```shell
@@ -265,8 +259,8 @@ $ npx boltzmann-cli . --githubci=off # turn it off
 
 #### `--honeycomb`
 
-Enable [Honeycomb] tracing integration for observability (o11y). The middleware 
-enabling this feature is automatically attached to your app when present. To learn 
+Enable [Honeycomb] tracing integration for observability (o11y). The middleware
+enabling this feature is automatically attached to your app when present. To learn
 how to configure it, consult
 [the tracing middleware documentation](@reference/03-middleware.md#trace).
 
@@ -404,12 +398,28 @@ exports.APP_MIDDLEWARE = [
 ]
 ```
 
+#### `--typescript`
+
+_Added in version 0.3.0._
+
+Scaffolds a Boltzmann service in [TypeScript](https://www.typescriptlang.org), with
+definition files, NPM run scripts, and example code set up to support developing
+in TypeScript. This option cannot be used together with the ES Modules option.
+
+```shell
+$ npx boltzman-cli . --typescript
+# output elided...
+$ ls
+boltzmann.d.ts  handlers.ts    node_modules/  package.json  tests/
+boltzmann.js*   middleware.ts  nodemon.json   target/       tsconfig.json
+```
+
 ## Full usage
 
 The current output of `npx boltzmann-cli help`:
 
 ```shell
-boltzmann 0.1.2
+boltzmann 0.3.0
 Generate or update scaffolding for a Boltzmann service.
 To enable a feature, mention it or set the option to `on`.
 To remove a feature from an existing project, set it to `off`.
@@ -423,25 +433,32 @@ USAGE:
 
 FLAGS:
         --all         Enable everything!
-        --docs        Open the Boltzmann documentation in a web browser.
+        --docs        Open the Boltzmann documentation in a web browser
         --force       Update a git-repo destination even if there are changes
     -h, --help        Prints help information
-        --selftest    Build for a self-test.
-    -s, --silent      Suppress all output except errors.
+    -q, --quiet       Suppress all output except errors
+        --selftest    Build for a self-test
+    -s, --silent      Suppress all output except errors
     -V, --version     Prints version information
     -v, --verbose     Pass -v or -vv to increase verbosity
-        --website     Enable website feature set (templates, csrf)
+        --website     Enable website feature set (templates, csrf, staticfiles, jwt, livereload, ping, status)
 
 OPTIONS:
-        --csrf <csrf>              Enable csrf protection middleware
-        --githubci <githubci>      Enable GitHub actions CI
-        --honeycomb <honeycomb>    Enable honeycomb
-        --jwt <jwt>                Enable jwt middleware
-        --ping <ping>              Enable /monitor/ping liveness endpoint; on by default
-        --postgres <postgres>      Enable postgres
-        --redis <redis>            Enable redis
-        --status <status>          Enable /monitor/status healthcheck endpoint; on by default
-        --templates <templates>    Enable Nunjucks templates
+        --csrf <csrf>                  Enable csrf protection middleware
+        --esbuild <esbuild>            Enable asset bundling via ESBuild
+        --esm <esm>                    Scaffold project using ES Modules
+        --githubci <githubci>          Enable GitHub actions CI
+        --honeycomb <honeycomb>        Enable tracing via Honeycomb
+        --jwt <jwt>                    Enable jwt middleware
+        --livereload <livereload>      Enable live reload in development
+        --oauth <oauth>                Enable OAuth
+        --ping <ping>                  Enable /monitor/ping liveness endpoint; on by default
+        --postgres <postgres>          Enable postgres
+        --redis <redis>                Enable redis
+        --staticfiles <staticfiles>    Enable static file serving in development
+        --status <status>              Enable /monitor/status healthcheck endpoint; on by default
+        --templates <templates>        Enable Nunjucks templates
+        --typescript <typescript>      Scaffold a project implemented in TypeScript
 
 ARGS:
     <destination>    The path to the Boltzmann service [default: ]

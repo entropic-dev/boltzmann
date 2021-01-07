@@ -1,4 +1,4 @@
-import { Context, Response } from './boltzmann.js' // optionally pull in typescript definition
+import { Context, Response } from './boltzmann.js'
 
 index.route = 'GET /'
 export async function index(context: Context): Promise<Response> {

@@ -1,17 +1,10 @@
-{% if not selftest %}/* eslint-disable */{% endif %}
+/* eslint-disable */
 declare module './boltzmann.js'
 /// <reference types='node' />
 import { IncomingMessage, OutgoingMessage } from 'http'
 import { URL } from 'url'
 import { Accepts } from 'accepts'
 import { Cookie } from 'cookie'
-{% if postgres -%}
-import { Client } from 'pg'
-{% endif -%}
-{% if redis -%}
-import { IHandyRedis } from 'handy-redis'
-{% endif -%}
-
 declare const HEADER: unique symbol
 declare const STATUS: unique symbol
 declare const TEMPLATE: unique symbol
@@ -55,16 +48,6 @@ export declare class Context {
   public get query(): { [key: string]: string }
   public get body(): Promise<{ [key: string]: string }>
   public get accepts(): Accepts
-  {% if postgres -%}
-  get postgresClient(): Promise<Client>
-  {% endif -%}
-  {% if redis -%}
-  get redisClient(): IHandyRedis
-  {% endif -%}
-  {% if honeycomb -%}
-  get traceURL(): string
-  {% endif -%}
-
   [x: string]: any
 }
 
@@ -74,28 +57,7 @@ export namespace middleware {
   export const applyXFO: Middleware
   export const handleCORS: Middleware
   export const session: Middleware
-  {% if jwt -%}
-  export const authenticateJWT: Middleware
-  {% endif -%}
-  {% if templates -%}
-  export const template: Middleware
-  export const templateContext: Middleware
-  {% endif -%}
-  {% if oauth -%}
-  export const oauth: Middleware
-  export const handleOAuthLogin: Middleware
-  export const handleOAuthLogout: Middleware
-  export const handleOAuthCallback: Middleware
-  {% endif -%}
-  {% if staticfiles -%}
-  export const staticfiles: Middleware
-  {% endif -%}
-  {% if esbuild -%}
-  export const esbuild: Middleware
-  {% endif -%}
-  {% if csrf -%}
-  export const applyCSRF: Middleware
-  {% endif %}
+  
 
   export namespace validate {
     export const body: Middleware
