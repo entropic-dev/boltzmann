@@ -42,7 +42,7 @@
   "scripts": {
     "boltzmann:docs": "B=1 npx boltzmann-cli --docs",
     "boltzmann:routes": "B=1 node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
-    "boltzmann:tsbuild": "B=1 tsc && cp package.json target/release && cp package.json target/release/",
+    "boltzmann:tsbuild": "B=1 tsc && cp package.json target/release",
     "boltzmann:upgrade": "B=1 npx boltzmann-cli",
     "lint": "B=1 eslint .",
     "postinstall": "B=1 npm run boltzmann:tsbuild",

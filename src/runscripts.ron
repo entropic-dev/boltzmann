@@ -81,7 +81,7 @@
 
     RunScriptSpec(
         key: "boltzmann:tsbuild",
-        value: "tsc && cp package.json target/release && cp package.json target/release/",
+        value: "tsc && cp package.json target/release",
         preconditions: Some(When(
             all_of: ["typescript"]
         ))
