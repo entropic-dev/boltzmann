@@ -27,8 +27,8 @@ version = "1.0.115"
 sign-commit = true
 sign-tag = true
 pre-release-replacements = [
-  {file="README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/{{version}}/"} ,
-  {file="docs/README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/{{version}}/"} ,
+  {file="README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/v{{version}}/"} ,
+  {file="docs/README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/v{{version}}/"} ,
 ]
 exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**"]
 no-dev-version = true

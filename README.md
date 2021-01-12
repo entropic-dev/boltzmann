@@ -19,7 +19,7 @@ Our design goals:
 
 Boltzmann is implemented in vanilla JavaScript and scaffolds a JavaScript project by default, with TypeScript definitions for your development convenience. It can scaffold a TypeScript project if you choose, but does not otherwise require you to opt into transpilation. We'd like you to be able to run Boltzmann apps under deno or in a web worker some day, so we make API choices that move us toward that goal.
 
-For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/0.2.0/).
+For full Boltzmann docs, visit [the documentation site](https://www.boltzmann.dev/en/docs/v0.2.0/).
 
 ## Getting started
 
@@ -33,7 +33,7 @@ For example, to scaffold with the defaults:
 projects|⇒ npx boltzmann-cli hello
 ```
 
-A complete project is provided for you, with useful package run scripts and linting. To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/0.2.0/)
+A complete project is provided for you, with useful package run scripts and linting. To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/v0.2.0/)
 
 ## Team
 
