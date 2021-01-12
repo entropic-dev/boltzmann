@@ -16,9 +16,19 @@
       <header>
         {% block header %}
         <nav>
-          <h1>Boltzmann</h1>
+          <h1><a href="/">Boltzmann</a></h1>
 
-          <input type="search" id="search" placeholder="search the docs" />
+          <div id="searchbox">
+            <input type="search" id="search" placeholder="search the docs" />
+            <i>|</i>
+          </div>
+
+          <ul id="sitenav">
+            <li><a href="#">Download</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">GitHub</a></li>
+            <li class="active"><a href="#">Documentation</a></li>
+          </ul>
 
           <nav id="versions">
             <!-- these contents will be replaced by the github release workflow. -->
