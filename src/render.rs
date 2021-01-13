@@ -125,7 +125,10 @@ fn render_dir(
                 trace!("        skipping {}", basename.strikethrough().blue());
                 cwd.push(&basename[..]);
                 if !created.contains(cwd.as_path()) && cwd.as_path().exists() {
-                    info!("        {} left in place; `git rm` to remove files you no longer need", basename.blue().bold());
+                    info!(
+                        "        {} left in place; `git rm` to remove files you no longer need",
+                        basename.blue().bold()
+                    );
                 }
                 cwd.pop();
                 continue 'next;

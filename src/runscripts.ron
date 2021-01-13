@@ -4,7 +4,10 @@
         value: "eslint .",
         preconditions: Some(When(
             if_not_present: ["lint"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.1.0", value: "eslint")
+        ]
     ),
 
     RunScriptSpec(
@@ -12,16 +15,22 @@
         value: "npm run lint",
         preconditions: Some(When(
             if_not_present: ["posttest"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.1.0", value: "npm run lint")
+        ]
     ),
 
     RunScriptSpec(
         key: "pretest",
-        value: "tsc --noEmit tests/**.ts",
+        value: "tsc --noEmit",
         preconditions: Some(When(
             if_not_present: ["pretest"],
             all_of: ["typescript"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.3.0", value: "tsc --noEmit")
+        ]
     ),
 
     RunScriptSpec(
@@ -30,7 +39,11 @@
         preconditions: Some(When(
             if_not_present: ["test"],
             none_of: ["esm", "typescript", "selftest" ]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.1.0", value: "tap test"),
+            VersionedScript(version: "0.3.0", value: "tap tests"),
+        ]
     ),
 
     RunScriptSpec(
@@ -39,17 +52,23 @@
         preconditions: Some(When(
             if_not_present: ["test.js"],
             all_of: ["selftest"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.1.0", value: "node test.js")
+        ]
     ),
 
     RunScriptSpec(
         key: "test",
-        value: "tap --no-ts --node-arg=--require=ts-node/register tests/**.ts",
+        value: "tap --no-ts --node-arg=--require=ts-node/register 'tests/**.ts'",
         preconditions: Some(When(
             if_not_present: ["test"],
             none_of: ["esm"],
             all_of: ["typescript", "selftest"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.3.0", value: "tap --no-ts --node-arg=--require=ts-node/register 'tests/**.ts'")
+        ]
     ),
 
     RunScriptSpec(
@@ -59,15 +78,35 @@
             if_not_present: ["test"],
             none_of: ["typescript"],
             all_of: ["esm"]
-        ))
-    ),
+        )),
+        versions: [
+            VersionedScript(version: "0.2.0", value: "tap --no-esm tests")
+        ]
+      ),
+
+    RunScriptSpec(
+        key: "test",
+        value: "tap --no-ts --node-arg=--require=ts-node/register tests/",
+        preconditions: Some(When(
+            if_not_present: ["test"],
+            none_of: ["esm"],
+            all_of: ["typescript"]
+        )),
+        versions: [
+            VersionedScript(version: "0.3.0", value: "tap --no-ts --node-arg=--require=ts-node/register tests/")
+        ]
+      ),
 
     RunScriptSpec(
         key: "start",
         value: "nodemon ./boltzmann.js",
         preconditions: Some(When(
             if_not_present: ["lint"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.1.0", value: "./boltzmann.js"),
+            VersionedScript(version: "0.1.4", value: "nodemon ./boltzmann.js"),
+        ]
     ),
 
     RunScriptSpec(
@@ -76,7 +115,10 @@
         preconditions: Some(When(
             all_of: ["typescript"],
             if_not_present: ["postinstall"]
-        ))
+        )),
+        versions: [
+            VersionedScript(version: "0.3.0", value: "npm run boltzmann:tsbuild")
+        ]
     ),
 
     RunScriptSpec(
@@ -84,12 +126,14 @@
         value: "tsc && cp package.json target/release",
         preconditions: Some(When(
             all_of: ["typescript"]
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
         key: "boltzmann:upgrade",
         value: "npx boltzmann-cli",
+        versions: []
     ),
 
     RunScriptSpec(
@@ -97,7 +141,8 @@
         value: "node -e 'require(\"./boltzmann\").printRoutes()'",
         preconditions: Some(When(
             none_of: ["esm", "typescript"],
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
@@ -106,7 +151,8 @@
         preconditions: Some(When(
             none_of: ["typescript"],
             all_of: ["esm"]
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
@@ -115,7 +161,8 @@
         preconditions: Some(When(
             none_of: ["esm"],
             all_of: ["typescript"]
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
@@ -124,7 +171,8 @@
         preconditions: Some(When(
             none_of: ["typescript", "esm"],
             all_of: ["esbuild"]
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
@@ -133,7 +181,8 @@
         preconditions: Some(When(
             none_of: ["esm"],
             all_of: ["esbuild", "typescript"]
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
@@ -142,11 +191,13 @@
         preconditions: Some(When(
             none_of: ["typescript"],
             all_of: ["esbuild", "esm"]
-        ))
+        )),
+        versions: []
     ),
 
     RunScriptSpec(
         key: "boltzmann:docs",
-        value: "npx boltzmann-cli --docs"
+        value: "npx boltzmann-cli --docs",
+        versions: []
     )
 ]

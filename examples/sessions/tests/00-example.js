@@ -1,15 +1,6 @@
-'use strict'
+const tap = require('tap')
 
-const { test } = require('tap')
-const { middleware } = require('../boltzmann')
-
-const _ = middleware.test({
-  middleware: [], // by default, no middleware is installed under test.
+tap.test((assert) => {
+  assert.notEqual('write some tests', 'later')
+  assert.end()
 })
-
-test(
-  'a basic health check of the test machinery',
-  _(async (t) => {
-    t.ok('yay')
-  })
-)

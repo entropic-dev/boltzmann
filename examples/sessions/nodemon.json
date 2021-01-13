@@ -1,0 +1,8 @@
+{
+  "restartable": "rs",
+  "ext": "js,mjs,ts,json,cjs,jsx,tsx",
+  "ignore": [".git", "node_modules/", "dist/", "coverage/"],
+  "execMap": {
+    "ts": "node -r ts-node/register -r dotenv/config",
+    "js": "node -r ts-node/register -r dotenv/config"}
+}

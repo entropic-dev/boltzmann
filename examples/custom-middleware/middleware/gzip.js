@@ -4,19 +4,16 @@ module.exports = gzip
 
 const zlib = require('zlib')
 
-function gzip () {
-  return next => {
-    return async context => {
+function gzip() {
+  return (next) => {
+    return async (context) => {
       const acceptEncoding = String(context.headers['accept-encoding'])
       if (!acceptEncoding.includes('gzip')) {
         return next(context)
       }
 
       const response = await next(context)
-      const {
-        [Symbol.for('status')]: status,
-        [Symbol.for('headers')]: headers
-      } = response
+      const { [Symbol.for('status')]: status, [Symbol.for('headers')]: headers } = response
 
       if (Buffer.isBuffer(response) && response.length === 0) {
         return response

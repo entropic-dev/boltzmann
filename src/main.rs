@@ -5,9 +5,10 @@ use std::path::PathBuf;
 
 use anyhow::{anyhow, Context as ErrorContext, Result};
 use atty::Stream;
-use log::{info, warn};
+use log::{info, warn, debug};
 use owo_colors::OwoColorize;
 use prettytable::Table;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, Value};
 use structopt::clap::AppSettings::*;
@@ -53,7 +54,11 @@ pub struct Flags {
     #[structopt(long, help = "Enable Nunjucks templates")]
     templates: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Scaffold a project implemented in TypeScript", conflicts_with = "esm")]
+    #[structopt(
+        long,
+        help = "Scaffold a project implemented in TypeScript",
+        conflicts_with = "esm"
+    )]
     typescript: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Scaffold project using ES Modules")]
@@ -127,11 +132,18 @@ pub struct Flags {
     destination: PathBuf,
 }
 
+#[derive(Deserialize, Clone)]
+struct VersionedScript {
+    version: Version,
+    value: String,
+}
+
 #[derive(Deserialize)]
 struct RunScriptSpec {
     key: String,
     value: String,
     preconditions: Option<When>,
+    versions: Vec<VersionedScript>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -276,6 +288,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let version = option_env!("CARGO_PKG_VERSION")
         .unwrap_or_else(|| "0.0.0")
         .to_string();
+    let semver_version = Version::parse(&version).unwrap_or_else(|_| Version::new(0, 0, 0));
 
     if flags.docs {
         let subproc = match std::env::consts::OS {
@@ -322,6 +335,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     check_git_status(&flags)?;
 
     let mut first_scaffold = false;
+    let mut prev_version: Version = Version::new(0, 0, 0);
 
     info!(
         "Scaffolding a Boltzmann service in {}",
@@ -337,7 +351,17 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut package_json = if let Some(mut package_json) =
         load_package_json(&flags, default_settings.clone())
     {
-        info!("    loaded settings from existing package.json");
+        if let Some(t) = package_json.boltzmann.clone() {
+            let parsed = Version::parse(&t.version.unwrap_or_else(|| "0.0.0".to_string()));
+            if let Ok(p) = parsed {
+                prev_version = p;
+            }
+        }
+        if semver_version > prev_version {
+            info!("    upgrading from boltzmann@{}", prev_version.to_string().bold().blue());
+        } else {
+            info!("    loaded settings from existing package.json");
+        }
         package_json.scripts = package_json.scripts.or_else(Default::default);
         package_json
     } else {
@@ -355,7 +379,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let settings = package_json.boltzmann.take().unwrap();
-    let updated_settings = settings.merge_flags(version, &flags);
+    let updated_settings = settings.merge_flags(version.clone(), &flags);
 
     render::scaffold(&mut target, &updated_settings).context("Failed to render Boltzmann files")?;
 
@@ -465,7 +489,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     package_json.boltzmann.replace(updated_settings.clone());
 
-    // Update package.json run scripts:
+    // Update package.json run scripts.
+    // We manage run scripts that meet the following criteria:
+    // - name starts with `boltzman:`, always
+    // - on first run, all run scripts we define
+    // - on subsequent runs, run scripts that match the string from a previous version
     actions = Vec::new();
     let candidates: Vec<RunScriptSpec> = ron::de::from_str(include_str!("runscripts.ron"))?;
     let mut scripts = package_json.scripts.take().unwrap();
@@ -487,32 +515,55 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
             for check_presence in preconditions.if_not_present {
                 if let Some(value) = scripts.get(check_presence.as_str()) {
-                    // for upgrading from old versions of boltzmann: if the value of the runscript
-                    // target EXACTLY MATCHES what the candidate proposes to update it to, go ahead
-                    // and update it so we can add the "B=1" prefix we'll use
-                    // going forward.
+                    // Easy case: no work to do.
                     if value.as_str().unwrap_or("") == candidate.value {
-                        continue;
+                        continue 'next;
                     }
 
-                    if !value.as_str().unwrap_or("").starts_with("B=1 ") {
-                        actions.push(format!("{} left in place", format!("npm run {}", candidate.key).bold().green()));
+                    // Here's the tricky case! The if-not-present tagged scripts are standardized
+                    // targets like `test` and `postinstall`. If they're present and set to a value we
+                    // previously gave them, we can feel free to update them. If not, we move on.
+                    if candidate.versions.is_empty() {
+                        debug!( "{} has no history", format!("npm run {}", candidate.key).bold().red());
                         continue 'next;
+                    }
+
+                    // First, find the previous-in-semver-order version in our list of versions.
+                    // This is the version our runscript would have come from. If a match, we want to update.
+                    // If not a match, we continue with the next script candidate.
+                    let mut history = candidate.versions.clone();
+                    history.sort_by(|left, right| right.version.partial_cmp(&left.version).unwrap()); // yes reversed
+                    for potential_source in history {
+                        if potential_source.version <= prev_version {
+                            // We have found our previous managed value for this run script.
+                            let current = scripts
+                                .get(&candidate.key)
+                                .unwrap_or(&false_sentinel)
+                                .as_str()
+                                .unwrap_or("");
+                            if !current.to_string().is_empty() && current != potential_source.value {
+                                actions.push(format!(
+                                    "{} left in place",
+                                    format!("npm run {}", candidate.key).bold().red()
+                                ));
+                                continue 'next;
+                            }
+                            break;
+                        }
                     }
                 }
             }
         }
 
-        let replacement = format!("B=1 {}", candidate.value);
         if scripts
             .get(&candidate.key)
             .unwrap_or(&false_sentinel)
             .as_str()
             .unwrap_or("")
-            != replacement
+            != candidate.value
         {
             actions.push(format!("{} set", format!("npm run {}", candidate.key).bold().green()));
-            scripts.insert(candidate.key, replacement.into());
+            scripts.insert(candidate.key, serde_json::Value::String(candidate.value));
         }
     }
     package_json.scripts.replace(scripts);
@@ -545,13 +596,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     match exit_status {
         ExitStatus::Exited(0) => {
-            warn!(
-                "Boltzmann @ {} with:",
-                option_env!("CARGO_PKG_VERSION")
-                    .unwrap_or_else(|| "0.0.0")
-                    .green()
-                    .bold()
-            );
+            warn!("Boltzmann@{} with:", version.blue().bold());
             let features = updated_settings.features();
             print_table(features, 8, 3);
             Ok(())
