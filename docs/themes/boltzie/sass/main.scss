@@ -1,10 +1,5 @@
 @charset "utf-8";
 
-@font-face {
-  font-family: "Whitney Bold";
-  src: url("/fonts/WhitneySSm-BookItalic-TD.woff") format("woff");
-}
-
 @mixin lhCrop($line-height) {
   &::before {
     content: '';
@@ -45,6 +40,7 @@ body {
   display: flex;
   flex-flow: column nowrap;
   width: 100%;
+  font-family: "SF Pro", "SFPro", "SF", ui-sans-serif, sans-serif;
 }
 
 body.grid {
@@ -54,7 +50,7 @@ body.grid {
 
 pre {
   overflow: auto;
-  font:1rem "SF Mono", SFMono-Regular, ui-monospace, monospace;
+  font:0.966rem "SF Mono", SFMono-Regular, ui-monospace, monospace;
   line-height: 1.666;
 }
 
@@ -64,6 +60,10 @@ pre * {
 
 code {
   font-family: "SF Mono", SFMono-Regular, ui-monospace, monospace;
+}
+
+p code {
+  font-size: 0.966rem;
 }
 
 a:link {
@@ -80,7 +80,6 @@ a:visited {
 }
 
 h1, h2, h3, h4, h5 {
-  font-family: "Whitney Bold";
   position: relative;
   padding-left: 1.25rem;
   left: -1.25rem;
@@ -137,7 +136,6 @@ body > header {
     }
 
     h1 {
-      font-family: "Whitney Bold";
       padding: 0;
       margin: 0;
       font-size: 2.6666rem;
