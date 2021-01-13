@@ -1,19 +1,19 @@
 import { Context, Response } from './boltzmann.js'
 
 index.route = 'GET /'
-export async function index(context: Context): Promise<Response> {
+export async function index({% if not oauth %}_{% endif %}context: Context): Promise<Response> {
   {% if oauth -%}
   const session = await context.session
   const user = session.get('user')
   const name = user ? user.name : 'Anonymous'
   {% else -%}
   const name = 'Friendly Boltzmann Author'
-  {% endif %}
+  {% endif -%}
   {% if templates -%}
   return {
     [Symbol.for('template')]: 'index.html',
     name,
-    user
+    user,
   }
   {%- else -%}
   return {
@@ -23,19 +23,18 @@ export async function index(context: Context): Promise<Response> {
 }
 
 greeting.route = 'GET /hello/:name'
-{% if templates %}
+{% if templates -%}
 export async function greeting(context: Context): Promise<Response> {
   return {
     [Symbol.for('template')]: 'index.html',
     name: context.params.name,
   }
 }
-{% else %}
+{% else -%}
 export async function greeting(context: Context): Promise<Response> {
   return `hello ${context.params.name}`
 }
-{% endif %}
-
+{%- endif %}
 {%- if oauth %}
 callback.route = 'GET /callback'
 export async function callback(context: Context): Promise<Response> {
@@ -51,8 +50,8 @@ export async function callback(context: Context): Promise<Response> {
   return Object.assign(Buffer.from(''), {
     [Symbol.for('status')]: 302,
     [Symbol.for('headers')]: {
-      'Location': context.nextUrl
-    }
+      Location: context.nextUrl,
+    },
   })
 }
-{% endif %}
+{%- endif %}

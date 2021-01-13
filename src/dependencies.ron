@@ -269,4 +269,13 @@
       all_of: ["typescript"]
     ))
   ),
+
+  DependencySpec(
+    name: "@types/hapi__shot",
+    version: "^4.1.1",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript"]
+    ))
+  ),
 ]
