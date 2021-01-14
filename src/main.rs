@@ -353,10 +353,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         load_package_json(&flags, default_settings.clone())
     {
         if let Some(t) = package_json.boltzmann.clone() {
-            let parsed = Version::parse(&t.version.unwrap_or_else(|| "0.0.0".to_string()));
-            if let Ok(p) = parsed {
-                prev_version = p;
-            }
+            prev_version = Version::parse(&t.version.unwrap_or_else(|| "0.0.0".to_string())).unwrap_or(prev_version);
         }
         if semver_version > prev_version {
             info!("    upgrading from boltzmann@{}", prev_version.to_string().bold().blue());
