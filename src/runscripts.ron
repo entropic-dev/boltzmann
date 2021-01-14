@@ -126,14 +126,12 @@
         value: "tsc && cp package.json target/release",
         preconditions: Some(When(
             all_of: ["typescript"]
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
         key: "boltzmann:upgrade",
-        value: "npx boltzmann-cli",
-        versions: []
+        value: "npx boltzmann-cli"
     ),
 
     RunScriptSpec(
@@ -141,8 +139,7 @@
         value: "node -e 'require(\"./boltzmann\").printRoutes()'",
         preconditions: Some(When(
             none_of: ["esm", "typescript"],
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
@@ -151,8 +148,7 @@
         preconditions: Some(When(
             none_of: ["typescript"],
             all_of: ["esm"]
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
@@ -161,8 +157,7 @@
         preconditions: Some(When(
             none_of: ["esm"],
             all_of: ["typescript"]
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
@@ -171,8 +166,7 @@
         preconditions: Some(When(
             none_of: ["typescript", "esm"],
             all_of: ["esbuild"]
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
@@ -181,8 +175,7 @@
         preconditions: Some(When(
             none_of: ["esm"],
             all_of: ["esbuild", "typescript"]
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
@@ -191,13 +184,11 @@
         preconditions: Some(When(
             none_of: ["typescript"],
             all_of: ["esbuild", "esm"]
-        )),
-        versions: []
+        ))
     ),
 
     RunScriptSpec(
         key: "boltzmann:docs",
-        value: "npx boltzmann-cli --docs",
-        versions: []
+        value: "npx boltzmann-cli --docs"
     )
 ]

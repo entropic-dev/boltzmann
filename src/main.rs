@@ -143,6 +143,7 @@ struct RunScriptSpec {
     key: String,
     value: String,
     preconditions: Option<When>,
+    #[serde(default)]
     versions: Vec<VersionedScript>,
 }
 
