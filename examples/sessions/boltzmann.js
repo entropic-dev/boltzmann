@@ -2,7 +2,7 @@
 /* eslint-disable */
 /* istanbul ignore file */
 'use strict'
-// Boltzmann v0.3.0-rc.1
+// Boltzmann v0.3.0
 
 // 
 // 
@@ -2029,6 +2029,7 @@ class Session extends Map {
   test
 }
  const middleware = {
+  log,
 // 
 
 // 

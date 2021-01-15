@@ -2816,6 +2816,7 @@ class Session extends Map {
   test
 }
 {{ EXPORTS }} const middleware = {
+  log,
 // {% if jwt %}
   authenticateJWT,
 // {% endif %}

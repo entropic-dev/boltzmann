@@ -23,6 +23,7 @@
   "devDependencies": {
     "@hapi/shot": "^5.0.4",
     "@tsconfig/node14": "^1.0.0",
+    "@types/hapi__shot": "^4.1.1",
     "@types/tap": "^14.10.1",
     "@typescript-eslint/eslint-plugin": "^4.11.0",
     "@typescript-eslint/parser": "^4.11.0",
@@ -52,7 +53,7 @@
     "test": "tap --no-ts --node-arg=--require=ts-node/register tests/"
   },
   "boltzmann": {
-    "version": "0.3.0-rc.1",
+    "version": "0.3.0",
     "githubci": false,
     "ping": true,
     "status": true,

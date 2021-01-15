@@ -96,6 +96,7 @@ declare type AugmentedTestHandler = (t: AugmentedTest) => Promise<any | void> | 
 declare type TestHandler = (t: Test) => Promise<any | void> | any | void
 
 export namespace middleware {
+  export const log: Middleware
   export const applyXFO: Middleware
   export const handleCORS: Middleware
   export const session: Middleware
