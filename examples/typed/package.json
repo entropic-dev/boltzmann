@@ -40,15 +40,16 @@
     "typescript": "^4.1.3"
   },
   "scripts": {
-    "boltzmann:docs": "B=1 npx boltzmann-cli --docs",
-    "boltzmann:routes": "B=1 node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
-    "boltzmann:tsbuild": "B=1 tsc && cp package.json target/release",
-    "boltzmann:upgrade": "B=1 npx boltzmann-cli",
-    "lint": "B=1 eslint .",
-    "postinstall": "B=1 npm run boltzmann:tsbuild",
-    "posttest": "B=1 npm run lint",
-    "pretest": "B=1 tsc --noEmit tests/**.ts",
-    "start": "B=1 nodemon ./boltzmann.js"
+    "boltzmann:docs": "npx boltzmann-cli --docs",
+    "boltzmann:routes": "node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
+    "boltzmann:tsbuild": "tsc && cp package.json target/release",
+    "boltzmann:upgrade": "npx boltzmann-cli",
+    "lint": "eslint .",
+    "postinstall": "npm run boltzmann:tsbuild",
+    "posttest": "npm run lint",
+    "pretest": "tsc --noEmit",
+    "start": "nodemon ./boltzmann.js",
+    "test": "tap --no-ts --node-arg=--require=ts-node/register tests/"
   },
   "boltzmann": {
     "version": "0.3.0-rc.1",

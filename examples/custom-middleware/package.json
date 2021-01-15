@@ -1,11 +1,11 @@
 {
-  "name": "custom-middleware",
-  "description": "",
-  "version": "1.0.0",
   "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
-  "boltzmann": {
-    "version": "0.1.3"
-  },
+  "description": "",
+  "keywords": [],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "custom-middleware",
+  "version": "1.0.0",
   "dependencies": {
     "@hapi/iron": "^6.0.0",
     "accepts": "^1.3.7",
@@ -16,13 +16,13 @@
     "cookie": "^0.4.1",
     "culture-ships": "^1.0.0",
     "dotenv": "^8.2.0",
-    "find-my-way": "^2.2.1",
+    "find-my-way": "^3.0.4",
     "uuid": "^8.3.0"
   },
   "devDependencies": {
-    "@hapi/shot": "^4.1.2",
-    "@typescript-eslint/eslint-plugin": "^3.1.0",
-    "@typescript-eslint/parser": "^3.1.0",
+    "@hapi/shot": "^5.0.4",
+    "@typescript-eslint/eslint-plugin": "^4.11.0",
+    "@typescript-eslint/parser": "^4.11.0",
     "ansi-escapes": "^4.3.1",
     "babel-eslint": "^10.1.0",
     "bistre": "^1.0.1",
@@ -30,21 +30,22 @@
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.3",
     "get-function-location": "^2.0.0",
+    "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
     "standard": "^14.3.4",
     "supports-hyperlinks": "^2.1.0",
     "tap": "^14.10.7"
   },
-  "keywords": [],
-  "license": "MIT",
-  "main": "index.js",
   "scripts": {
+    "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
     "boltzmann:upgrade": "npx boltzmann-cli",
-    "lint": null,
-    "posttest": null,
-    "start": null,
-    "test": "tap test"
+    "lint": "eslint .",
+    "posttest": "npm run lint",
+    "start": "nodemon ./boltzmann.js",
+    "test": "tap tests"
   },
-  "type": null
+  "boltzmann": {
+    "version": "0.3.0-rc.1"
+  }
 }

@@ -2,7 +2,7 @@
 /* eslint-disable */
 /* istanbul ignore file */
 'use strict'
-// Boltzmann v0.2.0-alpha1
+// Boltzmann v0.3.0-rc.1
 
 // 
 // 
@@ -554,7 +554,7 @@ if (!isDev()) {
     if (isClosing) {
       process.exit(1)
     }
-    const logger = bole()
+    const logger = bole('boltzmann:server')
     logger.info('Caught SIGINT, preparing to shutdown. If running on the command line another ^C will close the app immediately.')
     isClosing = true
   })
@@ -631,7 +631,7 @@ function template ({
   paths = ['templates'],
   filters = {},
   tags = {},
-  logger = bole('BOLTZMANN:templates'),
+  logger = bole('boltzmann:templates'),
   opts = {
     noCache: isDev()
   }
@@ -1343,7 +1343,7 @@ function authenticateJWT ({
     throw new Error(
       `To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-https://www.boltzmann.dev/en/docs/0.2.0-alpha1/reference/middleware/#authenticatejwt
+https://www.boltzmann.dev/en/docs/0.3.0-rc.1/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '))
   }
   _jwt = _jwt || require('jsonwebtoken')
@@ -1357,7 +1357,7 @@ https://www.boltzmann.dev/en/docs/0.2.0-alpha1/reference/middleware/#authenticat
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
-          https://www.boltzmann.dev/en/docs/0.2.0-alpha1/reference/middleware/#authenticatejwt
+          https://www.boltzmann.dev/en/docs/0.3.0-rc.1/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '))
         throw err
       })
@@ -1382,7 +1382,7 @@ https://www.boltzmann.dev/en/docs/0.2.0-alpha1/reference/middleware/#authenticat
           })
         })
       } catch (err) {
-        const logger = bole('jwt')
+        const logger = bole('boltzmann:jwt')
         logger.error(err)
         throw Object.assign(new Error('Invalid bearer token'), {
           [Symbol.for('status')]: 403
@@ -1602,7 +1602,7 @@ function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
-  logger = bole('BOLTZMANN:session'),
+  logger = bole('boltzmann:session'),
   load =
 // 
   async (context, id) => JSON.parse(IN_MEMORY.get(id)),
@@ -1800,7 +1800,7 @@ function handlePing () {
 function validateBody(schema) {
   ajv = ajv || require('ajv')
   ajvStrict = ajvStrict || new ajv()
-  const validator = ajvStrict.compile(schema)
+  const validator = ajvStrict.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
   return function validate (next) {
     return async (context, ...args) => {
       const subject = await context.body
@@ -1824,7 +1824,7 @@ function validateBlock(what) {
   return schema => {
     ajv = ajv || require('ajv')
     ajvLoose = ajvLoose || new ajv({ coerceTypes: true })
-    const validator = ajvLoose.compile(schema)
+    const validator = ajvLoose.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
     return function validate (next) {
       return async (context, params, ...args) => {
         const subject = what(context)
@@ -2096,7 +2096,7 @@ if (require.main === module) {
     ].filter(Boolean))
   }).then(server => {
     server.listen(Number(process.env.PORT) || 5000, () => {
-      bole('server').info(`now listening on port ${server.address().port}`)
+      bole('boltzmann:server').info(`now listening on port ${server.address().port}`)
     })
   }).catch(err => {
     console.error(err.stack)

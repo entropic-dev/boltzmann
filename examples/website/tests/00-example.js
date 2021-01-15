@@ -1,15 +1,19 @@
-'use strict'
+const {
+  decorators: { test },
+} = require('../boltzmann')
+const tap = require('tap')
 
-const { test } = require('tap')
-const { middleware } = require('../boltzmann')
+const _ = test({})
 
-const _ = middleware.test({
-  middleware: [], // by default, no middleware is installed under test.
-})
+tap.test(
+  'it works!',
+  _(async (assert) => {
+    const response = await assert.request({
+      method: 'GET',
+      url: 'world',
+    })
 
-test(
-  'a basic health check of the test machinery',
-  _(async (t) => {
-    t.ok('yay')
+    assert.matches(response.payload, 'world')
+    assert.matches(response.payload, 'Hello, ')
   })
 )

@@ -25,8 +25,8 @@
   },
   "devDependencies": {
     "@hapi/shot": "^5.0.4",
-    "@typescript-eslint/eslint-plugin": "^3.1.0",
-    "@typescript-eslint/parser": "^3.1.0",
+    "@typescript-eslint/eslint-plugin": "^4.11.0",
+    "@typescript-eslint/parser": "^4.11.0",
     "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
     "eslint": "^7.1.0",
@@ -39,19 +39,17 @@
     "supports-hyperlinks": "^2.1.0",
     "tap": "^14.10.7"
   },
-  "type": null,
   "scripts": {
+    "boltzmann:docs": "npx boltzmann-cli --docs",
+    "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
+    "boltzmann:upgrade": "npx boltzmann-cli",
     "lint": "eslint .",
     "posttest": "npm run lint",
-    "start": "./boltzmann.js",
-    "test": "tap test",
-    "boltzmann:upgrade": "npx boltzmann-cli",
-    "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
-    "boltzmann:esbuild": null,
-    "boltzmann:docs": "npx boltzmann-cli docs"
+    "start": "nodemon ./boltzmann.js",
+    "test": "tap tests"
   },
   "boltzmann": {
-    "version": "0.2.0-alpha1",
+    "version": "0.3.0-rc.1",
     "csrf": true,
     "githubci": false,
     "honeycomb": true,

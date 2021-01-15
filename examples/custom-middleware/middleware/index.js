@@ -7,5 +7,5 @@ const gzip = require('./gzip')
 module.exports = [
   [attachClient, { url: process.env.SEARCH_URL || 'https://api.duckduckgo.com/' }],
   attachFlappingClient,
-  gzip
+  gzip,
 ]
