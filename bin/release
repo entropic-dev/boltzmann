@@ -26,7 +26,7 @@ if [ ! -e "$HOME/.cargo/bin/cargo-release" ]; then
     cargo install cargo-release
 fi
 
-cargo release $level --skip-publish
+cargo release $level
 
 echo "We are now at version $(cargo read-manifest | jq -r ".version")"
 echo "Next step: write release notes on GitHub while the asset builds run."
