@@ -14,7 +14,7 @@ loggerv = "*"
 owo-colors = "1"
 prettytable-rs = "^0.8"
 ron = "0.6.1"
-semver = { version = "0.9.0", features = ["serde"] }
+semver = { version = "0.11.0", features = ["serde"] }
 serde_json = "1.0.57"
 structopt = "0.3.17"
 subprocess = "*"
@@ -27,9 +27,5 @@ version = "1.0.115"
 [package.metadata.release]
 sign-commit = true
 sign-tag = true
-pre-release-replacements = [
-  {file="README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/v{{version}}/"} ,
-  {file="docs/README.md", search="https://www.boltzmann.dev/en/docs/(.+)/", replace="https://www.boltzmann.dev/en/docs/v{{version}}/"} ,
-]
-exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**"]
+exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**", "examples/**"]
 no-dev-version = true
