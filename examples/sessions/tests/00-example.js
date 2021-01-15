@@ -2,10 +2,7 @@ const tap = require('tap')
 const { middleware } = require('../boltzmann')
 
 const _ = middleware.test({
-  middleware: [
-    middleware.log,
-    [ middleware.applyCSRF, { cookieSecret: "it's a secret to everyone".repeat(2) } ],
-  ],
+  middleware: [middleware.log, [middleware.applyCSRF, { cookieSecret: "it's a secret to everyone".repeat(2) }]],
 })
 
 tap.test((assert) => {
