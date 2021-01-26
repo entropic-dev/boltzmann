@@ -92,8 +92,8 @@ declare class AugmentedTest extends Test {
   }): Promise<ResponseObject>;
 }
 
-declare type AugmentedTestHandler = (t: AugmentedTest) => Promise<any | void> | any | void
-declare type TestHandler = (t: Test) => Promise<any | void> | any | void
+export declare type AugmentedTestHandler = (t: AugmentedTest) => Promise<any | void> | any | void
+export declare type TestHandler = (t: Test) => Promise<any | void> | any | void
 
 export namespace middleware {
   export const log: Middleware
