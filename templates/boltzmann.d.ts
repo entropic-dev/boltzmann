@@ -44,7 +44,7 @@ export declare class Context {
   public host: string
   public id: string
   private _parsedUrl?: URL
-  private _body?: { [key: string]: string }
+  private _body?: { [key: string]: any }
   private _accepts?: Accepts
   private _response: OutgoingMessage
   private _routed: any
@@ -56,7 +56,7 @@ export declare class Context {
   public get url(): URL
   public set url(v: URL)
   public get query(): { [key: string]: string }
-  public get body(): Promise<{ [key: string]: string }>
+  public get body(): Promise<{ [key: string]: any }>
   public get accepts(): Accepts
   {% if postgres -%}
   get postgresClient(): Promise<PostgresClient>
