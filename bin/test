@@ -43,6 +43,10 @@ function run_startup() {
 
 function run_examples() {
   for example in examples/*; do
+    if [ "$example" = "examples/sessions" ]; then
+      continue
+    fi
+
     pushd $example
     cargo run -- . --force --silent --githubci=off
 
