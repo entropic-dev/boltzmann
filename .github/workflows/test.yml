@@ -6,12 +6,6 @@ on:
   pull_request:
 jobs:
   build_and_test:
-    services:
-      redis:
-        image: redis
-        ports:
-        - 6379:6379
-        options: --entrypoint redis-server
     env:
       DEBUG: 1
     name: ${{ matrix.os }} / Node ${{ matrix.node_version }} test
