@@ -245,8 +245,12 @@ let ajvStrict = null
   }
 
   set url(value) {
-    this._parsedUrl = null
-    this.request.url = value
+    if (value instanceof URL) {
+      this._parsedURL = value
+    } else {
+      this._parsedUrl = null
+      this.request.url = value
+    }
   }
 
   get query () {
