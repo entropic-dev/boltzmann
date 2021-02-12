@@ -246,7 +246,7 @@ let ajvStrict = null
 
   set url(value) {
     if (value instanceof URL) {
-      this._parsedURL = value
+      this._parsedUrl = value
     } else {
       this._parsedUrl = null
       this.request.url = value
@@ -3032,6 +3032,31 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     })
 
     assert.equals(response.statusCode, 204)
+    assert.same(response.payload, '')
+  })
+
+  test('context.url may be set to a url', async assert => {
+    let called = null
+    const handler = (context, params) => {
+      context.url = new URL('/hello/world', 'https://www.womp.com/')
+      called = context.url
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/'
+    })
+
+    assert.equal(called.pathname, '/hello/world')
     assert.same(response.payload, '')
   })
 
