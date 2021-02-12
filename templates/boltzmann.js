@@ -247,6 +247,7 @@ let ajvStrict = null
   set url(value) {
     if (value instanceof URL) {
       this._parsedUrl = value
+      this.request.url = this._parsedUrl.pathname + this._parsedUrl.search
     } else {
       this._parsedUrl = null
       this.request.url = value
