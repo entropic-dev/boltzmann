@@ -130,7 +130,7 @@ export namespace middleware {
   }
 
   export function test(options?: {
-    middleware?: Middleware[]
+    middleware?: (Middleware | [Middleware, ...any[]])[]
     handlers?: { [key: string]: Handler }
     bodyParsers?: BodyParser[]
     after?: (xs: any) => any
@@ -152,7 +152,7 @@ export namespace decorators {
   }
 
   export function test(options?: {
-    middleware?: Middleware[]
+    middleware?: (Middleware | [Middleware, ...any[]])[]
     handlers?: { [key: string]: Handler }
     bodyParsers?: BodyParser[]
     after?: (xs: any) => any
