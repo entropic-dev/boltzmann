@@ -48,7 +48,7 @@ const crypto = require('crypto')
 const CsrfTokens = require('csrf')
 // {% endif %}
 const http = require('http')
-const bole = require('bole')
+const bole = require('@entropic/bole')
 const path = require('path')
 const os = require('os')
 // {% if redis %}
