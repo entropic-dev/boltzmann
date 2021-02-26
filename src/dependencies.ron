@@ -62,8 +62,8 @@
     preconditions: None
   ),
   DependencySpec(
-    name: "bole",
-    version: "^4.0.0",
+    name: "@entropic/bole",
+    version: "^4.0.1",
     kind: Normal,
     preconditions: None
   ),
