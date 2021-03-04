@@ -71,7 +71,7 @@ let ajvStrict = null
 
 {{ EXPORTS }} async function main ({
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
-  bodyParsers = _requireOr('./body', [urlEncoded, json]),
+  bodyParsers = _requireOr('./body', [urlEncoded, json]).then(_processBodyParsers),
   handlers = _requireOr('./handlers', {}),
 } = {}) {
   [middleware, bodyParsers, handlers] = await Promise.all([
@@ -2709,6 +2709,10 @@ async function _collect (request) {
 
 function _processMiddleware (middleware) {
   return [].concat(Array.isArray(middleware) ? middleware : middleware.APP_MIDDLEWARE)
+}
+
+function _processBodyParsers (parsers) {
+  return [].concat(Array.isArray(parsers) ? parsers : parsers.APP_BODY_PARSERS)
 }
 
 // {% if esm %}
