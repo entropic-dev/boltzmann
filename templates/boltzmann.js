@@ -88,6 +88,7 @@ let ajvStrict = null
       [STATUS]: 415
     })
   })
+  Context._bodyParsers = bodyParsers
 
   // {% if templates %}
   let _middleware = []
@@ -164,6 +165,7 @@ let ajvStrict = null
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
+    this._bodyParsers = Context._bodyParsers.slice()
 
     this.remote = request.socket
       ? request.socket.remoteAddress.replace('::ffff:', '')
@@ -172,6 +174,7 @@ let ajvStrict = null
       : ''
     const [host, _] = request.headers['host'].split(':')
     this.host = host
+    this._customParsers = false
     this._parsedUrl = null
     this._body = null
     this._accepts = null
@@ -258,13 +261,40 @@ let ajvStrict = null
     return Object.fromEntries(this.url.searchParams)
   }
 
+  get bodyParsers () {
+    this._customParsers = true
+    return this._bodyParsers
+  }
+
+  set bodyParsers (v) {
+    if (!Array.isArray(v)) {
+      throw new TypeError('context.bodyParsers must be an array of body parsers')
+    }
+    this._customParsers = true
+    this._bodyParsers = v
+  }
+
   /** @type {Promise<Object>} */
   get body () {
     if (this._body) {
       return this._body
     }
-    this._body = Promise.resolve(Context._bodyParser(this.request))
+
+    if (this._customParsers) {
+      this._body = Promise.resolve(this._bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
+        throw Object.assign(new Error('Cannot parse request body'), {
+          [STATUS]: 415
+        })
+      })(this.request))
+    } else {
+      this._body = Promise.resolve(Context._bodyParser(this.request))
+    }
+
     return this._body
+  }
+
+  set body (v) {
+    this._body = Promise.resolve(v)
   }
 
   get accepts () {
@@ -274,8 +304,10 @@ let ajvStrict = null
     this._accepts = accepts(this.request)
     return this._accepts
   }
+
+  static _bodyParser = null
+  static _bodyParsers = null
 }
-Context._bodyParser = null
 
 // - - - - - - - - - - - - - - - -
 // Routing
@@ -3366,6 +3398,112 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
 
     assert.equals(response.statusCode, 200)
     assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('body: custom body parsers on context are used', async assert => {
+    const handler = async context => {
+      context.bodyParsers = [next => request => 'flooble']
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(String(response.payload), 'flooble')
+  })
+
+  test('body: custom body parsers on context do not effect other handlers', async assert => {
+    const handler = async context => {
+      context.bodyParsers = [next => request => 'flooble']
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const otherHandler = async context => {
+      return await context.body
+    }
+    otherHandler.route = 'GET /other'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+        otherHandler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(String(response.payload), 'flooble')
+
+    const anotherResponse = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/other',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(anotherResponse.statusCode, 200)
+    assert.same(JSON.parse(anotherResponse.payload), { hello: 'world' })
+  })
+
+  test('body: context.body can be set explicitly', async assert => {
+    const handler = async context => {
+      context.body = 'three ducks'
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const otherHandler = async context => {
+      return await context.body
+    }
+    otherHandler.route = 'GET /other'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+        otherHandler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(String(response.payload), 'three ducks') // in THIS ECONOMY?!
   })
 
   test('jwt ignores requests without authorization header', async assert => {
