@@ -1,6 +1,6 @@
 +++
 title="Environment variables"
-weight=3
+weight=5
 +++
 
 Boltzmann's built-in features are configurable using environment variables.

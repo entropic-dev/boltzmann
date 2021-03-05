@@ -6,6 +6,11 @@ slug="handlers"
 tags = ["reference"]
 +++
 
+This document covers all of the types and APIs pertaining to request handlers. You
+can learn more about handlers in the [concepts] document.
+
+[concepts]: @/concepts/01-handlers.md
+
 ## Context
 
 ### `accepts`
@@ -40,6 +45,13 @@ function myHandler(context) {
 
 _Added in 0.0.0._
 
+<details>
+<summary>Changelog</summary>
+<ul>
+  <li>Changed in 0.5.0: <code>body</code> may be set by the user and the result will be retained.</li>
+</ul>
+</details>
+
 A promise for the parsed contents of the request body. This promise resolves to
 a JavaScript object on success or throws a `422 Unprocessable Entity` error when
 no body parser could handle the request body.
@@ -58,6 +70,28 @@ async function myHandler(context) {
   }
 }
 ```
+
+### `bodyParsers`
+
+_Added in 0.5.0._
+
+A list of body parsers that apply to the current request. This can be modified
+before accessing `context.body` to affect how the request body is interpreted.
+
+**Example use:**
+
+```javascript
+myHandler.route = 'POST /foo'
+async function myHandler(context) {
+  context.bodyParsers.unshift(
+    next => request => 'ha ha!'
+  )
+
+  console.log(await context.body) // "ha ha!"
+}
+```
+
+----
 
 ### `cookie`
 
