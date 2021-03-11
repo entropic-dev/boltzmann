@@ -2589,7 +2589,7 @@ function test ({
     // routes in checkpoints.
     await postgresClient.query(`begin`)
 
-    middleware.push(() => next => async context => {
+    middleware.unshift(() => next => async context => {
       context._postgresConnection = postgresClient
       const savepointname = `test_${process.pid}_${Date.now()}_${savepointId++}`
       const isTransactional = context.method !== 'GET' && context.method !== 'HEAD'
@@ -2612,7 +2612,7 @@ function test ({
     // {% endif %}
     // {% if redis %}
     await redisClient.flushdb()
-    middleware.push(() => next => async context => {
+    middleware.unshift(() => next => async context => {
       context._redisClient = redisClient
       return next(context)
     })
