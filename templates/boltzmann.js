@@ -82,13 +82,8 @@ let ajvStrict = null
 
   const server = http.createServer()
 
-  const handler = await buildMiddleware(middleware, await router(handlers))
-  Context._bodyParser = bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
-    throw Object.assign(new Error('Cannot parse request body'), {
-      [STATUS]: 415
-    })
-  })
-  Context._bodyParsers = bodyParsers
+  const respond = await buildMiddleware([[route, handlers], ...middleware], handler)
+  Context._bodyParser = buildBodyParser(bodyParsers)
 
   // {% if templates %}
   let _middleware = []
@@ -115,7 +110,7 @@ let ajvStrict = null
     }
     // {% endif %}
 
-    let body = await handler(context)
+    let body = await respond(context)
 
     if (body[THREW]) {
       body = {
@@ -165,8 +160,7 @@ let ajvStrict = null
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
-    this._bodyParsers = Context._bodyParsers.slice()
-
+    this._bodyParser = Context._bodyParser
     this.remote = request.socket
       ? request.socket.remoteAddress.replace('::ffff:', '')
       : request.remoteAddress
@@ -174,7 +168,6 @@ let ajvStrict = null
       : ''
     const [host, _] = request.headers['host'].split(':')
     this.host = host
-    this._customParsers = false
     this._parsedUrl = null
     this._body = null
     this._accepts = null
@@ -261,34 +254,13 @@ let ajvStrict = null
     return Object.fromEntries(this.url.searchParams)
   }
 
-  get bodyParsers () {
-    this._customParsers = true
-    return this._bodyParsers
-  }
-
-  set bodyParsers (v) {
-    if (!Array.isArray(v)) {
-      throw new TypeError('context.bodyParsers must be an array of body parsers')
-    }
-    this._customParsers = true
-    this._bodyParsers = v
-  }
-
   /** @type {Promise<Object>} */
   get body () {
     if (this._body) {
       return this._body
     }
 
-    if (this._customParsers) {
-      this._body = Promise.resolve(this._bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
-        throw Object.assign(new Error('Cannot parse request body'), {
-          [STATUS]: 415
-        })
-      })(this.request))
-    } else {
-      this._body = Promise.resolve(Context._bodyParser(this.request))
-    }
+    this._body = Promise.resolve(this._bodyParser(this.request))
 
     return this._body
   }
@@ -306,7 +278,6 @@ let ajvStrict = null
   }
 
   static _bodyParser = null
-  static _bodyParsers = null
 }
 
 // - - - - - - - - - - - - - - - -
@@ -407,7 +378,7 @@ async function _findESBuildEntries (source) {
 
   // XXX(CD): at the time of writing, router desugars handler properties into their canonical attributes.
   // Eventually the `routes()` function should do this, and the main function should rely on routes().
-  await router(await handlers)
+  await (routing(await handlers)(() => {}))
 
   const entries = await _findESBuildEntries(config.source)
 
@@ -486,114 +457,12 @@ async function _findESBuildEntries (source) {
   console.log()
 }
 
-async function router (handlers) {
-  const wayfinder = fmw({})
-
-  for (let [key, handler] of Object.entries(handlers)) {
-    if (typeof handler.route === 'string') {
-      let [method, ...route] = handler.route.split(' ')
-      route = route.join(' ')
-      if (route.length === 0) {
-        route = method
-        method = (handler.method || 'GET')
-      }
-      const opts = {}
-      if (handler.version) {
-        opts.version = handler.version
-      }
-
-      const { version, middleware, decorators, ...rest } = handler
-
-      let location = null
-      // {% if templates %}
-      if (isDev()) {
-        const getFunctionLocation = require('get-function-location')
-        const loc = await getFunctionLocation(handler)
-        location = `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
-      }
-      // {% endif %}
-
-      if (Array.isArray(decorators)) {
-        handler = decorators.reduce((lhs, rhs) => {
-          return [...lhs, enforceInvariants(), rhs]
-        }, []).reduceRight((lhs, rhs) => rhs(lhs), enforceInvariants()(handler))
-      }
-
-      if (Array.isArray(middleware)) {
-        handler = await buildMiddleware(middleware, handler)
-      }
-
-      Object.assign(handler, {
-        ...rest,
-        method,
-        version,
-        route,
-        location,
-        middleware: (middleware || []).map(xs => Array.isArray(xs) ? xs[0].name : xs.name),
-        decorators: (decorators || []).map(xs => xs.name),
-      })
-
-      wayfinder.on(method, route, opts, handler)
-    }
-  }
-
-  return function router (context) {
-    const { pathname } = context.url
-    const match = wayfinder.find(context.request.method, pathname, ...(
-      context.request.headers['accept-version']
-      ? [context.request.headers['accept-version']]
-      : []
-    ))
-
-    if (!match) {
-      throw new NoMatchError(context.request.method, pathname)
-    }
-
-    const {
-      method,
-      route,
-      decorators,
-      middleware,
-      version
-    } = match.handler
-
-    context._routed = {
-      handler: match.handler,
-      method,
-      route,
-      decorators,
-      middleware,
-      version,
-      location: match.handler.location,
-      name: match.handler.name,
-      params: match.params
-    }
-    context.params = match.params
-
-    // {% if honeycomb %}
-    let span = null
-    if (process.env.HONEYCOMBIO_WRITE_KEY) {
-      span = beeline.startSpan({
-        name: `handler: ${match.handler.name}`,
-        'handler.name': match.handler.name,
-        'handler.method': String(method),
-        'handler.route': route,
-        'handler.version': version || '*',
-        'handler.decorators': String(decorators)
-      })
-    }
-
-    try {
-      // {% endif %}
-      return match.handler(context, match.params, match.store, null)
-      // {% if honeycomb %}
-    } finally {
-      if (process.env.HONEYCOMBIO_WRITE_KEY) {
-        beeline.finishSpan(span)
-      }
-    }
-    // {% endif %}
-  }
+function buildBodyParser (bodyParsers) {
+  return bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
+    throw Object.assign(new Error('Cannot parse request body'), {
+      [STATUS]: 415
+    })
+  })
 }
 
 // - - - - - - - - - - - - - - - -
@@ -678,6 +547,127 @@ function dev(
       return result
     }
   }
+}
+
+function route (handlers = {}) {
+  const wayfinder = fmw({})
+
+  return async next => {
+    for (let [key, handler] of Object.entries(handlers)) {
+      if (typeof handler.route === 'string') {
+        let [method, ...route] = handler.route.split(' ')
+        route = route.join(' ')
+        if (route.length === 0) {
+          route = method
+          method = (handler.method || 'GET')
+        }
+        const opts = {}
+        if (handler.version) {
+          opts.version = handler.version
+        }
+
+        const { version, middleware, decorators, bodyParsers, ...rest } = handler
+
+        let location = null
+        // {% if templates %}
+        if (isDev()) {
+          const getFunctionLocation = require('get-function-location')
+          const loc = await getFunctionLocation(handler)
+          location = `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
+        }
+        // {% endif %}
+
+        if (Array.isArray(decorators)) {
+          handler = decorators.reduce((lhs, rhs) => {
+            return [...lhs, enforceInvariants(), rhs]
+          }, []).reduceRight((lhs, rhs) => rhs(lhs), enforceInvariants()(handler))
+        }
+
+        const bodyParser = (
+          Array.isArray(bodyParsers)
+          ? buildBodyParser(bodyParsers)
+          : Context._bodyParser
+        )
+
+        if (Array.isArray(middleware)) {
+          handler = await buildMiddleware(middleware, handler)
+        }
+
+        Object.assign(handler, {
+          ...rest,
+          method,
+          version,
+          route,
+          location,
+          bodyParsers,
+          bodyParser,
+          middleware: (middleware || []).map(xs => Array.isArray(xs) ? xs[0].name : xs.name),
+          decorators: (decorators || []).map(xs => xs.name),
+        })
+
+        wayfinder.on(method, route, opts, handler)
+      }
+    }
+
+    return context => {
+      const { pathname } = context.url
+      const match = wayfinder.find(context.request.method, pathname, ...(
+        context.request.headers['accept-version']
+        ? [context.request.headers['accept-version']]
+        : []
+      ))
+
+      if (!match) {
+        return next(context)
+      }
+
+      context._bodyParser = match.handler.bodyParser
+      context._routed = { 
+        handler: match.handler,
+        method: match.handler.method,
+        route: match.handler.route,
+        decorators: match.handler.decorators,
+        middleware: match.handler.middleware,
+        version: match.handler.middleware,
+        location: match.handler.location,
+        name: match.handler.name,
+        params: match.params
+      }
+      context.params = match.params
+
+      return next(context)
+    }
+  }
+}
+
+function handler (context) {
+  if (!context._routed.handler) {
+    throw new NoMatchError(context.request.method, context.url.pathname)
+  }
+
+  // {% if honeycomb %}
+  let span = null
+  if (process.env.HONEYCOMBIO_WRITE_KEY) {
+    span = beeline.startSpan({
+      name: `handler: ${context._routed.name}`,
+      'handler.name': context._routed.name,
+      'handler.method': String(context._routed.method),
+      'handler.route': context._routed.route,
+      'handler.version': context._routed.version || '*',
+      'handler.decorators': String(context._routed.decorators)
+    })
+  }
+
+  try {
+    // {% endif %}
+    return context._routed.handler(context, context._routed.params, {}, null)
+    // {% if honeycomb %}
+  } finally {
+    if (process.env.HONEYCOMBIO_WRITE_KEY) {
+      beeline.finishSpan(span)
+    }
+  }
+  // {% endif %}
 }
 
 let isClosing = false
@@ -3404,12 +3394,12 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     assert.same(JSON.parse(response.payload), {hello: 'world'})
   })
 
-  test('body: custom body parsers on context are used', async assert => {
+  test('body: custom body parsers on handler are used', async assert => {
     const handler = async context => {
-      context.bodyParsers = [next => request => 'flooble']
       return await context.body
     }
     handler.route = 'GET /'
+    handler.bodyParsers = [next => request => 'flooble']
     const server = await main({
       middleware: [],
       bodyParsers: [urlEncoded],
@@ -3432,11 +3422,11 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     assert.same(String(response.payload), 'flooble')
   })
 
-  test('body: custom body parsers on context do not effect other handlers', async assert => {
+  test('body: custom body parsers on handler do not effect other handlers', async assert => {
     const handler = async context => {
-      context.bodyParsers = [next => request => 'flooble']
       return await context.body
     }
+    handler.bodyParsers = [next => request => 'flooble']
     handler.route = 'GET /'
     const otherHandler = async context => {
       return await context.body

@@ -66,26 +66,6 @@ async function myHandler(context) {
 }
 ```
 
-### `bodyParsers`
-
-{{ changelog(version = "0.5.0") }}
-
-A list of body parsers that apply to the current request. This can be modified
-before accessing `context.body` to affect how the request body is interpreted.
-
-**Example use:**
-
-```javascript
-myHandler.route = 'POST /foo'
-async function myHandler(context) {
-  context.bodyParsers.unshift(
-    next => request => 'ha ha!'
-  )
-
-  console.log(await context.body) // "ha ha!"
-}
-```
-
 ----
 
 ### `cookie`
