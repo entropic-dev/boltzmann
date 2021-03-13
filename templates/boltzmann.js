@@ -462,13 +462,33 @@ async function _findESBuildEntries (source) {
 }
 
 function buildBodyParser (bodyParsers) {
-  return bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
+  return [_attachContentType, ...bodyParsers].reduceRight((lhs, rhs) => rhs(lhs), request => {
     throw Object.assign(new Error('Cannot parse request body'), {
       [STATUS]: 415
     })
   })
 }
 
+function _attachContentType (next) {
+  return request => {
+    const [contentType, ...attrs] = (request.headers['content-type'] || 'application/octet-stream').split(';').map(xs => xs.trim())
+    const params = new Map(attrs.map(xs => xs.split('=').map(ys => ys.trim())))
+    const charset = (params.get('charset') || 'utf-8').replace(/^("(.*)")|('(.*)')$/, '$2$4').toLowerCase()
+    const [type, vndsubtype = ''] = contentType.split('/')
+    const subtypeParts = vndsubtype.split('+')
+    const subtype = subtypeParts.pop()
+
+    request.contentType = {
+      vnd: subtypeParts.join('+'),
+      type,
+      subtype,
+      charset,
+      params
+    }
+
+    return next(request)
+  }
+}
 // - - - - - - - - - - - - - - - -
 // Middleware
 // - - - - - - - - - - - - - - - -
@@ -2078,7 +2098,11 @@ function log ({
 
 function json (next) {
   return async request => {
-    if (String(request.headers['content-type']).split(';')[0].trim() === 'application/json') {
+    if (
+      request.contentType.type === 'application' &&
+      request.contentType.subtype === 'json' &&
+      request.contentType.charset === 'utf-8'
+    ) {
       const buf = await _collect(request)
       try {
         return JSON.parse(String(buf))
@@ -2101,7 +2125,11 @@ function json (next) {
 
 function urlEncoded (next) {
   return async request => {
-    if (request.headers['content-type'] !== 'application/x-www-form-urlencoded') {
+    if (
+      request.contentType.type !== 'application' ||
+      request.contentType.subtype !== 'x-www-form-urlencoded' ||
+      request.contentType.charset !== 'utf-8'
+    ) {
       return next(request)
     }
 
@@ -3330,6 +3358,86 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
 
     assert.equals(response.statusCode, 200)
     assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('json body: accepts vendor json extensions', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [json],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/vnd.npm.corgi-v1+json'
+      },
+      payload: JSON.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('json body: accepts utf-8 json', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [json],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/json; charset=utf-8'
+      },
+      payload: JSON.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('json body: skips any other json encoding', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [json],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/json; charset=wtf-8'
+      },
+      payload: JSON.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 415)
   })
 
   test('urlEncoded body: returns 415 if request is not application/x-www-form-urlencoded', async assert => {
