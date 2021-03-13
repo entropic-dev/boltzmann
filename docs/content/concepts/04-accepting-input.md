@@ -4,9 +4,21 @@ weight=4
 slug="accepting-input"
 +++
 
-Route parameters, query parameters, body parsing, and validating them all.
+Many services require user input. Input comes in the form of route parameters,
+query parameters, and HTTP request bodies. It's critical to enforce validation
+on user input, but don't worry: Boltzmann has your back!
+
+This document covers Boltzmann's affordances for accessing user input,
+validating input, and sanitizing input. By the end of the document you
+will know how to write custom body parsing functions!
 
 <!-- more -->
+
+## Accessing User Input
+
+## Validating User Input
+
+## Writing Custom Body Parsers
 
 
 Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  <!-- more -->

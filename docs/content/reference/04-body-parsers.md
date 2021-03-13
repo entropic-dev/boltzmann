@@ -17,7 +17,7 @@ parser.
 
 ### `json`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The `json` body parser parses [json](https://mdn.io/json) request bodies, identified
 by the `Content-Type` request header. Any request with a `Content-Type` which does not
@@ -31,7 +31,7 @@ Examples of content types which will be parsed:
 
 ### `urlEncoded`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The `urlEncoded` body parser parses [urlencoded](https://mdn.io/urlencoded) request bodies,
 identified by the `Content-Type` request header. Any request with a `Content-Type` which does
@@ -42,3 +42,9 @@ Examples of content types which will be parsed:
 - `application/x-www-form-urlencoded`
 
 ## Custom Body Parsers
+
+{{ changelog(version = "0.0.0") }}
+
+- when would you use it
+- what is the type signature, what are you expected to return
+- example code (multipart example because...!)

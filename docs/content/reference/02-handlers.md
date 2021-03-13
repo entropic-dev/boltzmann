@@ -15,7 +15,7 @@ can learn more about handlers in the [concepts] document.
 
 ### `accepts`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 [Content negotiation] support for the request. Provided by the [`accepts`] package.
 This property is lazily instantiated on access.
@@ -43,14 +43,9 @@ function myHandler(context) {
 
 ### `body`
 
-_Added in 0.0.0._
-
-<details>
-<summary>Changelog</summary>
-<ul>
-  <li>Changed in 0.5.0: <code>body</code> may be set by the user and the result will be retained.</li>
-</ul>
-</details>
+{% changelog(version = "0.0.0") %}
+- **Changed in 0.5.0:** `body` may be set by the user and the result will be retained. 
+{% end %}
 
 A promise for the parsed contents of the request body. This promise resolves to
 a JavaScript object on success or throws a `422 Unprocessable Entity` error when
@@ -73,7 +68,7 @@ async function myHandler(context) {
 
 ### `bodyParsers`
 
-_Added in 0.5.0._
+{{ changelog(version = "0.5.0") }}
 
 A list of body parsers that apply to the current request. This can be modified
 before accessing `context.body` to affect how the request body is interpreted.
@@ -95,7 +90,7 @@ async function myHandler(context) {
 
 ### `cookie`
 
-_Added in 0.1.1._
+{{ changelog(version = "0.1.1") }}
 
 A specialized [`Map`] instance allowing access to [HTTP Cookie] information.
 `.cookie` supports `.get`, `.set`, `.delete`, `.has`, and all other `Map`
@@ -152,7 +147,7 @@ async function login(context) {
 
 ### `headers`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The HTTP [Request Headers] as a plain JavaScript object.
 
@@ -170,7 +165,7 @@ async function logout(context) {
 
 ### `host`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The hostname portion of the [`Host` request header], minus the port. Note that this
 is the `Host` header received by the Node.JS process, which may not be the same as the
@@ -188,7 +183,7 @@ async function host(context) {
 
 ### `id`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 A unique string identifier for the request for tracing purposes. The value is
 drawn from:
@@ -211,7 +206,7 @@ async function log(context) {
 
 ### `method`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The [HTTP verb] associated with the incoming request, forwarded from the underlying
 [node request] object.
@@ -229,7 +224,7 @@ async function assertion(context) {
 
 ### `params`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 `context.params` contains an object mapping URL parameter names to the resolved
 value for this request. Wildcard matches are available as `context.params['*']`.
@@ -245,7 +240,9 @@ async function parameters(context) {
 
 ### `postgresClient`
 
-_Added in 0.0.0._ **Requires the [`--postgres`] feature.**
+{{ changelog(version = "0.0.0") }}
+
+**Requires the [`--postgres`] feature.**
 
 A lazily-acquired [`Promise`] for a postgres [`Client`]. Once acquired the same
 postgres connection is re-used on every subsequent access from a given `Context`
@@ -267,7 +264,7 @@ async function parameters(context) {
 
 ### `query`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 `query` contains the URL search (or "query") parameters for the current
 request, available as a plain javascript object.
@@ -295,7 +292,9 @@ async function queries(context) {
 
 ### `redisClient`
 
-_Added in 0.0.0._ **Requires the [`--redis`] feature.**
+{{ changelog(version = "0.0.0") }}
+
+**Requires the [`--redis`] feature.**
 
 A [`handy-redis`] client attached to the context by middleware. A single client is
 created for the process and shared between request contexts.
@@ -313,7 +312,7 @@ async function redis(context) {
 
 ### `remote`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The remote IP address of the HTTP request sender. Drawn from [`request.socket.remoteAddress`],
 falling back to `request.remoteAddress`. This value only represents the immediate connecting
@@ -331,7 +330,7 @@ async function remote(context) {
 
 ### `start`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 A `Number` representing the start of the application request processing,
 drawn from [`Date.now()`].
@@ -348,7 +347,7 @@ async function timing(context) {
 
 ### `session`
 
-_Added in 0.1.4._
+{{ changelog(version = "0.1.4") }}
 
 A [`Promise`] for a `Session` object. `Session` objects are subclasses of the built-in
 [`Map`] class. `Session` objects provide all of the built-in `Map` methods, and additionally offers:
@@ -388,7 +387,9 @@ async function logout(context) {
 
 ### `traceURL`
 
-_Added in 0.1.4._ **Requires the [`--honeycomb`] feature.**
+{{ changelog(version = "0.1.4") }}
+
+**Requires the [`--honeycomb`] feature.**
 
 A URL `string` suitable for navigating to the [Honeycomb] user interface and displaying the trace
 from the current request.
@@ -411,7 +412,7 @@ async function example(context) {
 
 ### `url`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 A [`URL`] instance populated with the `host` header & incoming request path information.
 This attribute may be set to a `String` in order to recalculate the `url` and `query`
@@ -438,7 +439,7 @@ A complete list of symbols and transformations follows.
 
 ### `Symbol.for('headers')` {#symbol-for-headers}
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 This symbol controls the HTTP response headers sent by Boltzmann along with your
 handler's return value. It must point to an object. Boltzmann uses the object's
@@ -466,7 +467,7 @@ async function wow(context) {
 
 ### `Symbol.for('status')` {#symbol-for-status}
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 This symbol controls the HTTP response status code sent by Boltzmann along with
 your handler's return value. It must point at an integer number.
@@ -509,7 +510,9 @@ async function errored2(context) {
 
 ### `Symbol.for('template')` {#symbol-for-template}
 
-_Added in 0.1.2._ **Requires the [`--templates`] feature.**
+{{ changelog(version = "0.1.2") }}
+
+**Requires the [`--templates`] feature.**
 
 This symbol selects a template file to use to render the response as HTML. It
 must refer to a string value. The [template middleware] attempts to load a file
@@ -534,7 +537,7 @@ async function html(context) {
 
 ### `Symbol.for('threw')` {#symbol-for-threw}
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 Boltzmann automatically adds this symbol to thrown values.
 It signals that the next innermost middleware or handler threw
@@ -581,7 +584,7 @@ reflects these transformation.
 
 ### `"strings"`
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Boltzmann turns strings into [`Buffer`] instances. If no `content-type` header
 was specified, Boltzmann generates one set to `text/plain; charset=utf-8`.
@@ -611,7 +614,7 @@ async function example(context) {
 
 ### `undefined`, empty return
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Boltzmann turns empty values turned into [`204 No Content`] responses.
 They are cast into empty [`Buffer`] instances.
@@ -652,7 +655,7 @@ async function example3(context) {
 
 ### Node.JS Streams
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Handlers and middleware can return a [`Readable`] Node stream. Boltzmann does
 not resume the stream until all middleware has executed. (User-defined middleware
@@ -675,7 +678,7 @@ async function example(context) {
 
 ### JavaScript objects
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Handlers can return JavaScript objects. After all middleware executes, Boltzmann
 turns these objects into JSON automatically, then writes them to the response
@@ -717,7 +720,7 @@ async function example2(context) {
 
 #### Thrown exceptions
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Handlers can throw exceptions deliberately as well as accidentally. Boltzmann
 translates exceptions to http semantics and controls what data from the
