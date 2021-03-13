@@ -15,7 +15,7 @@ async function index(/** @type {Context} */ context) {
   return {
     [Symbol.for('template')]: 'index.html',
     name,
-    user
+    {%- if oauth %}user{% endif %}
   }
   {%- else -%}
   return {

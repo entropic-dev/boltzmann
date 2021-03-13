@@ -160,7 +160,6 @@ let ajvStrict = null
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
-    this._bodyParser = Context._bodyParser
     this.remote = request.socket
       ? request.socket.remoteAddress.replace('::ffff:', '')
       : request.remoteAddress
@@ -168,11 +167,12 @@ let ajvStrict = null
       : ''
     const [host, _] = request.headers['host'].split(':')
     this.host = host
+    this.params = {}
+
     this._parsedUrl = null
     this._body = null
     this._accepts = null
     this._response = response // do not touch this
-    this._routed = {}
     this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
     this._cookie = null
     this._loadSession = async () => {
@@ -186,6 +186,10 @@ let ajvStrict = null
     this._postgresPool = null
     this._postgresConnection = null
     // {% endif %}
+  }
+
+  handler (context) {
+    throw new NoMatchError(this.request.method, this.url.pathname)
   }
 
   // {% if postgres %}
@@ -260,7 +264,7 @@ let ajvStrict = null
       return this._body
     }
 
-    this._body = Promise.resolve(this._bodyParser(this.request))
+    this._body = Promise.resolve(this.handler.bodyParser(this.request))
 
     return this._body
   }
@@ -590,7 +594,11 @@ function route (handlers = {}) {
         )
 
         if (Array.isArray(middleware)) {
+          const name = handler.name
           handler = await buildMiddleware(middleware, handler)
+
+          // preserve the original name, please
+          Object.defineProperty(handler, 'name', { value: name })
         }
 
         Object.assign(handler, {
@@ -599,7 +607,6 @@ function route (handlers = {}) {
           version,
           route,
           location,
-          bodyParsers,
           bodyParser,
           middleware: (middleware || []).map(xs => Array.isArray(xs) ? xs[0].name : xs.name),
           decorators: (decorators || []).map(xs => xs.name),
@@ -621,19 +628,8 @@ function route (handlers = {}) {
         return next(context)
       }
 
-      context._bodyParser = match.handler.bodyParser
-      context._routed = { 
-        handler: match.handler,
-        method: match.handler.method,
-        route: match.handler.route,
-        decorators: match.handler.decorators,
-        middleware: match.handler.middleware,
-        version: match.handler.middleware,
-        location: match.handler.location,
-        name: match.handler.name,
-        params: match.params
-      }
       context.params = match.params
+      context.handler = match.handler
 
       return next(context)
     }
@@ -641,26 +637,22 @@ function route (handlers = {}) {
 }
 
 function handler (context) {
-  if (!context._routed.handler) {
-    throw new NoMatchError(context.request.method, context.url.pathname)
-  }
-
   // {% if honeycomb %}
   let span = null
   if (process.env.HONEYCOMBIO_WRITE_KEY) {
     span = beeline.startSpan({
-      name: `handler: ${context._routed.name}`,
-      'handler.name': context._routed.name,
-      'handler.method': String(context._routed.method),
-      'handler.route': context._routed.route,
-      'handler.version': context._routed.version || '*',
-      'handler.decorators': String(context._routed.decorators)
+      name: `handler: ${context.handler.name}`,
+      'handler.name': context.handler.name,
+      'handler.method': String(context.handler.method),
+      'handler.route': context.handler.route,
+      'handler.version': context.handler.version || '*',
+      'handler.decorators': String(context.handler.decorators)
     })
   }
 
   try {
     // {% endif %}
-    return context._routed.handler(context, context._routed.params, {}, null)
+    return context.handler(context, context.params, {}, null)
     // {% if honeycomb %}
   } finally {
     if (process.env.HONEYCOMBIO_WRITE_KEY) {
@@ -847,10 +839,10 @@ function template ({
               <td class="tr white-80 v-top pr2">Request URL</td>
               <td><code>{{ context.url }}</code></td>
             </tr>
-            {% if context._routed.route %}
+            {% if context.handler.route %}
             <tr>
               <td class="tr white-80 v-top pr2">Handler</td>
-              <td><a class="link underline washed-blue dim" href="{{ context._routed.location }}"><code>{{ context._routed.name }}</code></a>, mounted at <code>{{ context._routed.method }} {{ context._routed.route }}</code></td>
+              <td><a class="link underline washed-blue dim" href="{{ context.handler.location }}"><code>{{ context.handler.name }}</code></a>, mounted at <code>{{ context.handler.method }} {{ context.handler.route }}</code></td>
             </tr>
             {% endif %}
             <tr>
@@ -871,7 +863,7 @@ function template ({
             </tr>
             <tr>
               <td class="tr white-80 v-top pr2">Handler Version</td>
-              <td><code>{{ context._routed.version|default("*") }}</code></td>
+              <td><code>{{ context.handler.version|default("*") }}</code></td>
             </tr>
             <tr>
               <td class="tr white-80 v-top pr2">Application Middleware</td>
@@ -888,9 +880,9 @@ function template ({
             <tr>
               <td class="tr white-80 v-top pr2">Handler Middleware</td>
               <td>
-                {% if context._routed.middleware %}
+                {% if context.handler.middleware %}
                 <ol class="mv0 ph0" style="list-style-position:inside">
-                  {% for middleware in context._routed.middleware %}
+                  {% for middleware in context.handler.middleware %}
                     <li><code>{{ middleware }}</code></li>
                   {% else %}
                     <li class="list">No handler-specific middleware installed.</li>
@@ -1365,7 +1357,7 @@ function esbuild({
         return response
       }
 
-      const entry = entries.get(context._routed.handler)
+      const entry = entries.get(context.handler)
       if (!entry) {
         return response
       }
@@ -1414,7 +1406,7 @@ function esbuild({
         return response
       }
 
-      const entry = entries.get(context._routed.handler)
+      const entry = entries.get(context.handler)
       if (!entry) {
         return response
       }
@@ -2170,20 +2162,16 @@ function trace ({
           'response.status_code': String(response.statusCode)
         })
 
-        if (context._routed) {
-          beeline.addContext({
-            'request.route': context._routed.route,
-            'request.method': context._routed.method,
-            'request.decorators': context._routed.decorators,
-            'request.version': context._routed.version
-          })
-          if (context._routed.params) {
-            const params = Object.entries(context._routed.params).map(([key, value]) => {
-              return [`request.param.${key}`, value]
-            })
-            beeline.addContext(Object.fromEntries(params))
-          }
-        }
+        beeline.addContext({
+          'request.route': context.handler.route,
+          'request.method': context.handler.method,
+          'request.version': context.handler.version
+        })
+
+        const params = Object.entries(context.params).map(([key, value]) => {
+          return [`request.param.${key}`, value]
+        })
+        beeline.addContext(Object.fromEntries(params))
 
         beeline.finishTrace(trace)
       })
