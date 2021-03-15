@@ -325,7 +325,7 @@ class NoMatchError extends Error {
         key,
         location,
         link,
-        method,
+        method: handler.method || method || 'GET',
         route,
         version,
         middleware,
@@ -623,7 +623,7 @@ function route (handlers = {}) {
 
         Object.assign(handler, {
           ...rest,
-          method,
+          method: handler.method || method || 'GET',
           version,
           route,
           location,

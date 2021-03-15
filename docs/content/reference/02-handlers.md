@@ -11,6 +11,191 @@ can learn more about handlers in the [concepts] document.
 
 [concepts]: @/concepts/01-handlers.md
 
+## Handler Properties
+
+### `bodyParsers`
+
+{{ changelog(version = "0.5.0") }}
+
+A list of [body parsers](@/concepts/04-accepting-input.md) to call when
+`context.body` is accessed. Replaces the app-attached body parsers for the
+any request routed to the handler, including in middleware that executes
+before the handler.
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { myHandler }
+const { body } = require('./boltzmann')
+const yaml = require('yaml')
+
+myHandler.route = 'POST /'
+myHandler.body = [
+  body.json,
+  yamlParser // handle yaml!
+]
+async function myHandler (context) {
+  await context.body
+}
+
+function yamlParser (next) {
+  return async request => {
+    if (
+      request.contentType.type === 'application' &&
+      request.contentType.subtype === 'yaml'
+    ) {
+      const chunks = []
+      for await (const chunk of request) {
+        chunks.push(chunk)
+      }
+
+      return yaml.parse(String(Buffer.concat(chunks)))
+  }
+}
+```
+
+### `decorators`
+
+{% changelog(version = "0.0.0") %}
+- **Changed in 0.1.2:** Deprecated in favor of handler-attached middleware.
+{% end %}
+
+**Deprecated.** Use [`middleware`](#middleware) instead.
+
+Decorators were the initial version of handler-attached middleware. They were
+deprecated because they conflict with a [language-level feature] of the same
+name. Decorators are middleware with the arguments applied:
+
+```js
+// handlers.js
+module.exports = { decorated, middlewared }
+const { middleware } = require('./boltzmann')
+
+decorated.route = 'GET /decor'
+decorated.decorators = [
+  middleware.validate.body({
+    type: 'object',
+    properties: {
+      'greeting': { type: 'string', minLength: 3 }
+    },
+    required: 'greeting'
+  })
+]
+async function decorated (context) {
+}
+
+middlewared.route = 'GET /middle'
+middlewared.middleware = [
+  [middleware.validate.body, { // note that we provide args as an array
+    type: 'object',            // here, like we do with APP_MIDDLEWARE.
+    properties: {
+      'greeting': { type: 'string', minLength: 3 }
+    },
+    required: 'greeting'
+  }]
+]
+async function middlewared (context) {
+}
+```
+
+[language-level feature]: https://github.com/tc39/proposal-decorators
+
+### `method`
+
+{{ changelog(version = "0.0.0") }}
+
+A string or array of strings representing the HTTP verbs that route to this
+handler. In addition to the well-known HTTP verbs, Boltzmann treats `*` as "any
+HTTP verb is allowed." Overrides the method from the `.route = 'VERB /route'`
+shorthand.
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { multimethod, any, shorthand }
+
+multimethod.route = '/foo'
+multimethod.method = ['GET', 'POST']
+async function multimethod (context) {
+}
+
+any.route = '/foo'
+any.method = '*'
+async function any (context) {
+}
+
+// shorthand for ".method = 'PATCH', .route = '/foo'"
+shorthand.route = 'PATCH /foo'
+async function shorthand (context) {
+}
+```
+
+### `middleware`
+
+{{ changelog(version = "0.1.2") }}
+
+An array of middleware functions or tuples of middleware functions and
+arguments to be applied when executing the handler. See the [middleware
+concept doc] for more, particularly the section on [attaching middleware].
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { handler }
+const { middleware } = require('./boltzmann')
+
+handler.route = 'GET /'
+handler.middleware = [
+  middleware.session,
+  [middleware.applyXFO, 'DENY']
+]
+async function handler (context) {
+}
+```
+
+[middleware concept doc]: @/concepts/02-middleware.md
+[attaching middleware]: @/concepts/02-middleware.md#attaching-configuring-middleware
+
+### `route`
+
+{{ changelog(version = "0.0.0") }}
+
+A string representing the route Boltzmann should mount the handler at using
+[`find-my-way`]. `.route` may include an HTTP verb (e.g., `GET /`) as a
+shorthand. See [routing] for an overview of how to use this property.
+
+The route string may include the following parameter types:
+
+- `:foo` - 
+- `:regex(^.*$)`
+- `*`
+
+To escape a colon in the route, double it. E.g., `/web/::foo` would match
+a request to `/web/:foo`.
+
+[routing]: @/concepts/01-handlers.md#routing
+[`find-my-way`]: https://www.npmjs.org/find-my-way
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { handler }
+const { middleware } = require('./boltzmann')
+
+handler.route = 'GET /greet/:who'
+async function handler (context) {
+  return `hello ${context.params.who}`
+}
+```
+
+### `version`
+
+{{ changelog(version = "0.0.0") }}
+
 ## Context
 
 ### `accepts`
@@ -124,6 +309,16 @@ async function login(context) {
   })
 }
 ```
+
+### `handler`
+
+{{ changelog(version = "0.5.0") }}
+
+The handler function to be called once all app-attached middleware has
+executed. If no route was matched, this property will refer to
+`Context.prototype.handler`, which returns a `NoMatchError` with a `404 Not
+Found` status code. Any middleware attached to the handler will be applied
+to the function & all handler-attached properties will be normalized.
 
 ### `headers`
 
