@@ -1,5 +1,6 @@
 +++
 title="Environment variables"
+slug="environment-variables"
 weight=5
 +++
 

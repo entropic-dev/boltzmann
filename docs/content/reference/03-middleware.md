@@ -21,7 +21,7 @@ The `applyXFO` middleware adds an
 to responses. It accepts one configuration value, the value of the header to set. This value must
 be one of `SAMEORIGIN` or `DENY`.
 
-#### Example
+**Example usage:**
 
 ```javascript
 'use strict'
@@ -54,7 +54,7 @@ module.exports = {
 The `handleCORS` middleware is always available to be attached. It configures headers to
 control [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS), or CORS.
 
-#### Arguments
+**Arguments:**
 
 -   `origins`: the origins that are permitted to request resources; sent in responses inn the
     `Access-Control-Allow-Origin` header value
@@ -63,7 +63,7 @@ control [Cross-Origin Resource Sharing](https://developer.mozilla.org/en-US/docs
 -   `headers`: the custom headers the server will allow; sent in in responses in the
     `Access-Control-Allow-Headers` header value
 
-#### Example
+**Example Usage:**
 
 ```javascript
 const boltzmann = require('./boltzmann')
@@ -84,7 +84,7 @@ module.exports = {
 
 ### `oauth`
 
-_Added in 0.2.0_.
+{{ changelog(version = "0.2.0") }}
 
 This feature implements support for using [OAuth 2.0](https://oauth.net/2/) to authenticate a
 user with an external service provider, such as Google or Auth0. Enabling the feature provides
@@ -95,7 +95,7 @@ four middlewares:
 -   `handleOAuthLogout()`: Handles logging out an oauth-authenticated user. Unsets the key `userKey` in the user's session.
 -   `oauth()`: This automatically attaches the above three middleware with identical config.
 
-#### Arguments
+**Arguments:**
 
 -   `domain`: **Required** either in the config object or in the env var `OAUTH_DOMAIN`. The
      fully-qualified domain name for the service providing authentication. For example,
@@ -138,7 +138,7 @@ module.exports = {
 };
 ```
 
-#### Advanced configuration
+**Advanced configuration:**
 
 If you have a more complex setup, the individual middlewares can be configured differently.
 In each case, if you do not provide an optional configuration field, the default is determined
@@ -189,13 +189,13 @@ as documented above.
 
 ### `session`
 
-_Added in 0.1.4_.
+{{ changelog(version = "0.1.4") }}
 
 You can import session middleware with `require('./boltzmann').middleware.session`. The session
 middleware provides [HTTP session support] using sealed http-only [cookies]. You can read more about
 Boltzmann's session support in the ["storage" chapter].
 
-#### Arguments
+**Arguments:**
 
 -   `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
     from `process.env.SESSION_SECRET`.
@@ -211,7 +211,7 @@ Boltzmann's session support in the ["storage" chapter].
 -   `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
 -   `cookieOptions`: An object containing options passed to the [`cookie`] package when serializing a session id.
 
-#### Examples
+**Example Usage:**
 
 ```javascript
 const { middleware } = require('./boltzmann')
@@ -287,7 +287,7 @@ The `template` middleware is available if you have enabled the templating featur
 templates from handlers. See the [website features overview](@/concepts/03-websites.md) for a
 description of how to use templates to build websites and the development conveniences provided.
 
-#### Arguments
+**Arguments:**
 
 -   `paths`: an array of string paths where template files are looked up; defaults to `./templates`, a
     single directory relative to the application root.
@@ -310,11 +310,11 @@ The `template` middleware is available if you have enabled the templating featur
 `--templates=on`. It allows you to add extra data to every context value sent to template
 rendering.
 
-#### Arguments
+**Arguments:**
 
 -   `extraContext`: An object specifying key/value pairs to add to the context. The keys are the name of the context value. The value can either be a static value or an optionally asynchronous function returning a value.
 
-#### Example
+**Example Usage:**
 
 ```javascript
 const boltzmann = require('./boltzmann')

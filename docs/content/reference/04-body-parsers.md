@@ -40,11 +40,3 @@ not satisfy `application/x-www-form-urlencoded` will be skipped.
 Examples of content types which will be parsed:
 
 - `application/x-www-form-urlencoded`
-
-## Custom Body Parsers
-
-{{ changelog(version = "0.0.0") }}
-
-- when would you use it
-- what is the type signature, what are you expected to return
-- example code (multipart example because...!)

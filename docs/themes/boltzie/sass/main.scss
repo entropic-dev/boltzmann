@@ -292,9 +292,9 @@ main {
     padding-top: 0.75rem;
     width: 16.666rem;
     position: sticky;
-    height: calc(100vh - 6.12em);
+    height: calc(100vh - 7.5em);
     overflow: scroll;
-    top: 6.12em;
+    top: 7.5em;
 
     ul {
       list-style:none;
@@ -374,7 +374,7 @@ main {
     }
 
     h1, h2, h3, h4, h5 {
-      scroll-margin-top: 4em;
+      scroll-margin-top: 6em;
     }
 
     ul, ol {

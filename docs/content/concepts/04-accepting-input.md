@@ -16,13 +16,32 @@ will know how to write custom body parsing functions!
 
 ## Accessing User Input
 
+User input comes in three forms:
+
+1. **Query or "search" parameters.** These are provided as part of the incoming
+   URL, after the `?`. Generally query parameters are used to send
+   safe-to-repeat requests, like page limits, object counts, or search facets.
+   On the otherh hand, query parameters are not suitable for sending input to
+   be used in object creation or operations that otherwise may have
+   side-effects. Query parameters are available via [`context.query`].
+2. **URL parameters.** These are also provided as part of the URL, _before_ the
+   `?`. These match up with `:named` segments in the handler's route. URL
+   parameters are generally used to select a particular resource. For example,
+   your application might have a `/users/:name` handler which would match
+   `/users/sam`; in this case the URL parameter `name` would have the value
+   `"sam"`. URL parameters are available via [`context.params`].
+3. **Body parameters.** Body parameters are created by interpreting the incoming
+   HTTP request body. 
+
+[`context.query`]: @/reference/02-handlers.md#query
+[`context.params`]: @/reference/02-handlers.md#params
+[`Context`]: @/concepts/01-handlers.md#Context
+
 ## Validating User Input
 
-## Writing Custom Body Parsers
-
-
-Boltzmann provides three validator decorators that rely on [the ajv schema validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for your route parameters, query params, and body.  <!-- more -->
-The functions are:
+Boltzmann provides three validator decorators that rely on [the ajv schema
+validator](https://github.com/epoberezkin/ajv) for you to enforce a schema for
+your route parameters, query params, and body. The functions are:
 
 - `boltzmann.decorators.body`: validate the structure of an incoming body
 - `boltzmann.decorators.query`: validate parameters in the query string
@@ -44,6 +63,8 @@ identityDetail.decorators = [
 async function identityDetail (/** @type {Context} */ context) { }
 ```
 
-The `boltzmann.decorators.params` function takes an ajv schema and generates a decorator that applies the schema to any route params supplied.
+The `boltzmann.decorators.params` function takes an ajv schema and generates a
+decorator that applies the schema to any route params supplied.
 
-TODO: body parsing.
+## Writing Custom Body Parsers
+
