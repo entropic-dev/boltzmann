@@ -169,12 +169,15 @@ shorthand. See [routing] for an overview of how to use this property.
 
 The route string may include the following parameter types:
 
-- `:foo` - 
-- `:regex(^.*$)`
-- `*`
+- `:foo` - Parametric; matching until the next non-alphanumeric character in
+  the route (`/:x-:y` matches `/hello-there`, `/:x/:y` matches `/hello/there`.)
+  The parameter will be available as a key in the `context.params` object pointing
+  at the resolved parameter value.
+- `:regex(^.*$)` - Parametric regex. The parameter name will be available as key
+  in the `context.params` object.
+- `*` - Wildcard. The parameter name will be `*`.
 
-To escape a colon in the route, double it. E.g., `/web/::foo` would match
-a request to `/web/:foo`.
+To escape a colon in the route, double it. E.g., `/web/::foo`.
 
 [routing]: @/concepts/01-handlers.md#routing
 [`find-my-way`]: https://www.npmjs.org/find-my-way
