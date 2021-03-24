@@ -1,0 +1,8 @@
+{% if not body %}
+Added in {{ version }}. 
+{% else %}
+<details>
+	<summary>Added in {{ version }}. Changelog</summary>
+	{{ body|markdown(inline=true)|safe }}	
+</details>
+{% endif %}

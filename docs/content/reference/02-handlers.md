@@ -6,11 +6,204 @@ slug="handlers"
 tags = ["reference"]
 +++
 
+This document covers all of the types and APIs pertaining to request handlers. You
+can learn more about handlers in the [concepts] document.
+
+[concepts]: @/concepts/01-handlers.md
+
+## Handler Properties
+
+### `bodyParsers`
+
+{{ changelog(version = "0.5.0") }}
+
+A list of [body parsers](@/concepts/04-accepting-input.md) to call when
+`context.body` is accessed. Replaces the app-attached body parsers for the
+any request routed to the handler, including in middleware that executes
+before the handler.
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { myHandler }
+const { body } = require('./boltzmann')
+const yaml = require('yaml')
+
+myHandler.route = 'POST /'
+myHandler.body = [
+  body.json,
+  yamlParser // handle yaml!
+]
+async function myHandler (context) {
+  await context.body
+}
+
+function yamlParser (next) {
+  return async request => {
+    if (
+      request.contentType.type === 'application' &&
+      request.contentType.subtype === 'yaml'
+    ) {
+      const chunks = []
+      for await (const chunk of request) {
+        chunks.push(chunk)
+      }
+
+      return yaml.parse(String(Buffer.concat(chunks)))
+  }
+}
+```
+
+### `decorators`
+
+{% changelog(version = "0.0.0") %}
+- **Changed in 0.1.2:** Deprecated in favor of handler-attached middleware.
+{% end %}
+
+**Deprecated.** Use [`middleware`](#middleware) instead.
+
+Decorators were the initial version of handler-attached middleware. They were
+deprecated because they conflict with a [language-level feature] of the same
+name. Decorators are middleware with the arguments applied:
+
+```js
+// handlers.js
+module.exports = { decorated, middlewared }
+const { middleware } = require('./boltzmann')
+
+decorated.route = 'GET /decor'
+decorated.decorators = [
+  middleware.validate.body({
+    type: 'object',
+    properties: {
+      'greeting': { type: 'string', minLength: 3 }
+    },
+    required: 'greeting'
+  })
+]
+async function decorated (context) {
+}
+
+middlewared.route = 'GET /middle'
+middlewared.middleware = [
+  [middleware.validate.body, { // note that we provide args as an array
+    type: 'object',            // here, like we do with APP_MIDDLEWARE.
+    properties: {
+      'greeting': { type: 'string', minLength: 3 }
+    },
+    required: 'greeting'
+  }]
+]
+async function middlewared (context) {
+}
+```
+
+[language-level feature]: https://github.com/tc39/proposal-decorators
+
+### `method`
+
+{{ changelog(version = "0.0.0") }}
+
+A string or array of strings representing the HTTP verbs that route to this
+handler. In addition to the well-known HTTP verbs, Boltzmann treats `*` as "any
+HTTP verb is allowed." Overrides the method from the `.route = 'VERB /route'`
+shorthand.
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { multimethod, any, shorthand }
+
+multimethod.route = '/foo'
+multimethod.method = ['GET', 'POST']
+async function multimethod (context) {
+}
+
+any.route = '/foo'
+any.method = '*'
+async function any (context) {
+}
+
+// shorthand for ".method = 'PATCH', .route = '/foo'"
+shorthand.route = 'PATCH /foo'
+async function shorthand (context) {
+}
+```
+
+### `middleware`
+
+{{ changelog(version = "0.1.2") }}
+
+An array of middleware functions or tuples of middleware functions and
+arguments to be applied when executing the handler. See the [middleware
+concept doc] for more, particularly the section on [attaching middleware].
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { handler }
+const { middleware } = require('./boltzmann')
+
+handler.route = 'GET /'
+handler.middleware = [
+  middleware.session,
+  [middleware.applyXFO, 'DENY']
+]
+async function handler (context) {
+}
+```
+
+[middleware concept doc]: @/concepts/02-middleware.md
+[attaching middleware]: @/concepts/02-middleware.md#attaching-configuring-middleware
+
+### `route`
+
+{{ changelog(version = "0.0.0") }}
+
+A string representing the route Boltzmann should mount the handler at using
+[`find-my-way`]. `.route` may include an HTTP verb (e.g., `GET /`) as a
+shorthand. See [routing] for an overview of how to use this property.
+
+The route string may include the following parameter types:
+
+- `:foo` - Parametric; matching until the next non-alphanumeric character in
+  the route (`/:x-:y` matches `/hello-there`, `/:x/:y` matches `/hello/there`.)
+  The parameter will be available as a key in the `context.params` object pointing
+  at the resolved parameter value.
+- `:regex(^.*$)` - Parametric regex. The parameter name will be available as key
+  in the `context.params` object.
+- `*` - Wildcard. The parameter name will be `*`.
+
+To escape a colon in the route, double it. E.g., `/web/::foo`.
+
+[routing]: @/concepts/01-handlers.md#routing
+[`find-my-way`]: https://www.npmjs.org/find-my-way
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { handler }
+const { middleware } = require('./boltzmann')
+
+handler.route = 'GET /greet/:who'
+async function handler (context) {
+  return `hello ${context.params.who}`
+}
+```
+
+### `version`
+
+{{ changelog(version = "0.0.0") }}
+
 ## Context
 
 ### `accepts`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 [Content negotiation] support for the request. Provided by the [`accepts`] package.
 This property is lazily instantiated on access.
@@ -38,7 +231,9 @@ function myHandler(context) {
 
 ### `body`
 
-_Added in 0.0.0._
+{% changelog(version = "0.0.0") %}
+- **Changed in 0.5.0:** `body` may be set by the user and the result will be retained. 
+{% end %}
 
 A promise for the parsed contents of the request body. This promise resolves to
 a JavaScript object on success or throws a `422 Unprocessable Entity` error when
@@ -59,9 +254,11 @@ async function myHandler(context) {
 }
 ```
 
+----
+
 ### `cookie`
 
-_Added in 0.1.1._
+{{ changelog(version = "0.1.1") }}
 
 A specialized [`Map`] instance allowing access to [HTTP Cookie] information.
 `.cookie` supports `.get`, `.set`, `.delete`, `.has`, and all other `Map`
@@ -116,9 +313,19 @@ async function login(context) {
 }
 ```
 
+### `handler`
+
+{{ changelog(version = "0.5.0") }}
+
+The handler function to be called once all app-attached middleware has
+executed. If no route was matched, this property will refer to
+`Context.prototype.handler`, which returns a `NoMatchError` with a `404 Not
+Found` status code. Any middleware attached to the handler will be applied
+to the function & all handler-attached properties will be normalized.
+
 ### `headers`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The HTTP [Request Headers] as a plain JavaScript object.
 
@@ -136,7 +343,7 @@ async function logout(context) {
 
 ### `host`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The hostname portion of the [`Host` request header], minus the port. Note that this
 is the `Host` header received by the Node.JS process, which may not be the same as the
@@ -154,7 +361,7 @@ async function host(context) {
 
 ### `id`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 A unique string identifier for the request for tracing purposes. The value is
 drawn from:
@@ -177,7 +384,7 @@ async function log(context) {
 
 ### `method`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The [HTTP verb] associated with the incoming request, forwarded from the underlying
 [node request] object.
@@ -195,7 +402,7 @@ async function assertion(context) {
 
 ### `params`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 `context.params` contains an object mapping URL parameter names to the resolved
 value for this request. Wildcard matches are available as `context.params['*']`.
@@ -211,7 +418,9 @@ async function parameters(context) {
 
 ### `postgresClient`
 
-_Added in 0.0.0._ **Requires the [`--postgres`] feature.**
+{{ changelog(version = "0.0.0") }}
+
+**Requires the [`--postgres`] feature.**
 
 A lazily-acquired [`Promise`] for a postgres [`Client`]. Once acquired the same
 postgres connection is re-used on every subsequent access from a given `Context`
@@ -233,7 +442,7 @@ async function parameters(context) {
 
 ### `query`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 `query` contains the URL search (or "query") parameters for the current
 request, available as a plain javascript object.
@@ -261,7 +470,9 @@ async function queries(context) {
 
 ### `redisClient`
 
-_Added in 0.0.0._ **Requires the [`--redis`] feature.**
+{{ changelog(version = "0.0.0") }}
+
+**Requires the [`--redis`] feature.**
 
 A [`handy-redis`] client attached to the context by middleware. A single client is
 created for the process and shared between request contexts.
@@ -279,7 +490,7 @@ async function redis(context) {
 
 ### `remote`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 The remote IP address of the HTTP request sender. Drawn from [`request.socket.remoteAddress`],
 falling back to `request.remoteAddress`. This value only represents the immediate connecting
@@ -297,7 +508,7 @@ async function remote(context) {
 
 ### `start`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 A `Number` representing the start of the application request processing,
 drawn from [`Date.now()`].
@@ -314,7 +525,7 @@ async function timing(context) {
 
 ### `session`
 
-_Added in 0.1.4._
+{{ changelog(version = "0.1.4") }}
 
 A [`Promise`] for a `Session` object. `Session` objects are subclasses of the built-in
 [`Map`] class. `Session` objects provide all of the built-in `Map` methods, and additionally offers:
@@ -354,7 +565,9 @@ async function logout(context) {
 
 ### `traceURL`
 
-_Added in 0.1.4._ **Requires the [`--honeycomb`] feature.**
+{{ changelog(version = "0.1.4") }}
+
+**Requires the [`--honeycomb`] feature.**
 
 A URL `string` suitable for navigating to the [Honeycomb] user interface and displaying the trace
 from the current request.
@@ -377,7 +590,7 @@ async function example(context) {
 
 ### `url`
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 A [`URL`] instance populated with the `host` header & incoming request path information.
 This attribute may be set to a `String` in order to recalculate the `url` and `query`
@@ -404,7 +617,7 @@ A complete list of symbols and transformations follows.
 
 ### `Symbol.for('headers')` {#symbol-for-headers}
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 This symbol controls the HTTP response headers sent by Boltzmann along with your
 handler's return value. It must point to an object. Boltzmann uses the object's
@@ -432,7 +645,7 @@ async function wow(context) {
 
 ### `Symbol.for('status')` {#symbol-for-status}
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 This symbol controls the HTTP response status code sent by Boltzmann along with
 your handler's return value. It must point at an integer number.
@@ -475,7 +688,9 @@ async function errored2(context) {
 
 ### `Symbol.for('template')` {#symbol-for-template}
 
-_Added in 0.1.2._ **Requires the [`--templates`] feature.**
+{{ changelog(version = "0.1.2") }}
+
+**Requires the [`--templates`] feature.**
 
 This symbol selects a template file to use to render the response as HTML. It
 must refer to a string value. The [template middleware] attempts to load a file
@@ -500,7 +715,7 @@ async function html(context) {
 
 ### `Symbol.for('threw')` {#symbol-for-threw}
 
-_Added in 0.0.0._
+{{ changelog(version = "0.0.0") }}
 
 Boltzmann automatically adds this symbol to thrown values.
 It signals that the next innermost middleware or handler threw
@@ -547,7 +762,7 @@ reflects these transformation.
 
 ### `"strings"`
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Boltzmann turns strings into [`Buffer`] instances. If no `content-type` header
 was specified, Boltzmann generates one set to `text/plain; charset=utf-8`.
@@ -577,7 +792,7 @@ async function example(context) {
 
 ### `undefined`, empty return
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Boltzmann turns empty values turned into [`204 No Content`] responses.
 They are cast into empty [`Buffer`] instances.
@@ -618,7 +833,7 @@ async function example3(context) {
 
 ### Node.JS Streams
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Handlers and middleware can return a [`Readable`] Node stream. Boltzmann does
 not resume the stream until all middleware has executed. (User-defined middleware
@@ -641,7 +856,7 @@ async function example(context) {
 
 ### JavaScript objects
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Handlers can return JavaScript objects. After all middleware executes, Boltzmann
 turns these objects into JSON automatically, then writes them to the response
@@ -683,7 +898,7 @@ async function example2(context) {
 
 #### Thrown exceptions
 
-_Added in 0.0.0_.
+{{ changelog(version = "0.0.0") }}
 
 Handlers can throw exceptions deliberately as well as accidentally. Boltzmann
 translates exceptions to http semantics and controls what data from the

@@ -71,7 +71,7 @@ let ajvStrict = null
 
 {{ EXPORTS }} async function main ({
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
-  bodyParsers = _requireOr('./body', [urlEncoded, json]),
+  bodyParsers = _requireOr('./body', [urlEncoded, json]).then(_processBodyParsers),
   handlers = _requireOr('./handlers', {}),
 } = {}) {
   [middleware, bodyParsers, handlers] = await Promise.all([
@@ -82,12 +82,8 @@ let ajvStrict = null
 
   const server = http.createServer()
 
-  const handler = await buildMiddleware(middleware, await router(handlers))
-  Context._bodyParser = bodyParsers.reduceRight((lhs, rhs) => rhs(lhs), request => {
-    throw Object.assign(new Error('Cannot parse request body'), {
-      [STATUS]: 415
-    })
-  })
+  const respond = await buildMiddleware([[route, handlers], ...middleware], handler)
+  Context._bodyParser = buildBodyParser(bodyParsers)
 
   // {% if templates %}
   let _middleware = []
@@ -114,7 +110,7 @@ let ajvStrict = null
     }
     // {% endif %}
 
-    let body = await handler(context)
+    let body = await respond(context)
 
     if (body[THREW]) {
       body = {
@@ -164,7 +160,6 @@ let ajvStrict = null
   constructor(request, response) {
     this.request = request
     this.start = Date.now()
-
     this.remote = request.socket
       ? request.socket.remoteAddress.replace('::ffff:', '')
       : request.remoteAddress
@@ -172,11 +167,12 @@ let ajvStrict = null
       : ''
     const [host, _] = request.headers['host'].split(':')
     this.host = host
+    this.params = {}
+
     this._parsedUrl = null
     this._body = null
     this._accepts = null
     this._response = response // do not touch this
-    this._routed = {}
     this.id = request.headers[TRACE_HTTP_HEADER] || request.headers['x-request-id'] || ships.random()
     this._cookie = null
     this._loadSession = async () => {
@@ -190,6 +186,10 @@ let ajvStrict = null
     this._postgresPool = null
     this._postgresConnection = null
     // {% endif %}
+  }
+
+  handler (context) {
+    throw new NoMatchError(this.request.method, this.url.pathname)
   }
 
   // {% if postgres %}
@@ -263,8 +263,14 @@ let ajvStrict = null
     if (this._body) {
       return this._body
     }
-    this._body = Promise.resolve(Context._bodyParser(this.request))
+
+    this._body = Promise.resolve(this.handler.bodyParser(this.request))
+
     return this._body
+  }
+
+  set body (v) {
+    this._body = Promise.resolve(v)
   }
 
   get accepts () {
@@ -274,8 +280,9 @@ let ajvStrict = null
     this._accepts = accepts(this.request)
     return this._accepts
   }
+
+  static _bodyParser = null
 }
-Context._bodyParser = null
 
 // - - - - - - - - - - - - - - - -
 // Routing
@@ -318,7 +325,7 @@ class NoMatchError extends Error {
         key,
         location,
         link,
-        method,
+        method: handler.method || method || 'GET',
         route,
         version,
         middleware,
@@ -375,7 +382,7 @@ async function _findESBuildEntries (source) {
 
   // XXX(CD): at the time of writing, router desugars handler properties into their canonical attributes.
   // Eventually the `routes()` function should do this, and the main function should rely on routes().
-  await router(await handlers)
+  await (routing(await handlers)(() => {}))
 
   const entries = await _findESBuildEntries(config.source)
 
@@ -454,116 +461,34 @@ async function _findESBuildEntries (source) {
   console.log()
 }
 
-async function router (handlers) {
-  const wayfinder = fmw({})
-
-  for (let [key, handler] of Object.entries(handlers)) {
-    if (typeof handler.route === 'string') {
-      let [method, ...route] = handler.route.split(' ')
-      route = route.join(' ')
-      if (route.length === 0) {
-        route = method
-        method = (handler.method || 'GET')
-      }
-      const opts = {}
-      if (handler.version) {
-        opts.version = handler.version
-      }
-
-      const { version, middleware, decorators, ...rest } = handler
-
-      let location = null
-      // {% if templates %}
-      if (isDev()) {
-        const getFunctionLocation = require('get-function-location')
-        const loc = await getFunctionLocation(handler)
-        location = `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
-      }
-      // {% endif %}
-
-      if (Array.isArray(decorators)) {
-        handler = decorators.reduce((lhs, rhs) => {
-          return [...lhs, enforceInvariants(), rhs]
-        }, []).reduceRight((lhs, rhs) => rhs(lhs), enforceInvariants()(handler))
-      }
-
-      if (Array.isArray(middleware)) {
-        handler = await buildMiddleware(middleware, handler)
-      }
-
-      Object.assign(handler, {
-        ...rest,
-        method,
-        version,
-        route,
-        location,
-        middleware: (middleware || []).map(xs => Array.isArray(xs) ? xs[0].name : xs.name),
-        decorators: (decorators || []).map(xs => xs.name),
-      })
-
-      wayfinder.on(method, route, opts, handler)
-    }
-  }
-
-  return function router (context) {
-    const { pathname } = context.url
-    const match = wayfinder.find(context.request.method, pathname, ...(
-      context.request.headers['accept-version']
-      ? [context.request.headers['accept-version']]
-      : []
-    ))
-
-    if (!match) {
-      throw new NoMatchError(context.request.method, pathname)
-    }
-
-    const {
-      method,
-      route,
-      decorators,
-      middleware,
-      version
-    } = match.handler
-
-    context._routed = {
-      handler: match.handler,
-      method,
-      route,
-      decorators,
-      middleware,
-      version,
-      location: match.handler.location,
-      name: match.handler.name,
-      params: match.params
-    }
-    context.params = match.params
-
-    // {% if honeycomb %}
-    let span = null
-    if (process.env.HONEYCOMBIO_WRITE_KEY) {
-      span = beeline.startSpan({
-        name: `handler: ${match.handler.name}`,
-        'handler.name': match.handler.name,
-        'handler.method': String(method),
-        'handler.route': route,
-        'handler.version': version || '*',
-        'handler.decorators': String(decorators)
-      })
-    }
-
-    try {
-      // {% endif %}
-      return match.handler(context, match.params, match.store, null)
-      // {% if honeycomb %}
-    } finally {
-      if (process.env.HONEYCOMBIO_WRITE_KEY) {
-        beeline.finishSpan(span)
-      }
-    }
-    // {% endif %}
-  }
+function buildBodyParser (bodyParsers) {
+  return [_attachContentType, ...bodyParsers].reduceRight((lhs, rhs) => rhs(lhs), request => {
+    throw Object.assign(new Error('Cannot parse request body'), {
+      [STATUS]: 415
+    })
+  })
 }
 
+function _attachContentType (next) {
+  return request => {
+    const [contentType, ...attrs] = (request.headers['content-type'] || 'application/octet-stream').split(';').map(xs => xs.trim())
+    const params = new Map(attrs.map(xs => xs.split('=').map(ys => ys.trim())))
+    const charset = (params.get('charset') || 'utf-8').replace(/^("(.*)")|('(.*)')$/, '$2$4').toLowerCase()
+    const [type, vndsubtype = ''] = contentType.split('/')
+    const subtypeParts = vndsubtype.split('+')
+    const subtype = subtypeParts.pop()
+
+    request.contentType = {
+      vnd: subtypeParts.join('+'),
+      type,
+      subtype,
+      charset,
+      params
+    }
+
+    return next(request)
+  }
+}
 // - - - - - - - - - - - - - - - -
 // Middleware
 // - - - - - - - - - - - - - - - -
@@ -646,6 +571,115 @@ function dev(
       return result
     }
   }
+}
+
+function route (handlers = {}) {
+  const wayfinder = fmw({})
+
+  return async next => {
+    for (let [key, handler] of Object.entries(handlers)) {
+      if (typeof handler.route === 'string') {
+        let [method, ...route] = handler.route.split(' ')
+        route = route.join(' ')
+        if (route.length === 0) {
+          route = method
+          method = (handler.method || 'GET')
+        }
+        const opts = {}
+        if (handler.version) {
+          opts.version = handler.version
+        }
+
+        const { version, middleware, decorators, bodyParsers, ...rest } = handler
+
+        let location = null
+        // {% if templates %}
+        if (isDev()) {
+          const getFunctionLocation = require('get-function-location')
+          const loc = await getFunctionLocation(handler)
+          location = `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
+        }
+        // {% endif %}
+
+        if (Array.isArray(decorators)) {
+          handler = decorators.reduce((lhs, rhs) => {
+            return [...lhs, enforceInvariants(), rhs]
+          }, []).reduceRight((lhs, rhs) => rhs(lhs), enforceInvariants()(handler))
+        }
+
+        const bodyParser = (
+          Array.isArray(bodyParsers)
+          ? buildBodyParser(bodyParsers)
+          : Context._bodyParser
+        )
+
+        if (Array.isArray(middleware)) {
+          const name = handler.name
+          handler = await buildMiddleware(middleware, handler)
+
+          // preserve the original name, please
+          Object.defineProperty(handler, 'name', { value: name })
+        }
+
+        Object.assign(handler, {
+          ...rest,
+          method: handler.method || method || 'GET',
+          version,
+          route,
+          location,
+          bodyParser,
+          middleware: (middleware || []).map(xs => Array.isArray(xs) ? xs[0].name : xs.name),
+          decorators: (decorators || []).map(xs => xs.name),
+        })
+
+        wayfinder.on(method, route, opts, handler)
+      }
+    }
+
+    return context => {
+      const { pathname } = context.url
+      const match = wayfinder.find(context.request.method, pathname, ...(
+        context.request.headers['accept-version']
+        ? [context.request.headers['accept-version']]
+        : []
+      ))
+
+      if (!match) {
+        return next(context)
+      }
+
+      context.params = match.params
+      context.handler = match.handler
+
+      return next(context)
+    }
+  }
+}
+
+function handler (context) {
+  // {% if honeycomb %}
+  let span = null
+  if (process.env.HONEYCOMBIO_WRITE_KEY) {
+    span = beeline.startSpan({
+      name: `handler: ${context.handler.name}`,
+      'handler.name': context.handler.name,
+      'handler.method': String(context.handler.method),
+      'handler.route': context.handler.route,
+      'handler.version': context.handler.version || '*',
+      'handler.decorators': String(context.handler.decorators)
+    })
+  }
+
+  try {
+    // {% endif %}
+    return context.handler(context, context.params, {}, null)
+    // {% if honeycomb %}
+  } finally {
+    if (process.env.HONEYCOMBIO_WRITE_KEY) {
+      beeline.finishSpan(span)
+    }
+  }
+  // {% endif %}
 }
 
 let isClosing = false
@@ -825,10 +859,10 @@ function template ({
               <td class="tr white-80 v-top pr2">Request URL</td>
               <td><code>{{ context.url }}</code></td>
             </tr>
-            {% if context._routed.route %}
+            {% if context.handler.route %}
             <tr>
               <td class="tr white-80 v-top pr2">Handler</td>
-              <td><a class="link underline washed-blue dim" href="{{ context._routed.location }}"><code>{{ context._routed.name }}</code></a>, mounted at <code>{{ context._routed.method }} {{ context._routed.route }}</code></td>
+              <td><a class="link underline washed-blue dim" href="{{ context.handler.location }}"><code>{{ context.handler.name }}</code></a>, mounted at <code>{{ context.handler.method }} {{ context.handler.route }}</code></td>
             </tr>
             {% endif %}
             <tr>
@@ -849,7 +883,7 @@ function template ({
             </tr>
             <tr>
               <td class="tr white-80 v-top pr2">Handler Version</td>
-              <td><code>{{ context._routed.version|default("*") }}</code></td>
+              <td><code>{{ context.handler.version|default("*") }}</code></td>
             </tr>
             <tr>
               <td class="tr white-80 v-top pr2">Application Middleware</td>
@@ -866,9 +900,9 @@ function template ({
             <tr>
               <td class="tr white-80 v-top pr2">Handler Middleware</td>
               <td>
-                {% if context._routed.middleware %}
+                {% if context.handler.middleware %}
                 <ol class="mv0 ph0" style="list-style-position:inside">
-                  {% for middleware in context._routed.middleware %}
+                  {% for middleware in context.handler.middleware %}
                     <li><code>{{ middleware }}</code></li>
                   {% else %}
                     <li class="list">No handler-specific middleware installed.</li>
@@ -1343,7 +1377,7 @@ function esbuild({
         return response
       }
 
-      const entry = entries.get(context._routed.handler)
+      const entry = entries.get(context.handler)
       if (!entry) {
         return response
       }
@@ -1392,7 +1426,7 @@ function esbuild({
         return response
       }
 
-      const entry = entries.get(context._routed.handler)
+      const entry = entries.get(context.handler)
       if (!entry) {
         return response
       }
@@ -2064,7 +2098,11 @@ function log ({
 
 function json (next) {
   return async request => {
-    if (String(request.headers['content-type']).split(';')[0].trim() === 'application/json') {
+    if (
+      request.contentType.type === 'application' &&
+      request.contentType.subtype === 'json' &&
+      request.contentType.charset === 'utf-8'
+    ) {
       const buf = await _collect(request)
       try {
         return JSON.parse(String(buf))
@@ -2087,7 +2125,11 @@ function json (next) {
 
 function urlEncoded (next) {
   return async request => {
-    if (request.headers['content-type'] !== 'application/x-www-form-urlencoded') {
+    if (
+      request.contentType.type !== 'application' ||
+      request.contentType.subtype !== 'x-www-form-urlencoded' ||
+      request.contentType.charset !== 'utf-8'
+    ) {
       return next(request)
     }
 
@@ -2148,20 +2190,16 @@ function trace ({
           'response.status_code': String(response.statusCode)
         })
 
-        if (context._routed) {
-          beeline.addContext({
-            'request.route': context._routed.route,
-            'request.method': context._routed.method,
-            'request.decorators': context._routed.decorators,
-            'request.version': context._routed.version
-          })
-          if (context._routed.params) {
-            const params = Object.entries(context._routed.params).map(([key, value]) => {
-              return [`request.param.${key}`, value]
-            })
-            beeline.addContext(Object.fromEntries(params))
-          }
-        }
+        beeline.addContext({
+          'request.route': context.handler.route,
+          'request.method': context.handler.method,
+          'request.version': context.handler.version
+        })
+
+        const params = Object.entries(context.params).map(([key, value]) => {
+          return [`request.param.${key}`, value]
+        })
+        beeline.addContext(Object.fromEntries(params))
 
         beeline.finishTrace(trace)
       })
@@ -2677,6 +2715,10 @@ async function _collect (request) {
 
 function _processMiddleware (middleware) {
   return [].concat(Array.isArray(middleware) ? middleware : middleware.APP_MIDDLEWARE)
+}
+
+function _processBodyParsers (parsers) {
+  return [].concat(Array.isArray(parsers) ? parsers : parsers.APP_BODY_PARSERS)
 }
 
 // {% if esm %}
@@ -3318,6 +3360,86 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
     assert.same(JSON.parse(response.payload), {hello: 'world'})
   })
 
+  test('json body: accepts vendor json extensions', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [json],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/vnd.npm.corgi-v1+json'
+      },
+      payload: JSON.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('json body: accepts utf-8 json', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [json],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/json; charset=utf-8'
+      },
+      payload: JSON.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('json body: skips any other json encoding', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [json],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/json; charset=wtf-8'
+      },
+      payload: JSON.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 415)
+  })
+
   test('urlEncoded body: returns 415 if request is not application/x-www-form-urlencoded', async assert => {
     const handler = async context => {
       await context.body
@@ -3366,6 +3488,112 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
 
     assert.equals(response.statusCode, 200)
     assert.same(JSON.parse(response.payload), {hello: 'world'})
+  })
+
+  test('body: custom body parsers on handler are used', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    handler.bodyParsers = [next => request => 'flooble']
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(String(response.payload), 'flooble')
+  })
+
+  test('body: custom body parsers on handler do not effect other handlers', async assert => {
+    const handler = async context => {
+      return await context.body
+    }
+    handler.bodyParsers = [next => request => 'flooble']
+    handler.route = 'GET /'
+    const otherHandler = async context => {
+      return await context.body
+    }
+    otherHandler.route = 'GET /other'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+        otherHandler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(String(response.payload), 'flooble')
+
+    const anotherResponse = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/other',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(anotherResponse.statusCode, 200)
+    assert.same(JSON.parse(anotherResponse.payload), { hello: 'world' })
+  })
+
+  test('body: context.body can be set explicitly', async assert => {
+    const handler = async context => {
+      context.body = 'three ducks'
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const otherHandler = async context => {
+      return await context.body
+    }
+    otherHandler.route = 'GET /other'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+        otherHandler
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      payload: querystring.stringify({hello: 'world'})
+    })
+
+    assert.equals(response.statusCode, 200)
+    assert.same(String(response.payload), 'three ducks') // in THIS ECONOMY?!
   })
 
   test('jwt ignores requests without authorization header', async assert => {

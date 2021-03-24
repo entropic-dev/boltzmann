@@ -86,7 +86,7 @@ other features are disabled by default.
 
 #### `--all`
 
-_Added in version `0.1.3`._
+{{ changelog(version="0.1.3") }}
 
 Enables all features, except for `esm`.
 
@@ -98,7 +98,7 @@ $ npx boltzmann-cli --all path/to/my/project
 
 #### `--website`
 
-_Added in version `0.1.3`._
+{{ changelog(version="0.1.3") }}
 
 Enable website feature set (templates, csrf.)
 
@@ -110,7 +110,7 @@ $ npx boltzmann-cli --website path/to/my/project
 
 #### `--selftest`
 
-_Added in version `0.0.0`._
+{{ changelog(version="0.0.0") }}
 
 Scaffold Boltzmann in "self test" mode, to test the framework itself while developing it.
 
@@ -123,7 +123,7 @@ $ tap path/to/my/project/test.js
 
 #### `--docs`
 
-_Added in version 0.1.3._
+{{ changelog(version="0.1.3") }}
 
 Open the documentation for the current version of Boltzmann in a web browser. Requires an
 internet connection.
@@ -136,7 +136,7 @@ $ npx boltzmann-cli --docs
 
 #### `--force`
 
-_Added in version `0.0.0`._
+{{ changelog(version="0.0.0") }}
 
 Update a git-repo destination even if there are changes.
 
@@ -153,14 +153,14 @@ $ npx boltzmann-cli --force . # if run without --force, boltzmann would
 ```
 #### `--quiet`
 
-_Added in version `0.3.0`._
+{{ changelog(version="0.3.0") }}
 
 Suppress all output except errors. An alias of `--quiet`.
 
 
 #### `--silent`
 
-_Added in version `0.0.0`._
+{{ changelog(version="0.0.0") }}
 
 Suppress all output except errors.
 
@@ -172,7 +172,7 @@ $ npx boltzmann-cli --silent .
 
 #### `--verbose`, `-v`, `-vv`
 
-_Added in version `0.0.0`._
+{{ changelog(version="0.0.0") }}
 
 Log even more. Pass -v or -vv to increase verbosity.
 
@@ -185,7 +185,7 @@ $ npx boltzmann-cli -vv .
 
 #### `--version`
 
-_Added in version `0.0.0`._
+{{ changelog(version="0.0.0") }}
 
 Print version information.
 
@@ -200,7 +200,7 @@ $ npx boltzmann-cli --version
 
 #### `--csrf`
 
-_Added in version 0.1.1._
+{{ changelog(version="0.1.1") }}
 
 Enable [Cross Site Request Forgery (CSRF)] protection middleware. Requires manual
 installation in [application-attached middleware] (`APP_MIDDLEWARE` in `middleware.js`.)
@@ -228,7 +228,7 @@ exports.APP_MIDDLEWARE = [
 
 #### `--esm`
 
-_Added in version 0.1.3._ Requires Node 14.
+{{ changelog(version="0.1.3") }} Requires Node 14.
 
 Scaffold in [ECMAScript Module (ESM)] mode, enabling use of [`import`/`export`
 syntax]. Turning this flag on will set the `package.json` `"type"` field to
@@ -272,7 +272,7 @@ $ npx boltzmann-cli . --honeycomb=on
 
 #### `--jwt`
 
-_Added in version 0.1.1._
+{{ changelog(version="0.1.1") }}
 
 Enable [JSON web token (JWT)] middleware; defaults to on.  Requires manual
 installation in [application-attached middleware] (`APP_MIDDLEWARE` in
@@ -302,7 +302,7 @@ exports.APP_MIDDLEWARE = [
 
 #### `--ping`
 
-_Added in version 0.0.0._
+{{ changelog(version="0.0.0") }}
 
 Enable `/monitor/ping` liveness endpoint; defaults to on. This is implemented
 as automatically-installed middleware that is executed before any application
@@ -321,7 +321,7 @@ FP/(D)ROU Refreshingly Unconcerned With The Vulgar Exigencies Of Veracity
 
 #### `--postgres`
 
-_Added in version 0.0.0._
+{{ changelog(version="0.0.0") }}
 
 Enable postgres middleware, which will be automatically installed as
 application-attached middleware. This flag adds an automatic reachability check
@@ -338,7 +338,7 @@ $ npx boltzmann-cli . --postgres
 
 #### `--redis`
 
-_Added in version 0.0.0._
+{{ changelog(version="0.0.0") }}
 
 Enable redis middleware, which will be automatically installed as
 application-attached middleware. This flag adds an automatic reachability check
@@ -373,7 +373,7 @@ $ npx boltzmann-cli . --status=off # turn status off
 
 #### `--templates`
 
-_Added in version 0.1.2._
+{{ changelog(version="0.1.2") }}
 
 Makes [Nunjucks] template middleware available. This is enabled as part of the
 [`--website`] flag. This middleware must be manually installed. For more on the
@@ -400,7 +400,7 @@ exports.APP_MIDDLEWARE = [
 
 #### `--typescript`
 
-_Added in version 0.3.0._
+{{ changelog(version="0.3.0") }}
 
 Scaffolds a Boltzmann service in [TypeScript](https://www.typescriptlang.org), with
 definition files, NPM run scripts, and example code set up to support developing
