@@ -655,7 +655,7 @@ function route (handlers = {}) {
   }
 }
 
-function handler (context) {
+async function handler (context) {
   // {% if honeycomb %}
   let span = null
   if (process.env.HONEYCOMBIO_WRITE_KEY) {
@@ -671,7 +671,7 @@ function handler (context) {
 
   try {
     // {% endif %}
-    return context.handler(context, context.params, {}, null)
+    return await context.handler(context, context.params, {}, null)
     // {% if honeycomb %}
   } finally {
     if (process.env.HONEYCOMBIO_WRITE_KEY) {
