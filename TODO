@@ -1,5 +1,50 @@
 ## TODO
 
+### 2021-04-18 TYPESCRIPT EDITION
+
+Typescript update: turn all of boltzmann into typescript. This lets us maintain
+a single version of all files, then compile the typescript out for javascript
+mode. Typescript also gives us a high-level pass on our compiled boltzmann.js
+file for any given set of flags -- if it passes typescript it'll (probably)
+work.
+
+- [ ] add "setup for local boltzmann dev"
+    - this should allow testing files with `tap` + typescript
+    - to do this, we want to grab the package.json that would be generated for a new
+      typescript project along with tsconfig & typings and put them in cwd
+    - then `npm i`
+- [ ] implement hayes' middleware validation typedefs
+- [ ] add tests to ALL FILES / make sure all features are working as expected (again, write tests!)
+- [ ] render {% changelog %} correctly in docstrings
+- [ ] merge project files (no more ts and js variants; just treat it as one variant)
+- [x] note missing defs from boltzmann.d.ts
+    - [x] "Next" is now "Handler"
+    - [x] "Response" does not exist / needs defined + exported I think
+- [x] fixup docstrings -- they currently don't show in editor!
+- [x] fill in `HACKING.md`
+- [x] add test for "only production deps are installed" and make sure boltzmann still runs!
+- [x] ensure devdeps are only required in dev mode
+- [x] change "selftest" setup
+    - "selftest" is kind of a misnomer now: there's "test in situ" – i.e., before
+      concatenating a `boltzmann.ts` together – and "test compiled", which are integration
+      tests against a compiled `boltzmann.ts`
+- [x] post-process typescript to get to javascript mode
+    - suggestion from ceej: move exports up to selftest blocks so we can transpile templates
+    - transpiling templates:
+        - ts is terrible at preserving comments, so "// {% if selftest %}" is now "void `{% if selftest %}`"
+        - also it really wants to control import syntax
+            - target module: ES2020, not CommonJS, then we'll rewrite the result (!!)
+            - also "grep -v 'void ``'"
+            - and turn off source maps
+        - drops endifs from:
+            - entrypoint
+            - prelude
+                - solution: break out export { } block
+            - status
+- [x] stretch goal: make it possible to run tap against the JS transpilation
+- [x] add JS transpilation step to `build.rs`
+- [x] docstrings -- pull from reference docs (somehow)
+
 ### 2020-12-10
 
 - [ ] typescript support

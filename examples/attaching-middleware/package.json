@@ -7,23 +7,29 @@
   "name": "attaching-middleware",
   "version": "1.0.0",
   "dependencies": {
+    "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
     "accepts": "^1.3.7",
-    "ajv": "^6.12.2",
+    "ajv": "^8.0.5",
+    "ajv-formats": "^2.0.2",
+    "ajv-keywords": "^5.0.0",
     "are-we-dev": "^1.0.0",
     "bole": "^4.0.0",
     "cookie": "^0.4.1",
     "culture-ships": "^1.0.0",
     "dotenv": "^8.2.0",
-    "find-my-way": "^3.0.4",
+    "find-my-way": "^4.1.0",
     "uuid": "^8.3.0"
   },
   "devDependencies": {
     "@hapi/shot": "^5.0.4",
-    "@typescript-eslint/eslint-plugin": "^3.1.0",
-    "@typescript-eslint/parser": "^3.1.0",
+    "@types/uuid": "^8.3.0",
+    "@typescript-eslint/eslint-plugin": "^4.11.0",
+    "@typescript-eslint/parser": "^4.11.0",
     "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
+    "c8": "^7.7.1",
+    "cross-env": "^7.0.3",
     "eslint": "^7.1.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.3",
@@ -31,21 +37,20 @@
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
     "supports-hyperlinks": "^2.1.0",
-    "tap": "^14.10.7"
+    "tap": "^15.0.2"
   },
-  "type": null,
   "scripts": {
+    "boltzmann:docs": "npx boltzmann-cli --docs",
+    "boltzmann:esbuild": null,
+    "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
+    "boltzmann:upgrade": "npx boltzmann-cli",
     "lint": "eslint .",
     "posttest": "npm run lint",
     "start": "./boltzmann.js",
-    "test": "tap test",
-    "boltzmann:upgrade": "npx boltzmann-cli",
-    "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
-    "boltzmann:esbuild": null,
-    "boltzmann:docs": "npx boltzmann-cli docs"
+    "test": "c8 tap --no-cov tests"
   },
   "boltzmann": {
-    "version": "0.2.0-alpha1",
+    "version": "0.4.3",
     "githubci": false,
     "ping": true,
     "status": true

@@ -1,0 +1,61 @@
+#!/usr/bin/env node
+{% if not selftest %}/* eslint-disable */{% endif %}
+{% if not selftest %}/* c8 ignore file */{% endif %}
+{% include "boltzmann/core/prelude.ts" %}
+
+{# core functions (middleware, body parsing, and routing support) #}
+
+{% include "boltzmann/core/body.ts" %}
+{% include "boltzmann/core/middleware.ts" %}
+{% include "boltzmann/core/routes.ts" %}
+
+{% include "boltzmann/data/context.ts" %}
+{% include "boltzmann/data/cookie.ts" %}
+{% include "boltzmann/data/session.ts" %}
+{% include "boltzmann/data/errors.ts" %}
+
+{# bin scripts (printing routes, running the http server, building assets) #}
+
+{% include "boltzmann/bin/runserver.ts" %}
+{% if esbuild %}{% include "boltzmann/bin/esbuild.ts" %}{% endif %}
+{% include "boltzmann/bin/routes.ts" %}
+
+{# body parsers #}
+
+{% include "boltzmann/body/json.ts" %}
+{% include "boltzmann/body/urlencoded.ts" %}
+
+{# middleware (wow, we have a lot of middleware) #}
+
+{% include "boltzmann/middleware/apply-headers.ts" %}
+{% include "boltzmann/middleware/dev.ts" %}
+{% if csrf %}{% include "boltzmann/middleware/csrf.ts" %}{% endif %}
+{% include "boltzmann/middleware/cors.ts" %}
+{% include "boltzmann/middleware/enforce-invariants.ts" %}
+{% if esbuild %}{% include "boltzmann/middleware/esbuild.ts" %}{% endif %}
+{% if honeycomb %}{% include "boltzmann/middleware/honeycomb.ts" %}{% endif %}
+{% if jwt %}{% include "boltzmann/middleware/jwt.ts" %}{% endif %}
+{% if livereload %}{% include "boltzmann/middleware/livereload.ts" %}{% endif %}
+{% include "boltzmann/middleware/log.ts" %}
+{% if oauth %}{% include "boltzmann/middleware/oauth.ts" %}{% endif %}
+{% if ping %}{% include "boltzmann/middleware/ping.ts" %}{% endif %}
+{% if postgres %}{% include "boltzmann/middleware/postgres.ts" %}{% endif %}
+{% if redis %}{% include "boltzmann/middleware/redis.ts" %}{% endif %}
+{% include "boltzmann/middleware/route.ts" %}
+{% include "boltzmann/middleware/session.ts" %}
+{% if staticfiles or esbuild %}{% include "boltzmann/middleware/staticfiles.ts" %}{% endif %}
+{% if staticfiles or esbuild or templates %}{% include "boltzmann/middleware/template-context.ts" %}{% endif %}
+{% if status %}{% include "boltzmann/middleware/status.ts" %}{% endif %}
+{% if templates %}{% include "boltzmann/middleware/template.ts" %}{% endif %}
+{% include "boltzmann/middleware/test.ts" %}
+{% include "boltzmann/middleware/vary.ts" %}
+{% include "boltzmann/middleware/validators.ts" %}
+
+{# utilities for loading body.ts/middleware.ts #}
+{% include "boltzmann/core/utils/index.ts" %}
+{% include "boltzmann/core/exports.ts" %}
+
+
+{% if not selftest %}
+  {% include "boltzmann/core/entrypoint.ts" %}
+{% endif %}

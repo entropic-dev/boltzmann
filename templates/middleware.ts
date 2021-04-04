@@ -1,11 +1,11 @@
-import { {%- if templates or staticfiles or esbuild or oauth %} middleware,{% endif %} Context, Next, Response } from './boltzmann.js'
+import { {%- if templates or staticfiles or esbuild or oauth %} middleware,{% endif %} Context, Handler, MiddlewareConfig } from './boltzmann'
 
 // All Boltzmann middleware looks like this.
 // Middleware can be attached to either the app or individual routes.
 export function setupMiddlewareFunc(/* your config */) {
   // startup configuration goes here
-  return function createMiddlewareFunc(next: Next) {
-    return async function inner(context: Context): Promise<Response> {
+  return function createMiddlewareFunc(next: Handler) {
+    return async function inner(context: Context) {
       // do things like make objects to put on the context
       // then give following middlewares a chance
       // route handler runs last
@@ -20,8 +20,8 @@ export function setupMiddlewareFunc(/* your config */) {
 
 // Here's a more compactly-defined middleware.
 export function routeMiddlewareFunc(/* your config */) {
-  return (next: Next) => {
-    return (context: Context): Promise<Response> => {
+  return (next: Handler) => {
+    return (context: Context) => {
       return next(context)
     }
   }

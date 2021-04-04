@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "ES2020",
+    "outDir": "templates/boltzmann-js",
+    "sourceMap": false
+  },
+  "extends": "./tsconfig.json"
+}

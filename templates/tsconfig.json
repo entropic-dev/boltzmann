@@ -5,8 +5,11 @@
     "noImplicitAny": true,
     "outDir": "target/release",
     "allowJs": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "moduleResolution": "node",
+    "typeRoots": [ "types", "node_modules/@types"]
   },
   "extends": "@tsconfig/node14/tsconfig.json",
-  "include": ["./*.ts", "./**/*.ts", "boltzmann.js"]
+  "include": ["./*.ts", "./**/*.ts", "types/*.ts"]
 }

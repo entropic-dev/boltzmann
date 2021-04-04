@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "CommonJS",
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "outDir": "target/release",
+    "allowJs": true,
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "importHelpers": false,
+    "typeRoots": [ "types", "node_modules/@types"]
+  },
+  "extends": "@tsconfig/node14/tsconfig.json",
+  "include": ["templates/boltzmann/**/*.ts", "types/*.ts"]
+}

@@ -6,6 +6,13 @@ version = "0.4.3"
 documentation = "https://www.boltzmann.dev/en/docs/latest/"
 description = "A scaffolder for Boltzmann.js http service projects."
 license = "Apache-2.0"
+include = ["src/**/*", "docs/contents/reference/*.md", "templates/**/*"]
+
+[package.metadata.release]
+sign-commit = true
+sign-tag = true
+exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**", "examples/**"]
+no-dev-version = true
 
 [dependencies]
 anyhow = "1.0.32"
@@ -22,13 +29,11 @@ serde_json = "1.0.57"
 structopt = "0.3.17"
 subprocess = "0.2"
 tera = "1.6"
+pulldown-cmark = "0.8.0"
+slug = "0.1.4"
+pulldown-cmark-to-cmark = "6.0.0"
 
 [dependencies.serde]
 features = ["derive"]
 version = "1.0.115"
 
-[package.metadata.release]
-sign-commit = true
-sign-tag = true
-exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**", "examples/**"]
-no-dev-version = true

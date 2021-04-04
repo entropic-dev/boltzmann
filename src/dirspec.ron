@@ -1,21 +1,21 @@
 Dir(DirSpec(
   children: [
     ("boltzmann.js", 0o755, Template(TemplateSpec(
-      template_name: "boltzmann.js"
-    )), None),
+      template_name: "boltzmann-js/index.tera"
+    )), Some(When(
+      none_of: ["typescript"],
+    ))),
+
+    ("boltzmann.ts", 0o755, Template(TemplateSpec(
+      template_name: "boltzmann/index.tera"
+    )), Some(When(
+      all_of: ["typescript"],
+    ))),
 
     ("handlers.js", 0o644, Template(TemplateSpec(
       template_name: "handlers_cjs.js"
     )), Some(When(
-      none_of: ["esm", "typescript"],
-      if_not_present: ["handlers.js", "handlers"]
-    ))),
-
-    ("handlers.js", 0o644, Template(TemplateSpec(
-      template_name: "handlers_esm.js"
-    )), Some(When(
       none_of: ["typescript"],
-      all_of: ["esm"],
       if_not_present: ["handlers.js", "handlers"]
     ))),
 
@@ -29,15 +29,7 @@ Dir(DirSpec(
     ("middleware.js", 0o644, Template(TemplateSpec(
       template_name: "middleware_cjs.js",
     )), Some(When(
-      none_of: ["esm", "typescript"],
-      if_not_present: ["middleware.js", "middleware"]
-    ))),
-
-    ("middleware.js", 0o644, Template(TemplateSpec(
-      template_name: "middleware_esm.js",
-    )), Some(When(
       none_of: ["typescript"],
-      all_of: ["esm"],
       if_not_present: ["middleware.js", "middleware"]
     ))),
 
@@ -53,12 +45,6 @@ Dir(DirSpec(
     )), Some(When(
       all_of: ["typescript"],
       if_not_present: ["tsconfig.json"]
-    ))),
-
-    ("boltzmann.d.ts", 0o644, Template(TemplateSpec(
-      template_name: "boltzmann.d.ts",
-    )), Some(When(
-      all_of: ["typescript"],
     ))),
 
     ("nodemon.json", 0o644, Template(TemplateSpec(
@@ -93,28 +79,12 @@ Dir(DirSpec(
       template_name: "eslintrc.js"
     )), Some(When(
       if_not_present: [".eslintrc.js", ".eslintrc"],
-      none_of: ["esm"]
-    ))),
-
-    (".eslintrc.cjs", 0o644, Template(TemplateSpec(
-      template_name: "eslintrc.js"
-    )), Some(When(
-      if_not_present: [".eslintrc.js", ".eslintrc"],
-      all_of: ["esm"],
     ))),
 
     (".prettierrc.js", 0o644, Template(TemplateSpec(
       template_name: "prettierrc.js"
     )), Some(When(
       if_not_present: [".prettierrc.js", ".prettierrc" ],
-      none_of: ["esm"]
-    ))),
-
-    (".prettierrc.cjs", 0o644, Template(TemplateSpec(
-      template_name: "prettierrc.js"
-    )), Some(When(
-      if_not_present: [".prettierrc.cjs", ".prettierrc" ],
-      all_of: ["esm"]
     ))),
 
     (".github", 0o755, Dir(DirSpec(
@@ -139,25 +109,90 @@ Dir(DirSpec(
       all_of: ["selftest"],
     ))),
 
+    ("types", 0o755, Dir(DirSpec(
+        children: [
+            ("are-we-dev.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module 'are-we-dev' {
+  interface IsDev {
+    (): boolean
+  }
+
+  declare const isDev: IsDev
+  export = isDev
+}
+"#
+            )), None),
+
+            ("culture-ships.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module 'culture-ships' {
+  interface Ships {
+    ships: string[]
+    random(): string
+  }
+
+  declare const ships: Ships
+  export = ships
+}
+"#
+            )), None),
+
+            ("entropic__bole.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module '@entropic/bole' {
+  interface Bole {
+    (name: string): Bole
+    output(...config: any[]): void
+    info(...args: any[]): void
+    debug(...args: any[]): void
+    error(...args: any[]): void
+    warn(...args: any[]): void
+  }
+
+  declare const bole: Bole
+  export = bole
+}
+"#
+            )), None),
+
+            ("honeycomb-beeline.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module 'honeycomb-beeline' {
+  interface Fn {
+    (...args: any[]): any
+  }
+
+  interface Beeline {
+    (config: Record<string, unknown>): void
+    startSpan: (opts?: Record<string, unknown>) => string
+    unmarshalTraceContext(string): any
+    finishSpan: (_: string) => void
+    startTrace: (opts?: Record<string, unknown>, _?: string, _?: string, _?: string) => string
+    finishTrace: (_: string) => void
+    bindFunctionToTrace<T extends Fn>(...args: Parameters<T>): ReturnType<T>
+    addContext: (opts?: Record<string, unknown>) => void
+  }
+
+  declare const beeline: Beeline;
+  export = beeline;
+}
+"#
+            )), Some(When(all_of: ["honeycomb"]))),
+        ]
+    )), Some(When(all_of: ["typescript"]))),
+
     ("tests", 0o755, Dir(DirSpec(
         children: [
             ("00-example.js", 0o644, Template(TemplateSpec(
               template_name: "test.js",
             )), Some(When(
-              none_of: ["typescript", "esm"],
-            ))),
-
-            ("00-example.js", 0o644, Template(TemplateSpec(
-              template_name: "test_esm.js",
-            )), Some(When(
               none_of: ["typescript"],
-              all_of: ["esm"],
             ))),
 
             ("00-example.ts", 0o644, Template(TemplateSpec(
               template_name: "test.ts",
             )), Some(When(
-              none_of: ["esm"],
               all_of: ["typescript"],
             )))
         ]
