@@ -1,0 +1,56 @@
+{
+  "name": "boltzmann",
+  "version": "1.0.0",
+  "description": "![Build Boltzmann CLI](https://github.com/entropic-dev/boltzmann/workflows/Build%20Boltzmann%20CLI/badge.svg) ![Test Boltzmann CLI & framework](https://github.com/entropic-dev/boltzmann/workflows/Test%20Boltzmann%20CLI%20&%20framework/badge.svg)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "dependencies": {
+    "accepts": "^1.3.7",
+    "are-we-dev": "^1.0.0",
+    "chalk": "^3.0.0",
+    "cookie": "^0.4.1",
+    "culture-ships": "^1.0.0",
+    "find-my-way": "^2.2.1",
+    "handy-redis": "^1.6.2",
+    "honeycomb-beeline": "^1.8.3",
+    "klaw": "^3.0.0",
+    "micromatch": "^4.0.2",
+    "minimist": "^1.2.0",
+    "nunjucks": "^3.2.0",
+    "oblique-strategies": "^1.0.1",
+    "on-headers": "^1.0.2",
+    "pg": "^7.14.0",
+    "pino": "^5.13.6"
+  },
+  "devDependencies": {
+    "@tsconfig/node14": "^1.0.0",
+    "@types/accepts": "^1.3.5",
+    "@types/cookie": "^0.4.0",
+    "@typescript-eslint/eslint-plugin": "^4.21.0",
+    "@typescript-eslint/parser": "^4.21.0",
+    "eslint": "^7.23.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "prettier": "^2.2.1",
+    "tap": "^15.0.2",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.2.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entropic-dev/boltzmann.git"
+  },
+  "keywords": [],
+  "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/entropic-dev/boltzmann/issues"
+  },
+  "homepage": "https://github.com/entropic-dev/boltzmann#readme"
+}

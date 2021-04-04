@@ -88,7 +88,7 @@ other features are disabled by default.
 
 {{ changelog(version="0.1.3") }}
 
-Enables all features, except for `esm`.
+Enables all features.
 
 **Example use:**
 
@@ -224,23 +224,6 @@ const { middleware } = require('./boltzmann')
 exports.APP_MIDDLEWARE = [
   middleware.applyCSRF
 ]
-```
-
-#### `--esm`
-
-{{ changelog(version="0.1.3") }} Requires Node 14.
-
-Scaffold in [ECMAScript Module (ESM)] mode, enabling use of [`import`/`export`
-syntax]. Turning this flag on will set the `package.json` `"type"` field to
-[`"module"` mode]. This flag is experimental, but we intend to eventually make
-it the default.
-
-This option cannot be used along with the `--typescript` option.
-
-**Example use:**
-
-```shell
-$ npx boltzmann-cli . --esm=on
 ```
 
 #### `--githubci`
@@ -446,7 +429,6 @@ FLAGS:
 OPTIONS:
         --csrf <csrf>                  Enable csrf protection middleware
         --esbuild <esbuild>            Enable asset bundling via ESBuild
-        --esm <esm>                    Scaffold project using ES Modules
         --githubci <githubci>          Enable GitHub actions CI
         --honeycomb <honeycomb>        Enable tracing via Honeycomb
         --jwt <jwt>                    Enable jwt middleware
@@ -487,6 +469,3 @@ ARGS:
 [culture]: https://en.wikipedia.org/wiki/Culture_series
 [Nunjucks]: https://mozilla.github.io/nunjucks/
 ["websites"]: @/concepts/03-websites.md
-[`import`/`export` syntax]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import
-[ECMAScript Module (ESM)]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules
-[`"module"` mode]: https://nodejs.org/api/esm.html#esm_package_json_type_field

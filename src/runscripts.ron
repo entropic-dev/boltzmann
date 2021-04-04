@@ -38,7 +38,7 @@
         value: "tap tests",
         preconditions: Some(When(
             if_not_present: ["test"],
-            none_of: ["esm", "typescript", "selftest" ]
+            none_of: ["typescript", "selftest" ]
         )),
         versions: [
             VersionedScript(version: "0.1.0", value: "tap test"),
@@ -63,7 +63,6 @@
         value: "tap --no-ts --node-arg=--require=ts-node/register 'tests/**.ts'",
         preconditions: Some(When(
             if_not_present: ["test"],
-            none_of: ["esm"],
             all_of: ["typescript", "selftest"]
         )),
         versions: [
@@ -73,23 +72,9 @@
 
     RunScriptSpec(
         key: "test",
-        value: "tap --no-esm tests",
-        preconditions: Some(When(
-            if_not_present: ["test"],
-            none_of: ["typescript"],
-            all_of: ["esm"]
-        )),
-        versions: [
-            VersionedScript(version: "0.2.0", value: "tap --no-esm tests")
-        ]
-      ),
-
-    RunScriptSpec(
-        key: "test",
         value: "tap --no-ts --node-arg=--require=ts-node/register tests/",
         preconditions: Some(When(
             if_not_present: ["test"],
-            none_of: ["esm"],
             all_of: ["typescript"]
         )),
         versions: [
@@ -138,16 +123,7 @@
         key: "boltzmann:routes",
         value: "node -e 'require(\"./boltzmann\").printRoutes()'",
         preconditions: Some(When(
-            none_of: ["esm", "typescript"],
-        ))
-    ),
-
-    RunScriptSpec(
-        key: "boltzmann:routes",
-        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.printRoutes())",
-        preconditions: Some(When(
             none_of: ["typescript"],
-            all_of: ["esm"]
         ))
     ),
 
@@ -155,7 +131,6 @@
         key: "boltzmann:routes",
         value: "node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
         preconditions: Some(When(
-            none_of: ["esm"],
             all_of: ["typescript"]
         ))
     ),
@@ -164,7 +139,7 @@
         key: "boltzmann:esbuild",
         value: "node -r ts-node/register -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'",
         preconditions: Some(When(
-            none_of: ["typescript", "esm"],
+            none_of: ["typescript"],
             all_of: ["esbuild"]
         ))
     ),
@@ -173,17 +148,7 @@
         key: "boltzmann:esbuild",
         value: "node -r ts-node/register -e 'require(\"./boltzmann\").buildAssets(...process.argv.slice(1, 2))'",
         preconditions: Some(When(
-            none_of: ["esm"],
             all_of: ["esbuild", "typescript"]
-        ))
-    ),
-
-    RunScriptSpec(
-        key: "boltzmann:esbuild",
-        value: "node -e 'import(\"./boltzmann.js\").then(xs => xs.buildAssets(...process.argv.slice(1, 2)))'",
-        preconditions: Some(When(
-            none_of: ["typescript"],
-            all_of: ["esbuild", "esm"]
         ))
     ),
 

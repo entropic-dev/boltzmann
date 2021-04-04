@@ -1,0 +1,304 @@
+let OAuth2 = null
+
+function handleOAuthLogin ({
+  prompt,
+  max_age,
+  audience,
+  connection,
+  login_hint,
+  connection_scope,
+  loginRoute = '/login',
+  domain = process.env.OAUTH_DOMAIN,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  defaultNextPath = '/'
+} = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain field to the handleOAuthLogin() middleware config
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID field to the handleOAuthLogin() middleware config
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+
+  const extraOpts = {}
+
+  if (connection) {
+    extraOpts.connection = connection
+  }
+
+  if (connection_scope) {
+    extraOpts.connection_scope = connection_scope
+  }
+
+  if (audience) {
+    extraOpts.audience = audience
+  }
+
+  if (prompt) {
+    extraOpts.prompt = prompt
+  }
+
+  if (login_hint) {
+    extraOpts.login_hint = login_hint
+  }
+
+  if (max_age) {
+    extraOpts.max_age = max_age
+  }
+
+  return next => async context => {
+    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+
+    if (context.url.pathname !== loginRoute || context.method !== 'GET') {
+      return next(context)
+    }
+
+    const nextUrl =  (
+      context.query.next && /^\/(?!\/+)/.test(context.query.next) // must start with "/" and NOT contain "//"
+      ? context.query.next
+      : defaultNextPath
+    )
+
+    const nonce = crypto.randomBytes(16).toString('hex')
+    const session = await context.session
+    session.set('nonce', nonce)
+    session.set('next', nextUrl)
+
+    const authorizationParams = {
+      ...extraOpts,
+
+      // controlled by mechanism
+      nonce,
+      response_type: 'code', // this is the type of oauth flow – "code" means web browser flow
+      redirect_uri: callbackUrl,
+      client_id: clientId
+    }
+
+    const location = new URL(authorizationUrl)
+    for (const [key, value] of Object.entries(authorizationParams)) {
+      location.searchParams.set(key, value)
+    }
+
+    return Object.assign(Buffer.from(''), {
+      [Symbol.for('status')]: 302,
+      [Symbol.for('headers')]: {
+        'Location': String(location)
+      }
+    })
+  }
+}
+
+function handleOAuthCallback ({
+  userKey = 'user',
+  domain = process.env.OAUTH_DOMAIN,
+  secret = process.env.OAUTH_CLIENT_SECRET,
+  clientId = process.env.OAUTH_CLIENT_ID,
+  callbackUrl = process.env.OAUTH_CALLBACK_URL,
+  tokenUrl = process.env.OAUTH_TOKEN_URL,
+  userinfoUrl = process.env.OAUTH_USERINFO_URL,
+  authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
+  expiryLeewaySeconds = process.env.OAUTH_EXPIRY_LEEWAY,
+  defaultNextPath = '/'
+} = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain field to the handleOAuthCallback() config
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID field to the handleOAuthCallback() config
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!secret) {
+    throw new Error(
+      `You must provide a secret field to the handleOAuthCallback() config
+or set the env var OAUTH_CLIENT_SECRET to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+  userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
+  tokenUrl = tokenUrl || `https://${domain}/oauth/token`
+  OAuth2 = OAuth2 || require('oauth').OAuth2
+  const oauth = new OAuth2(
+    clientId,
+    secret,
+    '',
+    authorizationUrl,
+    tokenUrl,
+    {}
+  )
+
+  let loginRoute = null
+  return next => async context => {
+    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+    loginRoute = loginRoute || new URL(callbackUrl).pathname
+    if (context.url.pathname !== loginRoute || context.method !== 'GET') {
+      return next(context)
+    }
+
+    if (!context.query.code) {
+      throw new Error('Code is required.')
+    }
+
+    const session = await context.session
+    const expectedNonce = session.get('nonce')
+
+    // XXX: this throws non-error-like objects with statusCodes; we may wish to forward 403 results out
+    const { accessToken, refreshToken, params } = await new Promise((resolve, reject) => {
+      const params = {
+        'grant_type': 'authorization_code',
+        'redirect_uri': callbackUrl
+      }
+      oauth.getOAuthAccessToken(context.query.code, params, (err, accessToken, refreshToken, params) => {
+        err ? reject(err) : resolve({ accessToken, refreshToken, params })
+      })
+    })
+
+    // NB: we are not checking the signature here; we're relying on the nonce
+    // to protect us.
+    _jwt = _jwt || require('jsonwebtoken')
+    _uuid = _uuid || require('uuid')
+    try {
+      var decoded = _jwt.decode(params.id_token)
+    } catch(err) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: failed to decode JWT (jwt="${params.id_token}")`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 400
+      })
+    }
+
+    if (decoded.iss !== `https://${domain}/`) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Issuer mismatched. Got "${decoded.iss}", expected "https://${process.env.OAUTH_DOMAIN}/"`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    if (![].concat(decoded.aud).includes(clientId)) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Audience mismatched. Got "${decoded.aud}", expected value of "clientId" (default: process.env.OAUTH_CLIENT_ID)`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    if (decoded.nonce !== expectedNonce) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Nonce mismatched. Got "${decoded.nonce}", expected "${expectedNonce}"`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    const window = (Number(expiryLeewaySeconds) || 60)
+    const expires = (Number(decoded.exp) || 0) + window
+
+    if (expires < now) {
+      const correlation = _uuid.v4()
+      logger.error(`err=${correlation}: Expiration time exceeded. Got "${decoded.exp}", expected "${now}" (leeway=${window})`)
+      throw Object.assign(new Error(`Encountered error id=${correlation}`), {
+        [Symbol.for('status')]: 403
+      })
+    }
+
+    const profile = await new Promise((resolve, reject) => {
+      oauth.get(userinfoUrl, accessToken, (err, body) => {
+        err ? reject(err) : resolve(JSON.parse(body))
+      })
+    })
+
+    const nextUrl = session.get('next') || defaultNextPath
+    session.delete('nonce')
+    session.delete('next')
+    context.accessToken = accessToken
+    context.refreshToken = refreshToken
+    context.profile = profile
+    context.nextUrl = nextUrl
+    context.userKey = userKey
+    return next(context)
+  }
+}
+
+function handleOAuthLogout ({
+  logoutRoute = '/logout',
+  clientId = process.env.OAUTH_CLIENT_ID,
+  domain = process.env.OAUTH_DOMAIN,
+  returnTo = process.env.OAUTH_LOGOUT_CALLBACK,
+  logoutUrl = process.env.OAUTH_LOGOUT_URL,
+  userKey = 'user',
+} = {}) {
+  if (!domain) {
+    throw new Error(
+      `You must provide a domain to the handleOAuthLogout() middleware
+or set the env var OAUTH_DOMAIN to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  if (!clientId) {
+    throw new Error(
+      `You must provide a clientID to the handleOAuthLogout() middleware
+or set the env var OAUTH_CLIENT_ID to use OAuth
+https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+`.trim().split('\n').join(' '))
+  }
+
+  logoutUrl = logoutUrl || `https://${domain}/v2/logout`
+  return next => async context => {
+    if (context.url.pathname !== logoutRoute || context.method !== 'POST') {
+      return next(context)
+    }
+
+    const session = await context.session
+    session.delete(userKey)
+    session.reissue()
+
+    returnTo = (
+      returnTo ||
+      `http://${context.host}${![80, 443].includes(context.request.connection.localPort) ? ':' + context.request.connection.localPort : ''}/`
+    )
+
+    const logout = new URL(logoutUrl)
+    logout.searchParams.set('returnTo', returnTo)
+    logout.searchParams.set('client_id', clientId)
+
+    return Object.assign(Buffer.from(''), {
+      [Symbol.for('status')]: 302,
+      [Symbol.for('headers')]: {
+        'Location': String(logout)
+      }
+    })
+  }
+}
+
+function oauth (options = {}) {
+  const callback = handleOAuthCallback(options)
+  const logout = handleOAuthLogout(options)
+  const login = handleOAuthLogin(options)
+
+  return next => callback(logout(login(next)))
+}

@@ -3,12 +3,7 @@
   "ext": "js,mjs,ts,json,cjs,jsx,tsx",
   "ignore": [".git", "node_modules/", "dist/", "coverage/"],
   "execMap": {
-{%- if esm %}
-    "ts": "node --loader ts-node/esm -r dotenv/config",
-    "js": "node --loader ts-node/esm -r dotenv/config"
-{% else %}
     "ts": "node -r ts-node/register -r dotenv/config",
     "js": "node -r ts-node/register -r dotenv/config"
-{%- endif -%}
   }
 }

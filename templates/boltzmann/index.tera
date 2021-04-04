@@ -1,0 +1,55 @@
+{% include "boltzmann/core/prelude.js" %}
+
+{# core functions (middleware, body parsing, and routing support) #}
+
+{% include "boltzmann/core/body.js" %}
+{% include "boltzmann/core/middleware.js" %}
+{% include "boltzmann/core/routes.js" %}
+
+{% include "boltzmann/data/context.js" %}
+{% include "boltzmann/data/cookie.js" %}
+{% include "boltzmann/data/session.js" %}
+{% include "boltzmann/data/errors.js" %}
+
+{# bin scripts (printing routes, running the http server, building assets) #}
+
+{% include "boltzmann/bin/main.js" %}
+{% if esbuild %}{% include "boltzmann/bin/esbuild.js" %}{% endif %}
+{% include "boltzmann/bin/routes.js" %}
+
+{# body parsers #}
+
+{% include "boltzmann/body/json.js" %}
+{% include "boltzmann/body/urlencoded.js" %}
+
+{# middleware (wow, we have a lot of middleware) #}
+
+{% include "boltzmann/middleware/apply-headers.js" %}
+{% include "boltzmann/middleware/dev.js" %}
+{% if csrf %}{% include "boltzmann/middleware/csrf.js" %}{% endif %}
+{% include "boltzmann/middleware/cors.js" %}
+{% include "boltzmann/middleware/enforce-invariants.js" %}
+{% if esbuild %}{% include "boltzmann/middleware/esbuild.js" %}{% endif %}
+{% if honeycomb %}{% include "boltzmann/middleware/honeycomb.js" %}{% endif %}
+{% if jwt %}{% include "boltzmann/middleware/jwt.js" %}{% endif %}
+{% if livereload %}{% include "boltzmann/middleware/livereload.js" %}{% endif %}
+{% include "boltzmann/middleware/log.js" %}
+{% if oauth %}{% include "boltzmann/middleware/oauth.js" %}{% endif %}
+{% if ping %}{% include "boltzmann/middleware/ping.js" %}{% endif %}
+{% if postgres %}{% include "boltzmann/middleware/postgres.js" %}{% endif %}
+{% if redis %}{% include "boltzmann/middleware/redis.js" %}{% endif %}
+{% include "boltzmann/middleware/route.js" %}
+{% include "boltzmann/middleware/session.js" %}
+{% if staticfiles or esbuild %}{% include "boltzmann/middleware/staticfiles.js" %}{% endif %}
+{% if staticfiles or esbuild or templates %}{% include "boltzmann/middleware/template-context.js" %}{% endif %}
+{% if status %}{% include "boltzmann/middleware/status.js" %}{% endif %}
+{% if templates %}{% include "boltzmann/middleware/templates.js" %}{% endif %}
+{% include "boltzmann/middleware/test.js" %}
+{% include "boltzmann/middleware/vary.js" %}
+{% include "boltzmann/middleware/validators.js" %}
+
+{# utilities for loading body.js/middleware.js #}
+{% include "boltzmann/utils.js" %}
+{% include "boltzmann/core/exports.js" %}
+
+{% if selftest %}{% include "boltzmann/test.js" %}{% else %}{% include "boltzmann/main.js" %}{% endif %}

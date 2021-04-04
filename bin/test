@@ -11,14 +11,6 @@ function run_selftest() {
   cd ..
 }
 
-function run_esm_selftest() {
-  rm -rf tmp
-  cargo run -- --selftest --esm --force  --silent tmp
-  cd tmp
-  node test.js
-  cd ..
-}
-
 function run_startup() {
   rm -rf tmp
   cargo run -- tmp --force --silent

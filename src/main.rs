@@ -57,12 +57,8 @@ pub struct Flags {
     #[structopt(
         long,
         help = "Scaffold a project implemented in TypeScript",
-        conflicts_with = "esm"
     )]
     typescript: Option<Option<Flipper>>,
-
-    #[structopt(long, help = "Scaffold project using ES Modules")]
-    esm: Option<Option<Flipper>>,
 
     #[structopt(long, help = "Enable csrf protection middleware")]
     csrf: Option<Option<Flipper>>,
@@ -478,13 +474,6 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
 
     package_json.dependencies.replace(dependencies);
     package_json.dev_dependencies.replace(devdeps);
-
-    if updated_settings.esm.unwrap_or(false) {
-        package_json.module_type = Some("module".to_string());
-    } else {
-        package_json.module_type = None
-    }
-
     package_json.boltzmann.replace(updated_settings.clone());
 
     // Update package.json run scripts.

@@ -1,11 +1,6 @@
-{% if esm %}
-{%- set EXPORTS = "export " -%}
-import { Context } from './boltzmann.js' // optionally pull in typescript definition
-// {% else %}
 'use strict'
 {% set EXPORTS = "" -%}
 const { Context } = require('./boltzmann.js') // optionally pull in typescript definition
-// {%- endif %}
 
 index.route = 'GET /'
 {{ EXPORTS -}} async function index(/** @type {Context} */ context) {
@@ -64,7 +59,6 @@ callback.route = 'GET /callback'
 }
 {% endif %}
 
-{%- if not esm %}
 module.exports = {
   index,
   greeting,
@@ -72,4 +66,3 @@ module.exports = {
   callback,
 {% endif %}
 }
-{% endif %}

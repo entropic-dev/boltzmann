@@ -66,9 +66,6 @@ pub struct Settings {
     pub(crate) esbuild: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) esm: Option<bool>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) githubci: Option<bool>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,14 +123,6 @@ impl Settings {
             }
         };
 
-        // ESM is the odd one:
-        let is_esm = match &flags.esm {
-            Some(None) => true,
-            Some(Some(Flipper::On)) => true,
-            Some(Some(Flipper::Off)) => false,
-            None => self.esm.unwrap_or(false),
-        };
-
         let is_typescript = match &flags.typescript {
             Some(None) => true,
             Some(Some(Flipper::On)) => true,
@@ -174,7 +163,6 @@ impl Settings {
             // oddballs:
             typescript: if is_typescript { Some(true) } else { None },
             version: Some(version),
-            esm: if is_esm { Some(true) } else { None },
 
             selftest: if flags.selftest { Some(true) } else { None },
             rest: HashMap::new(),
@@ -192,9 +180,6 @@ impl Settings {
         }
         if self.esbuild.unwrap_or(false) {
             features.push("esbuild");
-        }
-        if self.esm.unwrap_or(false) {
-            features.push("esm");
         }
         if self.githubci.unwrap_or(false) {
             features.push("githubci");
@@ -256,7 +241,6 @@ impl Into<Context> for Settings {
         ctxt.insert("githubci", &self.githubci.unwrap_or(false));
         ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
         ctxt.insert("esbuild", &self.esbuild.unwrap_or(false));
-        ctxt.insert("esm", &self.esm.unwrap_or(false));
         ctxt.insert("jwt", &self.jwt.unwrap_or(false));
         ctxt.insert("livereload", &self.livereload.unwrap_or(false));
         ctxt.insert("oauth", &self.oauth.unwrap_or(false));

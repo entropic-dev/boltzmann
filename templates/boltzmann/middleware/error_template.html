@@ -1,0 +1,435 @@
+{% raw %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      {% if response.stack %}{{ response.name }}: {{ response.message }}{% elif
+      renderError %}{{ renderError.name }}: {{ renderError.message }}{% else
+      %}Error{% endif%}
+    </title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/tachyons@4.12.0/css/tachyons.min.css"
+    />
+    <style>
+      #stacktrace .copy-and-paste {
+        display: none;
+      }
+      #stacktrace.paste .copy-and-paste {
+        display: block;
+      }
+      #stacktrace.paste .rich {
+        display: none;
+      }
+      .frame {
+        cursor: pointer;
+      }
+      .frame .framecontext {
+        display: none;
+      }
+      .frame.more .framecontext {
+        display: table-row;
+      }
+      .lineno {
+        user-select: none;
+        width: 1%;
+        min-width: 50px;
+        text-align: right;
+      }
+      .framecontext {
+        user-select: none;
+      }
+      .frameline {
+        user-select: none;
+      }
+      .noselect {
+        user-select: none;
+      }
+    </style>
+  </head>
+
+  <body class="sans-serif w-100">
+    <header
+      class="bg-{% if status >= 500 or not status %}light-red{% else %}purple{% endif %}"
+    >
+      <div class="mw7 center">
+        <h1 class="f1-ns f4 mt0 mb2 white-90">
+          {% if response.stack %} {% if status %}<code
+            class="f3-ns bg-white normal br3 pv1 ph2 v-mid {% if status >= 500 %}red{% elif status >= 400 %}purple{% endif %}"
+            >{{ status }}</code
+          >
+          {% endif %}{{ response.name }} at {{ context.url.pathname }} {% elif
+          renderError %} {{ renderError.name }} at {{ context.url.pathname }} {%
+          else %} Unknown error at {{ context.url.pathname }} {% endif %}
+        </h1>
+        <h2 class="f2-ns f5 mt0 mb2 white-80">
+          {% if response.stack %} {{ response.message }} {% elif renderError %}
+          {{ renderError.message }} {% endif %}
+        </h2>
+
+        <table class="f6 white">
+          <tr>
+            <td class="tr white-80 v-top pr2">Request Method</td>
+            <td><code>{{ context.method }}</code></td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Request URL</td>
+            <td><code>{{ context.url }}</code></td>
+          </tr>
+          {% if context.handler.route %}
+          <tr>
+            <td class="tr white-80 v-top pr2">Handler</td>
+            <td>
+              <a
+                class="link underline washed-blue dim"
+                href="{{ context.handler.location }}"
+                ><code>{{ context.handler.name }}</code></a
+              >, mounted at
+              <code
+                >{{ context.handler.method }} {{ context.handler.route }}</code
+              >
+            </td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td class="tr white-80 v-top pr2">Honeycomb Trace</td>
+            <td>
+              {% if context._honeycombTrace %}
+              <a
+                class="link underline washed-blue dim"
+                target="_blank"
+                rel="noreferrer noopener"
+                href="{{ context.traceURL }}"
+              >
+                Available
+              </a>
+              {% else %}
+              <details>
+                <summary>Not available.</summary>
+                Make sure the <code>HONEYCOMBIO_DATASET</code>,
+                <code>HONEYCOMBIO_WRITE_KEY</code>, and
+                <code>HONEYCOMBIO_TEAM</code> environment variables are set,
+                then restart boltzmann.
+              </details>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Handler Version</td>
+            <td><code>{{ context.handler.version|default("*") }}</code></td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Application Middleware</td>
+            <td>
+              <ol class="mv0 ph0" style="list-style-position: inside">
+                {% for middleware in context._middleware %}
+                <li>
+                  <a
+                    class="link underline washed-blue dim"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="{{ middleware.location }}"
+                    ><code>{{ middleware.name }}</code></a
+                  >
+                </li>
+                {% else %}
+                <li class="list">No application middleware installed.</li>
+                {% endfor %}
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Handler Middleware</td>
+            <td>
+              {% if context.handler.middleware %}
+              <ol class="mv0 ph0" style="list-style-position: inside">
+                {% for middleware in context.handler.middleware %}
+                <li><code>{{ middleware }}</code></li>
+                {% else %}
+                <li class="list">No handler-specific middleware installed.</li>
+                {% endfor %}
+              </ol>
+              {% endif %}
+            </td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Template paths</td>
+            <td>
+              <ol class="mv0 ph0" style="list-style-position: inside">
+                {% for path in template_paths %}
+                <li><code>{{ path }}</code></li>
+                {% endfor %}
+              </ol>
+            </td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Boltzmann Version</td>
+            <td>${require('./package.json').boltzmann.version}</td>
+          </tr>
+          <tr>
+            <td class="tr white-80 v-top pr2">Node Version</td>
+            <td>${process.versions.node}</td>
+          </tr>
+        </table>
+
+        <aside class="pv3-l i f6 white-60 lh-copy">
+          You&#39;re seeing this page because you are in dev mode. {% if
+          context.method == "GET" %}
+          <a class="link underline washed-blue dim" href="?__production=1"
+            >Click here</a
+          >
+          to see the production version of this error, or {% endif %} set the
+          <code>NODE_ENV</code> environment variable to
+          <code>production</code> and restart the server.
+        </aside>
+      </div>
+    </header>
+
+    {% if response.__noMatch %}
+    <section id="routes" class="bg-light-gray black-90">
+      <div class="mw7 center pb3-l">
+        <aside class="pv3-l i f6 black-60 lh-copy">
+          The following routes are available:
+        </aside>
+        <table class="collapse w-100 frame">
+          {% for name, handler in context._handlers %}
+          <tr>
+            <td>
+              {% if handler.method.constructor.name == "Array" %} {% for method
+              in handler.method %}
+              <code>{{ method }}</code>{% if not loop.last %}, {% endif %} {%
+              endfor %} {% else %}
+              <code>{{ handler.method }}</code>
+              {% endif %}
+            </td>
+            <td>
+              <code>{{ handler.route }}</code>
+            </td>
+            <td>
+              <code>{{ handler.name }}</code>
+            </td>
+          </tr>
+          {% if handler.route == context.url.pathname %}
+          <tr>
+            <td><aside class="i f6 lh-copy black-40">↪︎</aside></td>
+            <td colspan="2">
+              <aside class="i f6 lh-copy black-40">
+                Are you trying to access this route, which is available at a
+                different method or version?
+              </aside>
+            </td>
+          </tr>
+          {% endif %} {% endfor %}
+        </table>
+      </div>
+    </section>
+    {% endif %}
+
+    <section
+      id="stacktrace"
+      class="bg-washed-{% if status >= 500 or not status %}yellow{% else %}blue{% endif %} black-90"
+    >
+      <div class="mw7 center">
+        {% if response.stack %}
+        <div class="rich">
+          <h3 class="f3-ns f5 mt0 pt2">
+            Stack trace from error
+            <button
+              class="input-reset bn pointer"
+              onclick="javascript:window.stacktrace.classList.toggle('paste');"
+            >
+              Switch to copy-and-paste view
+            </button>
+          </h3>
+          {% if frames %} {% for frame in frames %}
+
+          <p>
+            <a
+              href="vscode://file/{{ frame.getFileName() }}:{{ frame.getLineNumber() }}:{{ frame.getColumnNumber() }}"
+              target="_blank"
+              ><code>{{ frame.getRelativeFileName() }}</code></a
+            >, line {{ frame.getLineNumber() }}, at
+            <code>{{ frame.getFunctionNameSanitized() }}</code>
+          </p>
+
+          {% if frame.context %}
+          <table
+            class="collapse w-100 frame"
+            onclick="javascript:this.closest('table').classList.toggle('more')"
+          >
+            {% for line in frame.context.pre %}
+            <tr class="framecontext black-40 bg-black-10">
+              <td class="lineno pr2 tr f7 black-20">
+                <pre
+                  class="ma0"
+                ><code>{{ frame.getLineNumber() - loop.revindex }}</code></pre>
+              </td>
+              <td>
+                <pre class="ma0"><code>{{ line }}</code></pre>
+              </td>
+            </tr>
+            {% endfor %}
+            <tr class="frameline black-90 bg-black-10">
+              <td class="lineno pr2 tr f7 black-20">
+                <pre class="ma0"><code>{{ frame.getLineNumber() }}</code></pre>
+              </td>
+              <td>
+                <pre class="ma0"><code>{{ frame.context.line }}</code></pre>
+              </td>
+            </tr>
+            <tr class="frameline black-90 bg-black-10">
+              <td class="lineno pr2 tr f7 black-20">
+                <pre class="ma0"><code></code></pre>
+              </td>
+              <td>
+                <pre
+                  class="ma0"
+                ><code class="red">{{ "^"|indent(frame.getColumnNumber() - 1, true)|replace(" ", "-") }}</code></pre>
+              </td>
+            </tr>
+            {% for line in frame.context.post %}
+            <tr class="framecontext black-40 bg-black-10">
+              <td class="lineno pr2 tr f7 black-20">
+                <pre
+                  class="ma0"
+                ><code>{{ frame.getLineNumber() + loop.index }}</code></pre>
+              </td>
+              <td>
+                <pre class="ma0"><code>{{ line }}</code></pre>
+              </td>
+            </tr>
+            {% endfor %}
+          </table>
+          {% else %} {% endif %} {% endfor %} {% else %}
+          <h1>
+            <code>{{ response.name }}</code>:
+            <code>{{ response.message }}</code>
+          </h1>
+          <pre><code>{{ response.stack }}</code></pre>
+          <aside class="pv3-l i f6 white-60 lh-copy">
+            The <code>.stack</code> property was accessed by other code before
+            the template middleware received it. As a result, we cannot display
+            a rich stack trace.
+          </aside>
+          {% endif %} {% endif %} {% if renderError %}
+          <h3 class="f3-ns f5 mt0 pt2">
+            Caught error rendering <code>{{ template }}</code>
+          </h3>
+          {% if "template not found" in renderError.message %}
+          <aside class="pv3-l i f6 black-60 lh-copy">
+            Caught <code>{{ renderError.message }}</code>. Tried the following
+            paths:
+          </aside>
+          <ol class="mv0 ph0" style="list-style-position: inside">
+            {% for path in template_paths %}
+            <li><code>{{ path }}/{{ template }}</code></li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <pre><code>{{ renderError.stack }}</code></pre>
+          {% endif %}
+          <br />
+          {% endif %}
+        </div>
+
+        <div class="copy-and-paste">
+          <h3 class="f3-ns f5 mt0 pt2">
+            Stack trace from error
+            <button
+              class="input-reset bn pointer"
+              onclick="javascript:window.stacktrace.classList.toggle('paste');"
+            >
+              Switch back to interactive view
+            </button>
+          </h3>
+          <textarea class="w-100 h5-l">
+{{ response.stack }}{% if response.stack %}
+{% endif %}{{ renderError.stack }}</textarea
+          >
+        </div>
+      </div>
+    </section>
+
+    <section id="data" class="bg-light-gray black-90">
+      <div class="mw7 center">
+        <h3 class="f3-ns f5 mt0 pt2">Request Information</h3>
+        {% if context.params %}
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">URL Params</h4>
+          <table class="collapse w-80 v-top">
+            {% for name, value in context.params %}
+            <tr>
+              <td class="pb2 w-20 v-top tr pr4">
+                <code class="black-60 i">{{ name }}</code>
+              </td>
+              <td class="pb2 v-top"><code>{{ value }}</code></td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+        {% endif %}
+
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">URL Query String</h4>
+          <table class="collapse w-80 v-top">
+            {% for name, value in context.query %}
+            <tr class="striped--light-gray">
+              <td class="pb2 w-20 v-top tr pr4">
+                <code class="black-60 i">{{ name }}</code>
+              </td>
+              <td class="pb2 v-top"><code>{{ value }}</code></td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">Request Headers</h4>
+          <table class="collapse w-80">
+            {% for name, value in context.headers %}
+            <tr class="striped--light-gray">
+              <td class="pb2 w-20 v-top tr pr4">
+                <code class="black-60 i">{{ name }}:</code>
+              </td>
+              <td class="pb2 v-top"><code>{{ value }}</code></td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+
+        <hr />
+
+        <h3 class="f3-ns f5 mt0 pt2">Response Information</h3>
+        <aside class="pb3-l i f6 black-60 lh-copy">
+          Response was{% if not threw %} not{% endif %} thrown.
+        </aside>
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">Status</h4>
+          <pre
+            class="mt0"
+          ><a href="https://httpstatus.es/{{ status }}"><code>{{ status }}</code></a></pre>
+        </div>
+
+        {% if template %}
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">Template</h4>
+          <pre class="mt0"><code>{{ template }}</code></pre>
+        </div>
+        {% endif %}
+
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">Response Data</h4>
+          <pre class="mt0"><code>{{ response|dump(2) }}</code></pre>
+        </div>
+
+        <div class="flex flex-wrap">
+          <h4 class="noselect mt0 tr w-10 mr2">Response Headers</h4>
+          <pre class="mt0"><code>{{ headers|dump(2) }}</code></pre>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
+{% endraw %}
