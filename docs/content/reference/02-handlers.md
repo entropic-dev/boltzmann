@@ -31,7 +31,7 @@ const { body } = require('./boltzmann')
 const yaml = require('yaml')
 
 myHandler.route = 'POST /'
-myHandler.body = [
+myHandler.bodyParsers = [
   body.json,
   yamlParser // handle yaml!
 ]

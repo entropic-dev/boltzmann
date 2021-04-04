@@ -8,11 +8,11 @@ Many services require user input. Input comes in the form of route parameters,
 query parameters, and HTTP request bodies. It's critical to enforce validation
 on user input, but don't worry: Boltzmann has your back!
 
+<!-- more -->
+
 This document covers Boltzmann's affordances for accessing user input,
 validating input, and sanitizing input. By the end of the document you
-will know how to write custom body parsing functions!
-
-<!-- more -->
+will know how to write custom body parsing functions.
 
 ## Accessing User Input
 
@@ -67,4 +67,14 @@ The `boltzmann.decorators.params` function takes an ajv schema and generates a
 decorator that applies the schema to any route params supplied.
 
 ## Writing Custom Body Parsers
+
+Boltzmann provides and installs body parsers for
+`application/x-www-form-urlencoded` and `application/json` request bodies by
+default, but other formats can be supported by writing custom body parsers.
+
+```typescript
+type Parser  = (request: http.IncomingMessage) => any;
+type Adaptor = (next: Parser) => Parser;
+```
+
 
