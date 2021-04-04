@@ -57,7 +57,7 @@
   ),
   DependencySpec(
     name: "find-my-way",
-    version: "^3.0.4",
+    version: "^4.1.0",
     kind: Normal,
     preconditions: None
   ),

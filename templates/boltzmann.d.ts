@@ -100,6 +100,7 @@ export namespace middleware {
   export const applyXFO: Middleware
   export const handleCORS: Middleware
   export const session: Middleware
+  export const vary: Middleware
   {% if jwt -%}
   export const authenticateJWT: Middleware
   {% endif -%}

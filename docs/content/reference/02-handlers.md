@@ -187,7 +187,6 @@ To escape a colon in the route, double it. E.g., `/web/::foo`.
 ```js
 // handlers.js
 module.exports = { handler }
-const { middleware } = require('./boltzmann')
 
 handler.route = 'GET /greet/:who'
 async function handler (context) {
@@ -198,6 +197,39 @@ async function handler (context) {
 ### `version`
 
 {{ changelog(version = "0.0.0") }}
+
+A string representing the version of the handler used for routing incoming
+requests that include an `accept-version` header.
+
+Automatically adds a [`vary: accept-version`] header to all responses from the
+handler to prevent cache poisoning attacks. If a single route has both
+versioned and un-versioned handlers, **you should add a [`vary:
+accept-version`] header** to the un-versioned handler. You can do so using the
+Boltzmann-provided [`vary`] middleware.
+
+**Example use**:
+
+```js
+// handlers.js
+module.exports = { handler }
+
+old.route = 'GET /'
+old.version = '0.0.0'
+async function old (context) {
+  return `hello world`
+}
+
+// will respond to requests with `accept-version: *`, `accept-version: 1.0.0`,
+// or `accept-version: ^1`.
+neue.route = 'GET /'
+neue.version = '1.0.0'
+async function neue (context) {
+  return `Hello, world!`
+}
+```
+
+[`vary: accept-version`]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary
+[`vary`]: @/reference/03-middleware.md#vary
 
 ## Context
 

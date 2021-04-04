@@ -586,7 +586,9 @@ function route (handlers = {}) {
         }
         const opts = {}
         if (handler.version) {
-          opts.version = handler.version
+          opts.constraints = { version: handler.version }
+          handler.middleware = handler.middleware || []
+          handler.middleware.push([vary, 'accept-version'])
         }
 
         const { version, middleware, decorators, bodyParsers, ...rest } = handler
@@ -639,7 +641,7 @@ function route (handlers = {}) {
       const { pathname } = context.url
       const match = wayfinder.find(context.request.method, pathname, ...(
         context.request.headers['accept-version']
-        ? [context.request.headers['accept-version']]
+        ? [{version: context.request.headers['accept-version']}]
         : []
       ))
 
@@ -1299,6 +1301,18 @@ function templateContext(extraContext = {}) {
       }
 
       return result
+    }
+  }
+}
+
+function vary (on = []) {
+  on = [].concat(on)
+
+  return next => {
+    return async context => {
+      const response = await next(context)
+      response[HEADERS].vary = [].concat(response[HEADERS].vary || [], on)
+      return response
     }
   }
 }
@@ -2870,6 +2884,7 @@ class Session extends Map {
 }
 {{ EXPORTS }} const middleware = {
   log,
+  vary,
 // {% if jwt %}
   authenticateJWT,
 // {% endif %}
@@ -3287,6 +3302,51 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
 
     assert.equals(response.statusCode, 415)
     assert.equals(JSON.parse(response.payload).message, 'Cannot parse request body')
+  })
+
+  test('router: accept-version is respected', async assert => {
+    const old = async context => {
+      return 'old'
+    }
+    old.route = 'GET /'
+
+    const neue = async context => {
+      return 'new'
+    }
+    neue.route = 'GET /'
+    neue.version = '420.0.0'
+
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        old,
+        neue
+      }
+    })
+
+    const [onrequest] = server.listeners('request')
+    {
+      const response = await shot.inject(onrequest, {
+        method: 'GET',
+        url: '/'
+      })
+
+      assert.equals(response.statusCode, 200)
+      assert.equals(response.payload, 'old')
+    }
+
+    {
+      const response = await shot.inject(onrequest, {
+        method: 'GET',
+        url: '/',
+        headers: { 'accept-version': '*' }
+      })
+
+      assert.equals(response.statusCode, 200)
+      assert.equals(response.payload, 'new')
+      assert.same(response.headers.vary, ['accept-version'])
+    }
   })
 
   test('json body: returns 415 if request is not application/json', async assert => {
@@ -4426,6 +4486,95 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
       headers: { cookie: _c.serialize('sid', baddata) }
     })
     assert.equal(response.statusCode, 400)
+  })
+
+  test('vary middleware: accepts single values', async assert => {
+    const handler = async context => {
+      return 'ok'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [ [ vary, 'frobs' ], ],
+      handlers: { handler }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.same(response.headers.vary, ['frobs'])
+  })
+
+  test('vary middleware: accepts multiple values', async assert => {
+    const handler = async context => {
+      return 'ok'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [ [ vary, [ 'frobs', 'cogs' ], ], ],
+      handlers: { handler }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.same(response.headers.vary, ['frobs', 'cogs'])
+  })
+
+  test('vary middleware: may be repeated', async assert => {
+    const handler = async context => {
+      return 'ok'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [ vary, [ 'frobs', 'cogs' ], ],
+        [ vary, 'frobs', ],
+      ],
+      handlers: { handler }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.same(response.headers.vary, ['frobs', 'frobs', 'cogs'])
+  })
+
+  test('vary middleware: applies to errors', async assert => {
+    const handler = async context => {
+      throw new Error()
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [ vary, 'sprockets', ],
+      ],
+      handlers: { handler }
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await shot.inject(onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 500)
+    assert.same(response.headers.vary, ['sprockets'])
   })
 
   test('applyXFO() ensures its option is DENY or SAMEORIGIN', async assert => {

@@ -548,6 +548,48 @@ export async function customAjv (context) {
 
 * * *
 
+### `vary`
+
+{{ changelog(version="0.5.0") }}
+
+The `vary` middleware unconditionally updates responses to include a [`Vary`]
+header with the configured values. This is useful for handlers that change
+behavior based on `context.cookie`. It is automatically installed for handlers
+that use the [`.version` attribute].
+
+[`.version` attribute]: @/reference/02-handlers.md#version
+
+**Arguments:**
+
+- `on`: A string or list of strings, representing `Vary` values.
+
+**Example Usage:**
+
+```js
+// handlers.js
+const { middleware } = require('./boltzmann.js')
+cookies.middleware = [
+  [middleware.vary, 'cookie']
+]
+cookies.route = 'GET /'
+export function cookies(context) {
+  return context.cookie.get('wow') ? 'great' : 'not great'
+}
+
+// multiple values may be set at once.
+multi.middleware = [
+  [middleware.vary, ['cookie', 'accept-encoding']]
+]
+multi.route = 'GET /multi'
+export function multi(context) {
+  return context.cookie.get('wow') ? 'great' : 'not great'
+}
+```
+
+[`Vary`]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary
+
+* * *
+
 ## Automatically attached middleware
 
 Automatically-attached middleware is middleware you can configure but do _not_ need to attach to
