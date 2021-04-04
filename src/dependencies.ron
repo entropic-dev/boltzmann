@@ -81,7 +81,19 @@
   ),
   DependencySpec(
     name: "ajv",
-    version: "^6.12.2",
+    version: "^8.0.5",
+    kind: Normal,
+    preconditions: None
+  ),
+  DependencySpec(
+    name: "ajv-formats",
+    version: "^2.0.2",
+    kind: Normal,
+    preconditions: None
+  ),
+  DependencySpec(
+    name: "ajv-keywords",
+    version: "^5.0.0",
     kind: Normal,
     preconditions: None
   ),

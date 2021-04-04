@@ -336,6 +336,216 @@ module.exports = {
 }
 ```
 
+### `validate.body`
+
+{% changelog(version="0.0.0") %}
+- **Changed in 0.1.7:** Bugfix to support validator use as middleware.
+- **Changed in 0.2.0:** Added support for schemas defined via [`fluent-json-schema`].
+- **Changed in 0.5.0:** Added second options argument, accepting [`ajv`].
+{% end %}
+
+The `validate.body` middleware applies [JSON schema] validation to incoming
+request bodies. It intercepts the body that would be returned by
+[`context.body`] and validates it against the given schema, throwing a `400 Bad
+Request` error on validation failure. If the body passes validation it will be
+passed through.
+
+`Ajv` is configured with `{useDefaults: true}` by default. In development mode,
+`strictTypes` will be set to `true`. In non-development mode, it is set to
+`"log"`.
+
+**Arguments:**
+
+- `schema`: Positional. A [JSON schema] object defining valid input.
+- `options`: Positional.
+    - `ajv`: Named. Optionally provide a custom instance of [`ajv`].
+
+**Example Usage:**
+
+```js
+// handlers.js
+const { middleware } = require('boltzmann')
+
+example.middleware = [
+  [middleware.validate.body, {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    }
+  }]
+]
+example.route = 'POST /example'
+export async function example (context) {
+  // if body.id isn't a uuid, this throws a 400 Bad request error,
+  // otherwise it `id` will be a string containing a uuid:
+  const { id } = await context.body
+}
+
+const Ajv = require('ajv')
+customAjv.middleware = [
+  [middleware.validate.body, {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    }
+  }, {
+    // You can customize Ajv behavior by providing your own Ajv
+    // instance, like so:
+    ajv: new Ajv({
+      coerceTypes: true
+    })
+  }]
+]
+customAjv.route = 'POST /custom'
+export async function customAjv (context) {
+  // if body.id isn't a uuid, this throws a 400 Bad request error,
+  // otherwise it `id` will be a string containing a uuid:
+  const { id } = await context.body
+}
+```
+
+* * *
+
+### `validate.params`
+
+{% changelog(version="0.0.0") %}
+- **Changed in 0.1.7:** Bugfix to support validator use as middleware.
+- **Changed in 0.2.0:** Added support for schemas defined via [`fluent-json-schema`].
+- **Changed in 0.5.0:** Added second options argument, accepting `ajv`.
+{% end %}
+
+The `validate.params` middleware applies [JSON schema] validation to url
+parameters matched during request routing. Matched URL parameters are validated
+against the given schema, throwing a `400 Bad Request` error on validation
+failure, preventing execution of the handler. If the parameters pass validation
+the handler will be called.
+
+`Ajv` is configured with `{useDefaults: true, coerceTypes: "array"}` by
+default. In development mode, `strictTypes` will be set to `true`. In
+non-development mode, it is set to `"log"`.
+
+**Arguments:**
+
+- `schema`: Positional. A [JSON schema] object defining valid input.
+- `options`: Positional.
+    - `ajv`: Named. Optionally provide a custom instance of [`ajv`].
+
+**Example Usage:**
+
+```js
+// handlers.js
+const { middleware } = require('boltzmann')
+
+example.middleware = [
+  [middleware.validate.params, {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    }
+  }]
+]
+example.route = 'GET /example/:id'
+export async function example (context) {
+  const { id } = context.params
+}
+
+const Ajv = require('ajv')
+customAjv.middleware = [
+  [middleware.validate.params, {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    }
+  }, {
+    // You can customize Ajv behavior by providing your own Ajv
+    // instance, like so:
+    ajv: new Ajv({
+      coerceTypes: true
+    })
+  }]
+]
+customAjv.route = 'GET /:id'
+export async function customAjv (context) {
+  const { id } = context.params
+}
+```
+
+* * *
+
+### `validate.query`
+
+{% changelog(version="0.0.0") %}
+- **Changed in 0.1.7:** Bugfix to support validator use as middleware.
+- **Changed in 0.2.0:** Added support for schemas defined via [`fluent-json-schema`].
+- **Changed in 0.5.0:** Added second options argument, accepting `ajv`.
+{% end %}
+
+The `validate.query` middleware applies [JSON schema] validation to incoming
+HTTP query (or "search") parameters. Query parameters are validated against the
+given schema, throwing a `400 Bad Request` error on validation failure,
+preventing execution of the handler. If the query parameters pass validation the
+handler will be called.
+
+`Ajv` is configured with `{useDefaults: true, coerceTypes: "array"}` by
+default. In development mode, `strictTypes` will be set to `true`. In
+non-development mode, it is set to `"log"`.
+
+**Arguments:**
+
+- `schema`: Positional. A [JSON schema] object defining valid input.
+- `options`: Positional.
+    - `ajv`: Named. Optionally provide a custom instance of [`ajv`].
+
+**Example Usage:**
+
+```js
+// handlers.js
+const { middleware } = require('boltzmann')
+
+example.middleware = [
+  [middleware.validate.query, {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    }
+  }]
+]
+example.route = 'GET /example'
+export async function example (context) {
+  const { id } = context.query
+}
+
+const Ajv = require('ajv')
+customAjv.middleware = [
+  [middleware.validate.query, {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    }
+  }, {
+    // You can customize Ajv behavior by providing your own Ajv
+    // instance, like so:
+    ajv: new Ajv({
+      coerceTypes: true
+    })
+  }]
+]
+customAjv.route = 'GET /custom'
+export async function customAjv (context) {
+  const { id } = context.query
+}
+```
+
+[JSON schema]: https://json-schema.org/
+[`fluent-json-schema`]: https://www.npmjs.com/package/fluent-json-schema
+[`ajv`]: https://ajv.js.org/
+
 * * *
 
 ## Automatically attached middleware

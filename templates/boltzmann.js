@@ -57,6 +57,9 @@ const redis = require('handy-redis')
 // {% if postgres %}
 const pg = require('pg')
 // {% endif %}
+const addAJVFormats = ajv => (require('ajv-formats')(ajv), ajv)
+const addAJVKeywords = ajv => (require('ajv-keywords')(ajv), ajv)
+const AJV = require('ajv')
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
@@ -64,10 +67,6 @@ const REISSUE = Symbol.for('reissue')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
 const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
-
-let ajv = null
-let ajvLoose = null
-let ajvStrict = null
 
 {{ EXPORTS }} async function main ({
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
@@ -2528,12 +2527,15 @@ async function redisReachability (context, meta) {
 // {% endif %}
 
 // - - - - - - - - - - - - - - - -
-// Decorators
+// Validators
 // - - - - - - - - - - - - - - - -
-function validateBody(schema) {
-  ajv = ajv || require('ajv')
-  ajvStrict = ajvStrict || new ajv()
-  const validator = ajvStrict.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
+function validateBody(schema, {
+  ajv = addAJVFormats(addAJVKeywords(new AJV({
+    useDefaults: true,
+    strictTypes: isDev() ? true : "log",
+  }))),
+} = {}) {
+  const validator = ajv.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
   return function validate (next) {
     return async (context, ...args) => {
       const subject = await context.body
@@ -2554,10 +2556,14 @@ function validateBody(schema) {
 }
 
 function validateBlock(what) {
-  return schema => {
-    ajv = ajv || require('ajv')
-    ajvLoose = ajvLoose || new ajv({ coerceTypes: true })
-    const validator = ajvLoose.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
+  return function validate(schema, {
+    ajv = addAJVFormats(addAJVKeywords(new AJV({
+      useDefaults: true,
+      coerceTypes: 'array',
+      strictTypes: isDev() ? true : "log",
+    }))),
+  } = {}) {
+    const validator = ajv.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
     return function validate (next) {
       return async (context, params, ...args) => {
         const subject = what(context)
@@ -3805,6 +3811,7 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
       required: ['param'],
       properties: {
         param: {
+          type: 'string',
           format: 'email'
         }
       }
