@@ -1,5 +1,5 @@
 function trace ({
-  headerSources = [TRACE_HTTP_HEADER, 'x-request-id'],
+  headerSources = ['x-honeycomb-trace', 'x-request-id'],
   parentRequestHeader = 'floop'
 } = {}) {
   if (!process.env.HONEYCOMBIO_WRITE_KEY) {

@@ -46,6 +46,5 @@ const STATUS = Symbol.for('status')
 const REISSUE = Symbol.for('reissue')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
-const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
 
 
