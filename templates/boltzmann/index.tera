@@ -6,10 +6,10 @@
 {% include "boltzmann/core/middleware.js" %}
 {% include "boltzmann/core/routes.js" %}
 
-{% include "boltzmann/data/context.js" %}
-{% include "boltzmann/data/cookie.js" %}
-{% include "boltzmann/data/session.js" %}
-{% include "boltzmann/data/errors.js" %}
+{% include "boltzmann/data/context.ts" %}
+{% include "boltzmann/data/cookie.ts" %}
+{% include "boltzmann/data/session.ts" %}
+{% include "boltzmann/data/errors.ts" %}
 
 {# bin scripts (printing routes, running the http server, building assets) #}
 
