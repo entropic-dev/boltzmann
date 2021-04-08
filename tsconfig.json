@@ -8,8 +8,10 @@
     "allowJs": true,
     "sourceMap": true,
     "downlevelIteration": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "typeRoots": [ "./types", "./node_modules/@types"]
   },
+  "types": ["./types/*.d.ts"],
   "extends": "@tsconfig/node14/tsconfig.json",
   "include": ["./templates/boltzmann/**/*.ts"]
 }

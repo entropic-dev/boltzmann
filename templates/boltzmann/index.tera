@@ -3,7 +3,7 @@
 {# core functions (middleware, body parsing, and routing support) #}
 
 {% include "boltzmann/core/body.ts" %}
-{% include "boltzmann/core/middleware.js" %}
+{% include "boltzmann/core/middleware.ts" %}
 {% include "boltzmann/core/routes.js" %}
 
 {% include "boltzmann/data/context.ts" %}

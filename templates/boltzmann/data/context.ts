@@ -55,7 +55,7 @@ type Session = number;
     }
   }
 
-  handler (_: Context) {
+  handler (_: Context): Promise<any> {
     throw new NoMatchError(String(this.request.method), this.url.pathname)
   }
 
