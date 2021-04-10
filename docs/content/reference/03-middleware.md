@@ -350,11 +350,13 @@ request bodies. It intercepts the body that would be returned by
 Request` error on validation failure. If the body passes validation it will be
 passed through.
 
-`Ajv` is configured with `{useDefaults: true}` by default. In development mode,
-`strictTypes` will be set to `true`. In non-development mode, it is set to
-`"log"`.
+`Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In
+development mode, `strictTypes` will be set to `true`. In non-development mode,
+it is set to `"log"`.
 
 **Arguments:**
+
+`validate.body(schema[, { ajv }])`
 
 - `schema`: Positional. A [JSON schema] object defining valid input.
 - `options`: Positional.
@@ -422,11 +424,13 @@ against the given schema, throwing a `400 Bad Request` error on validation
 failure, preventing execution of the handler. If the parameters pass validation
 the handler will be called.
 
-`Ajv` is configured with `{useDefaults: true, coerceTypes: "array"}` by
-default. In development mode, `strictTypes` will be set to `true`. In
-non-development mode, it is set to `"log"`.
+`Ajv` is configured with `{allErrors: true, useDefaults: true, coerceTypes:
+"array"}` by default. In development mode, `strictTypes` will be set to `true`.
+In non-development mode, it is set to `"log"`.
 
 **Arguments:**
+
+`validate.params(schema[, { ajv }])`
 
 - `schema`: Positional. A [JSON schema] object defining valid input.
 - `options`: Positional.
@@ -490,11 +494,13 @@ given schema, throwing a `400 Bad Request` error on validation failure,
 preventing execution of the handler. If the query parameters pass validation the
 handler will be called.
 
-`Ajv` is configured with `{useDefaults: true, coerceTypes: "array"}` by
-default. In development mode, `strictTypes` will be set to `true`. In
-non-development mode, it is set to `"log"`.
+`Ajv` is configured with `{allErrors: true, useDefaults: true, coerceTypes:
+"array"}` by default. In development mode, `strictTypes` will be set to `true`.
+In non-development mode, it is set to `"log"`.
 
 **Arguments:**
+
+`validate.query(schema[, { ajv }])`
 
 - `schema`: Positional. A [JSON schema] object defining valid input.
 - `options`: Positional.

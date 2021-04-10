@@ -168,6 +168,7 @@ const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
     this.host = host
     this.params = {}
 
+    this._query = null
     this._parsedUrl = null
     this._body = null
     this._accepts = null
@@ -244,6 +245,7 @@ const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
   }
 
   set url(value) {
+    this._query = null
     if (value instanceof URL) {
       this._parsedUrl = value
       this.request.url = this._parsedUrl.pathname + this._parsedUrl.search
@@ -254,7 +256,8 @@ const TRACE_HTTP_HEADER = 'x-honeycomb-trace'
   }
 
   get query () {
-    return Object.fromEntries(this.url.searchParams)
+    this._query = this._query || Object.fromEntries(this.url.searchParams)
+    return this._query
   }
 
   /** @type {Promise<Object>} */
@@ -2547,6 +2550,7 @@ function validateBody(schema, {
   ajv = addAJVFormats(addAJVKeywords(new AJV({
     useDefaults: true,
     strictTypes: isDev() ? true : "log",
+    allErrors: true
   }))),
 } = {}) {
   const validator = ajv.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema)
@@ -2572,6 +2576,7 @@ function validateBody(schema, {
 function validateBlock(what) {
   return function validate(schema, {
     ajv = addAJVFormats(addAJVKeywords(new AJV({
+      allErrors: true,
       useDefaults: true,
       coerceTypes: 'array',
       strictTypes: isDev() ? true : "log",
@@ -4656,21 +4661,29 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
         foo: '',
       }
     })
+
     assert.equal(response.statusCode, 400)
     assert.equal(called, 1)
     assert.same(JSON.parse(response.payload), {
       "message": "Bad request",
-      "errors": [
-        {
-          "keyword": "minLength",
-          "dataPath": ".foo",
-          "schemaPath": "#/properties/foo/minLength",
-          "params": {
-            "limit": 1
-          },
-          "message": "should NOT be shorter than 1 characters"
-        }
-      ]
+      "errors": [{
+        "instancePath": "",
+        "schemaPath": "#/required",
+        "keyword": "required",
+        "params": {
+          "missingProperty": "bar",
+        },
+        "message": "must have required property 'bar'",
+      },
+      {
+        "keyword": "minLength",
+        "instancePath": "/foo",
+        "schemaPath": "#/properties/foo/minLength",
+        "params": {
+          "limit": 1
+        },
+        "message": "must NOT have fewer than 1 characters"
+      }]
     })
   })
 
@@ -4707,12 +4720,12 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
       "errors": [
         {
           "keyword": "required",
-          "dataPath": "",
+          "instancePath": "",
           "schemaPath": "#/required",
           "params": {
             "missingProperty": "bar"
           },
-          "message": "should have required property 'bar'"
+          "message": "must have required property 'bar'"
         }
       ]
     })
@@ -4751,12 +4764,12 @@ if ({% if esm %}!isEval && esMain(import.meta){% else %}require.main === module{
       "errors": [
         {
           "keyword": "pattern",
-          "dataPath": ".parm",
+          "instancePath": "/parm",
           "schemaPath": "#/properties/parm/pattern",
           "params": {
             "pattern": "^esan$"
           },
-          "message": "should match pattern \"^esan$\""
+          "message": "must match pattern \"^esan$\""
         }
       ]
     })
