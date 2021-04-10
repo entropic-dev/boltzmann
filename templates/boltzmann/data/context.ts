@@ -15,6 +15,7 @@ type Session = number;
 
 /* {% if selftest %} */export /* {% endif %} */class Context {
   private _accepts?: Accepts
+  private _query?: Record<string, any>
   private _parsedUrl?: URL
   private _body?: Record<string, any>
   private _cookie?: Cookie
@@ -114,6 +115,7 @@ type Session = number;
   }
 
   set url(value) {
+    this._query = undefined
     if (value instanceof URL) {
       this._parsedUrl = value
       this.request.url = this._parsedUrl.pathname + this._parsedUrl.search
@@ -124,7 +126,8 @@ type Session = number;
   }
 
   get query () {
-    return Object.fromEntries(this.url.searchParams)
+    this._query = this._query || Object.fromEntries(this.url.searchParams)
+    return this._query
   }
 
   /** @type {Promise<Object>} */

@@ -5,6 +5,7 @@ const AJV = require('ajv')
 function validateBody(schema, {
   ajv = addAJVFormats(addAJVKeywords(new AJV({
     useDefaults: true,
+    allErrors: true,
     strictTypes: isDev() ? true : "log",
   }))),
 } = {}) {
@@ -32,6 +33,7 @@ function validateBlock(what) {
   return function validate(schema, {
     ajv = addAJVFormats(addAJVKeywords(new AJV({
       useDefaults: true,
+      allErrors: true,
       coerceTypes: 'array',
       strictTypes: isDev() ? true : "log",
     }))),

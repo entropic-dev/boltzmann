@@ -1,4 +1,3 @@
-
 test('_requireOr only returns default for top-level failure', async assert => {
   await fs.writeFile(path.join(__dirname, 'require-or-test'), 'const x = require("does-not-exist")')
 
@@ -1637,4 +1636,180 @@ test('template() ensures `paths` is an array', async assert => {
     caught++
   }
   assert.equal(caught, 1)
+})
+
+test('validate.body: invalid input', async assert => {
+  let called = 0
+  const handler = async context => {
+    ++called
+    await context.body
+    ++called
+  }
+
+  handler.route = 'POST /'
+  handler.middleware = [
+    [middleware.validate.body, {
+      type: 'object',
+      properties: {
+        foo: { type: 'string', minLength: 1 },
+        bar: { type: 'boolean' }
+      },
+      required: ['bar']
+    }]
+  ]
+
+  const server = await main({
+    handlers: { handler },
+    middleware: []
+  })
+
+  const [onrequest] = server.listeners('request')
+  const response = await shot.inject(onrequest, {
+    method: 'POST',
+    url: '/',
+    payload: {
+      foo: '',
+    }
+  })
+
+  assert.equal(response.statusCode, 400)
+  assert.equal(called, 1)
+  assert.same(JSON.parse(response.payload), {
+    "message": "Bad request",
+    "errors": [{
+      "instancePath": "",
+      "schemaPath": "#/required",
+      "keyword": "required",
+      "params": {
+        "missingProperty": "bar",
+      },
+      "message": "must have required property 'bar'",
+    },
+    {
+      "keyword": "minLength",
+      "instancePath": "/foo",
+      "schemaPath": "#/properties/foo/minLength",
+      "params": {
+        "limit": 1
+      },
+      "message": "must NOT have fewer than 1 characters"
+    }]
+  })
+})
+
+test('validate.query: invalid input', async assert => {
+  let called = 0
+  const handler = async context => {
+    ++called
+  }
+
+  handler.route = 'GET /'
+  handler.middleware = [
+    [middleware.validate.query, {
+      type: 'object',
+      properties: {
+        bar: { type: 'boolean' }
+      },
+      required: ['bar']
+    }]
+  ]
+
+  const server = await main({
+    handlers: { handler },
+    middleware: []
+  })
+
+  const [onrequest] = server.listeners('request')
+  const response = await shot.inject(onrequest, {
+    url: '/',
+  })
+  assert.equal(response.statusCode, 400)
+  assert.equal(called, 0)
+  assert.same(JSON.parse(response.payload), {
+    "message": "Bad request",
+    "errors": [
+      {
+        "keyword": "required",
+        "instancePath": "",
+        "schemaPath": "#/required",
+        "params": {
+          "missingProperty": "bar"
+        },
+        "message": "must have required property 'bar'"
+      }
+    ]
+  })
+})
+
+test('validate.params: invalid input', async assert => {
+  let called = 0
+  const handler = async context => {
+    ++called
+  }
+
+  handler.route = 'GET /:parm'
+  handler.middleware = [
+    [middleware.validate.params, {
+      type: 'object',
+      properties: {
+        parm: { type: 'string', pattern: '^esan$' }
+      },
+      required: ['parm']
+    }]
+  ]
+
+  const server = await main({
+    handlers: { handler },
+    middleware: []
+  })
+
+  const [onrequest] = server.listeners('request')
+  const response = await shot.inject(onrequest, {
+    url: '/gouda',
+  })
+  assert.equal(response.statusCode, 400)
+  assert.equal(called, 0)
+  assert.same(JSON.parse(response.payload), {
+    "message": "Bad request",
+    "errors": [
+      {
+        "keyword": "pattern",
+        "instancePath": "/parm",
+        "schemaPath": "#/properties/parm/pattern",
+        "params": {
+          "pattern": "^esan$"
+        },
+        "message": "must match pattern \"^esan$\""
+      }
+    ]
+  })
+})
+
+test('validate.query: using defaults', async assert => {
+  let called = 0
+  const handler = async context => {
+    return context.query.bar || 'ohno'
+  }
+
+  handler.route = 'GET /'
+  handler.middleware = [
+    [middleware.validate.query, {
+      type: 'object',
+      properties: {
+        bar: { type: 'string', default: "aw heck" }
+      },
+    }]
+  ]
+
+  const server = await main({
+    handlers: { handler },
+    middleware: []
+  })
+
+  const [onrequest] = server.listeners('request')
+  const response = await shot.inject(onrequest, {
+    url: '/',
+  })
+  assert.equal(response.statusCode, 200)
+  assert.same(response.payload, 'aw heck')
 })
