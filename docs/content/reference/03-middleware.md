@@ -347,11 +347,11 @@ module.exports = {
 The `validate.body` middleware applies [JSON schema] validation to incoming
 request bodies. It intercepts the body that would be returned by
 [`context.body`] and validates it against the given schema, throwing a `400 Bad
-Request` error on validation failure. If the body passes validation it will be
+Request` error on validation failure. If the body passes validation it is
 passed through.
 
 `Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In
-development mode, `strictTypes` will be set to `true`. In non-development mode,
+development mode, `strictTypes` is set to `true`. In non-development mode,
 it is set to `"log"`.
 
 **Arguments:**
@@ -380,7 +380,7 @@ example.middleware = [
 example.route = 'POST /example'
 export async function example (context) {
   // if body.id isn't a uuid, this throws a 400 Bad request error,
-  // otherwise it `id` will be a string containing a uuid:
+  // otherwise `id` is a string containing a uuid:
   const { id } = await context.body
 }
 
@@ -403,7 +403,7 @@ customAjv.middleware = [
 customAjv.route = 'POST /custom'
 export async function customAjv (context) {
   // if body.id isn't a uuid, this throws a 400 Bad request error,
-  // otherwise it `id` will be a string containing a uuid:
+  // otherwise `id` is a string containing a uuid:
   const { id } = await context.body
 }
 ```
@@ -422,10 +422,10 @@ The `validate.params` middleware applies [JSON schema] validation to url
 parameters matched during request routing. Matched URL parameters are validated
 against the given schema, throwing a `400 Bad Request` error on validation
 failure, preventing execution of the handler. If the parameters pass validation
-the handler will be called.
+the handler is called.
 
 `Ajv` is configured with `{allErrors: true, useDefaults: true, coerceTypes:
-"array"}` by default. In development mode, `strictTypes` will be set to `true`.
+"array"}` by default. In development mode, `strictTypes` is set to `true`.
 In non-development mode, it is set to `"log"`.
 
 **Arguments:**
@@ -492,10 +492,10 @@ The `validate.query` middleware applies [JSON schema] validation to incoming
 HTTP query (or "search") parameters. Query parameters are validated against the
 given schema, throwing a `400 Bad Request` error on validation failure,
 preventing execution of the handler. If the query parameters pass validation the
-handler will be called.
+handler is called.
 
 `Ajv` is configured with `{allErrors: true, useDefaults: true, coerceTypes:
-"array"}` by default. In development mode, `strictTypes` will be set to `true`.
+"array"}` by default. In development mode, `strictTypes` is set to `true`.
 In non-development mode, it is set to `"log"`.
 
 **Arguments:**
