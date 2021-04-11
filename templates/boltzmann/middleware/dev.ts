@@ -1,18 +1,23 @@
-const hangWarning = Symbol('hang-stall')
-const hangError = Symbol('hang-error')
+// {% if selftest %}
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+// {% endif %}
 
-function dev(
-  nextName,
+const hangWarning: unique symbol = Symbol('hang-stall')
+const hangError: unique symbol  = Symbol('hang-error')
+
+/* {% if selftest %} */export /* {% endif %} */function dev(
+  nextName: string,
   warnAt = Number(process.env.DEV_LATENCY_WARNING_MS) || 500,
   errorAt = Number(process.env.DEV_LATENCY_ERROR_MS) || 2000
 ) {
-  return function devMiddleware (next) {
-    return async function inner(context) {
+  return function devMiddleware (next: Handler) {
+    return async function inner(context: Context) {
       const req = context.request
-      if (context[hangWarning]) {
-        clearTimeout(context[hangWarning])
+      if (context[hangWarning as any]) {
+        clearTimeout(context[hangWarning as any])
       }
-      context[hangWarning] = setTimeout(() => {
+      context[hangWarning as any] = setTimeout(() => {
         console.error(
           `⚠️ Response from ${nextName} > ${warnAt}ms fetching "${req.method} ${
             req.url
@@ -23,10 +28,10 @@ function dev(
         )
       }, warnAt)
 
-      if (context[hangError]) {
-        clearTimeout(context[hangError])
+      if (context[hangError as any]) {
+        clearTimeout(context[hangError as any])
       }
-      context[hangError] = setTimeout(() => {
+      context[hangError as any] = setTimeout(() => {
         console.error(
           `🛑 STALL: Response from ${nextName} > ${errorAt}ms: "${req.method} ${
             req.url
@@ -38,12 +43,11 @@ function dev(
       }, errorAt)
 
       const result = await next(context)
-      clearTimeout(context[hangWarning])
-      context[hangWarning] = null
-      clearTimeout(context[hangError])
-      context[hangError] = null
+      clearTimeout(context[hangWarning as any])
+      context[hangWarning as any] = null
+      clearTimeout(context[hangError as any])
+      context[hangError as any] = null
       return result
     }
   }
 }
-

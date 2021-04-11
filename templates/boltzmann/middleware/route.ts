@@ -1,8 +1,18 @@
-function route (handlers = {}) {
+// {% if selftest %}
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+const STATUS = Symbol.for('status')
+const HEADERS = Symbol.for('headers')
+const TEMPLATE = Symbol.for('template')
+const THREW = Symbol.for('threw')
+import fmw from 'find-my-way'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */function route (handlers = {}) {
   const wayfinder = fmw({})
 
-  return async next => {
-    for (let [key, handler] of Object.entries(handlers)) {
+  return async (next: Handler) => {
+    for (let handler of Object.values(handlers)) {
       if (typeof handler.route === 'string') {
         let [method, ...route] = handler.route.split(' ')
         route = route.join(' ')
@@ -63,7 +73,7 @@ function route (handlers = {}) {
       }
     }
 
-    return context => {
+    return (context: Context) => {
       const { pathname } = context.url
       const match = wayfinder.find(context.request.method, pathname, ...(
         context.request.headers['accept-version']

@@ -29,7 +29,7 @@ import { IncomingMessage } from 'http'
   })
 }
 
-/* {% if selftest %} */export /* {% endif %} */function _attachContentType (next: BodyParser): BodyParser {
+function _attachContentType (next: BodyParser): BodyParser {
   return (request: IncomingMessage) => {
     const [contentType, ...attrs] = (
       request.headers['content-type'] ||

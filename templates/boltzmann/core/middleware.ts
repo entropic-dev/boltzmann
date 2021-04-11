@@ -9,7 +9,7 @@ import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
 // {% endif %}
 
-export interface Handler {
+/* {% if selftest %} */export /* {% endif %} */interface Handler {
   (context: Context): Promise<any> | any;
   method?: string
   route?: string
@@ -18,27 +18,27 @@ export interface Handler {
   middleware?: MiddlewareConfig[]
 }
 
-export interface Adaptor {
+/* {% if selftest %} */export /* {% endif %} */interface Adaptor {
   (next: Handler): Handler | Promise<Handler>;
 }
 
-export interface Middleware {
+/* {% if selftest %} */export /* {% endif %} */interface Middleware {
   (...args: any[]): Adaptor;
 }
 
-type MiddlewareConfig = Middleware | [Middleware, ...any[]]
+/* {% if selftest %} */export /* {% endif %} */type MiddlewareConfig = Middleware | [Middleware, ...any[]]
 
 /* {% if selftest %} */export /* {% endif %} */async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler) {
   const middlewareToSplice = (
     isDev()
-    ? (mw: MiddlewareConfig) => [
+    ? (mw: Middleware) => [
       // {% if honeycomb %}
       honeycombMiddlewareSpans(mw),
       // {% endif %}
-      dev(mw),
+      dev(mw.name),
       enforceInvariants()
     ]
-    : (mw: MiddlewareConfig) => [
+    : (mw: Middleware) => [
       // {% if honeycomb %}
       honeycombMiddlewareSpans(mw),
       // {% endif %}

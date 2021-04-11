@@ -1,13 +1,21 @@
+// {% if selftest %}
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+const STATUS = Symbol.for('status')
+const HEADERS = Symbol.for('headers')
+const TEMPLATE = Symbol.for('template')
+const THREW = Symbol.for('threw')
+// {% endif %}
 
-function enforceInvariants () {
-  return function invariantMiddleware (next) {
+/* {% if selftest %} */export /* {% endif %} */function enforceInvariants () {
+  return function invariantMiddleware (next: Handler) {
     // the "...args" here are load-bearing: this is applied between
     // decorators _and_ middleware
-    return async function invariant (ctx, ...args) {
+    return async function invariant (ctx: Context) {
       let error, result
 
       try {
-        result = await next(ctx, ...args)
+        result = await next(ctx)
       } catch (err) {
         error = err
       }
@@ -56,8 +64,8 @@ function enforceInvariants () {
       }
 
       const stream = Buffer.from(String(result), 'utf8')
-      stream[STATUS] = status
-      stream[HEADERS] = headers
+      stream[STATUS as any] = status
+      stream[HEADERS as any] = headers
       return stream
     }
   }
