@@ -7,7 +7,7 @@ const hangWarning: unique symbol = Symbol('hang-stall')
 const hangError: unique symbol  = Symbol('hang-error')
 
 /* {% if selftest %} */export /* {% endif %} */function dev(
-  nextName: string,
+  nextName?: string,
   warnAt = Number(process.env.DEV_LATENCY_WARNING_MS) || 500,
   errorAt = Number(process.env.DEV_LATENCY_ERROR_MS) || 2000
 ) {

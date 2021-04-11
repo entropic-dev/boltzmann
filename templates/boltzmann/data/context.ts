@@ -3,8 +3,11 @@ import { Cookie } from './cookie'
 // {% endif %}
 import { v4 } from 'uuid'
 import { default as accepts, Accepts } from 'accepts'
-import { IncomingMessage, OutgoingMessage } from 'http'
+import { IncomingMessage, ServerResponse } from 'http'
 import { URL } from 'url'
+
+import { Handler } from '../core/middleware'
+
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 /* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
 
@@ -25,6 +28,7 @@ type Session = number;
   public remote: string
   public host: string
   public params: Record<string, any>
+  public handler: Handler = this.baseHandler
 
   // {% if redis %}
   public _redisClient?: IHandyRedis
@@ -36,7 +40,7 @@ type Session = number;
 
   [extensions: string]: any
 
-  constructor(public request: IncomingMessage, public _response: OutgoingMessage) {
+  constructor(public request: IncomingMessage, public _response: ServerResponse) {
     this.request = request
     this.start = Date.now()
     this.remote = request.socket
@@ -56,7 +60,7 @@ type Session = number;
     }
   }
 
-  handler (_: Context): Promise<any> {
+  baseHandler (_: Context): Promise<any> {
     throw new NoMatchError(String(this.request.method), this.url.pathname)
   }
 

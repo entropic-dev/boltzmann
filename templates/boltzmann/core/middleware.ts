@@ -1,29 +1,33 @@
 // {% if selftest %}
-import { beeline } from 'honeycomb-beeline'
-import { isDev } from 'are-we-dev'
+import beeline from 'honeycomb-beeline'
+import { HTTPMethod } from 'find-my-way'
+import isDev from 'are-we-dev'
 
 import { enforceInvariants } from '../middleware/enforce-invariants'
 import { honeycombMiddlewareSpans } from '../middleware/honeycomb'
+import { BodyParserDefinition } from '../core/body'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */interface Handler {
-  (context: Context): Promise<any> | any;
-  method?: string
-  route?: string
-  version?: string
-  decorators?: ((next: Handler) => Handler)[]
+  (context: Context): Promise<any> | any,
+  method?: HTTPMethod[] | HTTPMethod,
+  route?: string,
+  version?: string,
+  decorators?: Adaptor[],
+  bodyParsers?: BodyParserDefinition[],
   middleware?: MiddlewareConfig[]
 }
 
 /* {% if selftest %} */export /* {% endif %} */interface Adaptor {
-  (next: Handler): Handler | Promise<Handler>;
+  (next: Handler): Handler | Promise<Handler>
 }
 
 /* {% if selftest %} */export /* {% endif %} */interface Middleware {
-  (...args: any[]): Adaptor;
+  (...args: any[]): Adaptor
+  name?: string
 }
 
 /* {% if selftest %} */export /* {% endif %} */type MiddlewareConfig = Middleware | [Middleware, ...any[]]
@@ -81,7 +85,7 @@ import { dev } from '../middleware/dev'
     return await handler(context)
     // {% if honeycomb %}
   } finally {
-    if (process.env.HONEYCOMBIO_WRITE_KEY) {
+    if (process.env.HONEYCOMBIO_WRITE_KEY && span !== null) {
       beeline.finishSpan(span)
     }
   }

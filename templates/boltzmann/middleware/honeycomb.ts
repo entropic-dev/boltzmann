@@ -1,18 +1,25 @@
-function trace ({
+// {% if selftest %}
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+import { ServerResponse } from 'http'
+import onHeaders from 'on-headers'
+import beeline from 'honeycomb-beeline'
+import isDev from 'are-we-dev'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
-  parentRequestHeader = 'floop'
 } = {}) {
   if (!process.env.HONEYCOMBIO_WRITE_KEY) {
-    return next => context => next(context)
+    return (next: Handler) => (context: Context) => next(context)
   }
 
   const schema = require('honeycomb-beeline/lib/schema')
   const tracker = require('honeycomb-beeline/lib/async_tracker')
 
-  return function honeycombTrace (next) {
-    return context => {
+  return function honeycombTrace (next: Handler) {
+    return (context: Context) => {
       const traceContext = _getTraceContext(context)
-      const req = context.request
       const trace = beeline.startTrace({
         [schema.EVENT_TYPE]: 'boltzmann',
         [schema.PACKAGE_VERSION]: '1.0.0',
@@ -42,7 +49,7 @@ function trace ({
         return next(context)
       }
 
-      const boundFinisher = beeline.bindFunctionToTrace(response => {
+      const boundFinisher = beeline.bindFunctionToTrace((response: ServerResponse) => {
         beeline.addContext({
           'response.status_code': String(response.statusCode)
         })
@@ -70,14 +77,14 @@ function trace ({
     }
   }
 
-  function _getTraceContext (context) {
+  function _getTraceContext (context: Context) {
     const source = headerSources.find(header => header in context.headers)
 
     if (!source || !context.headers[source]) {
       return {}
     }
 
-    if (source === TRACE_HTTP_HEADER) {
+    if (source === 'x-honeycomb-trace') {
       const data = beeline.unmarshalTraceContext(context.headers[source])
 
       if (!data) {
@@ -94,13 +101,13 @@ function trace ({
   }
 }
 
-function honeycombMiddlewareSpans ({name} = {}) {
+/* {% if selftest %} */export /* {% endif %} */function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
   if (!process.env.HONEYCOMBIO_WRITE_KEY) {
-    return next => context => next(context)
+    return (next: Handler) => (context: Context) => next(context)
   }
 
-  return function honeycombSpan (next) {
-    return async context => {
+  return function honeycombSpan (next: Handler) {
+    return async (context: Context) => {
       const span = beeline.startSpan({
         name: `mw: ${name}`
       })

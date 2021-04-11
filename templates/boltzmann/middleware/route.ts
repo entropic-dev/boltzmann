@@ -1,26 +1,30 @@
 // {% if selftest %}
-import { Handler } from '../core/middleware'
-import { Context } from '../data/context'
-const STATUS = Symbol.for('status')
-const HEADERS = Symbol.for('headers')
-const TEMPLATE = Symbol.for('template')
-const THREW = Symbol.for('threw')
+import { RouteOptions } from 'find-my-way'
+import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
+import { Handler as FMWHandler, HTTPVersion, HTTPMethod } from 'find-my-way'
+
+import { enforceInvariants } from '../middleware/enforce-invariants'
+import { Handler, Adaptor } from '../core/middleware'
+import { buildMiddleware } from '../core/middleware'
+import { buildBodyParser } from '../core/body'
+import { Context } from '../data/context'
+import { vary } from '../middleware/vary'
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function route (handlers = {}) {
+/* {% if selftest %} */export /* {% endif %} */function route (handlers: Record<string, Handler> = {}) {
   const wayfinder = fmw({})
 
   return async (next: Handler) => {
     for (let handler of Object.values(handlers)) {
       if (typeof handler.route === 'string') {
-        let [method, ...route] = handler.route.split(' ')
-        route = route.join(' ')
+        let [method, ...routeParts] = handler.route.split(' ')
+        let route = routeParts.join(' ')
         if (route.length === 0) {
           route = method
-          method = (handler.method || 'GET')
+          method = (handler.method || 'GET') as string
         }
-        const opts = {}
+        const opts: RouteOptions = {}
         if (handler.version) {
           opts.constraints = { version: handler.version }
           handler.middleware = handler.middleware || []
@@ -39,9 +43,9 @@ import fmw from 'find-my-way'
         // {% endif %}
 
         if (Array.isArray(decorators)) {
-          handler = decorators.reduce((lhs, rhs) => {
+          handler = await decorators.reduce((lhs: Adaptor[], rhs: Adaptor) => {
             return [...lhs, enforceInvariants(), rhs]
-          }, []).reduceRight((lhs, rhs) => rhs(lhs), enforceInvariants()(handler))
+          }, []).reduceRight(async (lhs, rhs) => rhs(await lhs), Promise.resolve(enforceInvariants()(handler) as Handler))
         }
 
         const bodyParser = (
@@ -69,13 +73,14 @@ import fmw from 'find-my-way'
           decorators: (decorators || []).map(xs => xs.name),
         })
 
-        wayfinder.on(method, route, opts, handler)
+        wayfinder.on(<HTTPMethod | HTTPMethod[]>method, route, opts, <FMWHandler<HTTPVersion.V1>><unknown>handler)
       }
     }
 
     return (context: Context) => {
       const { pathname } = context.url
-      const match = wayfinder.find(context.request.method, pathname, ...(
+      const method = context.request.method || 'GET'
+      const match = wayfinder.find(method as HTTPMethod, pathname, ...(
         context.request.headers['accept-version']
         ? [{version: context.request.headers['accept-version']}]
         : []
@@ -86,7 +91,7 @@ import fmw from 'find-my-way'
       }
 
       context.params = match.params
-      context.handler = match.handler
+      context.handler = <Handler><unknown>match.handler
 
       return next(context)
     }
