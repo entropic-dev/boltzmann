@@ -1,24 +1,42 @@
+// {% if selftest %}
+import { Context } from '../data/context'
+// {% endif %}
 let _uuid = null
 let IN_MEMORY = new Map()
-function session ({
+
+/* {% if selftest %} */export /* {% endif %} */interface LoadSession {
+  (context: Context, id: string): Promise<Record<string, unknown>>
+}
+
+/* {% if selftest %} */export /* {% endif %} */interface SaveSession {
+  (context: Context, id: string, session: Record<string, unknown>): Promise<void>
+}
+
+const inMemorySessionLoad: LoadSession = async (_, id) => JSON.parse(IN_MEMORY.get(id))
+const redisSessionLoad: LoadSession = async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}')
+const inMemorySessionSave: SaveSession = async (_, id, session) => IN_MEMORY.set(id, JSON.stringify(session))
+const redisSessionSave: SaveSession = async (context, id, session) => {
+  // Add 5 seconds of lag
+  await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
+}
+
+let defaultSessionLoad = inMemorySessionLoad
+// {% if redis %}
+let defaultSessionLoad = redisSessionLoad
+
+
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,
   logger = bole('boltzmann:session'),
-  load =
-// {% if redis %}
-  async (context, id) => JSON.parse(await context.redisClient.get(id) || '{}'),
-// {% else %}
-  async (context, id) => JSON.parse(IN_MEMORY.get(id)),
-// {% endif %}
+  load = defaultSessionLoad,
   save =
 // {% if redis %}
-  async (context, id, session) => {
-    // Add 5 seconds of lag
-    await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
-  },
+  ,
 // {% else %}
-  async (context, id, session) => IN_MEMORY.set(id, JSON.stringify(session)),
 // {% endif %}
   iron = {},
   cookieOptions = {},
