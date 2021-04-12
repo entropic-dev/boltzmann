@@ -1,9 +1,31 @@
-async function main ({
+// {% if selftest %}
+import bole from '@entropic-dev/bole'
+import isDev from 'are-we-dev'
+import http from 'http'
+
+import { MiddlewareConfig, handler, buildMiddleware } from '../core/middleware'
+import { buildBodyParser } from '../core/body'
+import { route } from '../middleware/route'
+import { Context } from '../data/context'
+import { _requireOr, _processMiddleware, _processBodyParsers } from '../utils'
+
+import { urlEncoded } from '../body/urlencoded'
+import { json } from '../body/json'
+const STATUS = Symbol.for('status')
+const HEADERS = Symbol.for('headers')
+const THREW = Symbol.for('threw')
+// {% endif %}
+
+interface DebugLocationInfo {
+  name: string,
+  location: string
+}
+/* {% if selftest %} */export /* {% endif %} */async function main ({
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
   bodyParsers = _requireOr('./body', [urlEncoded, json]).then(_processBodyParsers),
   handlers = _requireOr('./handlers', {}),
 } = {}) {
-  [middleware, bodyParsers, handlers] = await Promise.all([
+  const [resolvedMiddleware, resolvedBodyParsers, resolvedHandlers] = await Promise.all([
     middleware,
     bodyParsers,
     handlers,
@@ -26,18 +48,18 @@ async function main ({
     })
   }
 
-  const respond = await buildMiddleware([[route, handlers], ...middleware], handler)
-  Context._bodyParser = buildBodyParser(bodyParsers)
+  const respond = await buildMiddleware([[route, resolvedHandlers], ...resolvedMiddleware], handler)
+  Context._bodyParser = buildBodyParser(resolvedBodyParsers)
 
   // {% if templates %}
-  let _middleware = []
+  let _middleware: DebugLocationInfo[] = []
   if (isDev() && !process.env.TAP) {
     const getFunctionLocation = require('get-function-location')
-    _middleware = await Promise.all(middleware.map(async xs => {
+    _middleware = await Promise.all(resolvedMiddleware.map(async (xs: MiddlewareConfig): Promise<DebugLocationInfo> => {
       const fn = (Array.isArray(xs) ? xs[0] : xs)
       const loc = await getFunctionLocation(fn)
       return {
-        name: fn.name,
+        name: String(fn.name),
         location: `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`
       }
     }))
@@ -49,7 +71,7 @@ async function main ({
 
     // {% if templates %}
     if (isDev()) {
-      context._handlers = handlers
+      context._handlers = resolvedHandlers
       context._middleware = _middleware
     }
     // {% endif %}
@@ -72,8 +94,8 @@ async function main ({
       [HEADERS]: headers,
     } = body || {}
 
-    if (context._cookie) {
-      const setCookie = context._cookie.collect()
+    if (context.hasCookie) {
+      const setCookie = context.cookie.collect()
       if (setCookie.length) {
         headers['set-cookie'] = setCookie
       }

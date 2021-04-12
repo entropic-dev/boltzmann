@@ -1,17 +1,17 @@
 // {% if selftest %}
-import { Cookie } from './cookie'
-// {% endif %}
-import { v4 } from 'uuid'
-import { default as accepts, Accepts } from 'accepts'
 import { IncomingMessage, ServerResponse } from 'http'
+import { default as accepts, Accepts } from 'accepts'
 import { URL } from 'url'
+import { v4 } from 'uuid'
 
 import { Handler } from '../core/middleware'
-
+import { BodyParser } from '../core/body'
+import { Session } from './session'
+import { Cookie } from './cookie'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 /* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
+// {% endif %}
 
-type Session = number;
 /* {% if selftest %} */export /* {% endif %} */interface LoadSession {
   (): Promise<Session>
 }
@@ -73,6 +73,10 @@ type Session = number;
     return this._postgresConnection
   }
   // {% endif %}
+
+  get hasCookie () {
+    return Boolean(this._cookie)
+  }
 
   get cookie () {
     this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
@@ -157,6 +161,6 @@ type Session = number;
     return this._accepts
   }
 
-  static _bodyParser = null
+  static _bodyParser?: BodyParser
 }
 

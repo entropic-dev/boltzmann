@@ -1,5 +1,12 @@
-function json (next) {
-  return async request => {
+// {% if selftest %}
+import isDev from 'are-we-dev'
+
+import { BodyParser, BodyInput } from '../core/body'
+import { _collect } from '../utils'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */function json (next: BodyParser) {
+  return async (request: BodyInput) => {
     if (
       request.contentType.type === 'application' &&
       request.contentType.subtype === 'json' &&

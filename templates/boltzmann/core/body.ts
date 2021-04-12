@@ -12,8 +12,10 @@ import { IncomingMessage } from 'http'
   }
 }
 
+/* {% if selftest %} */export /* {% endif %} */type BodyInput = IncomingMessage & ContentType;
+
 /* {% if selftest %} */export /* {% endif %} */interface BodyParser {
-  (request: IncomingMessage | (IncomingMessage & ContentType)): unknown | Promise<unknown>
+  (request: BodyInput): unknown | Promise<unknown>
 }
 
 /* {% if selftest %} */export /* {% endif %} */interface BodyParserDefinition {

@@ -1,5 +1,12 @@
-function urlEncoded (next) {
-  return async request => {
+// {% if selftest %}
+import querystring from 'querystring'
+
+import { BodyParser, BodyInput } from '../core/body'
+import { _collect } from '../utils'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */function urlEncoded (next: BodyParser) {
+  return async (request: BodyInput) => {
     if (
       request.contentType.type !== 'application' ||
       request.contentType.subtype !== 'x-www-form-urlencoded' ||
