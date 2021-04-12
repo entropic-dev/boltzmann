@@ -1,0 +1,1 @@
+echo "($(find templates/boltzmann -type f -name '*.ts'  | wc -l) / $(find templates/boltzmann -type f | grep -v tera  | wc -l)) * 100" | bc -l
