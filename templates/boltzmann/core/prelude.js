@@ -4,7 +4,7 @@
 'use strict'
 // Boltzmann v{{ version }}
 
-const serviceName = (
+/* {% if selftest %} */export /* {% endif %} */const serviceName = (
   process.env.SERVICE_NAME ||
   require('./package.json').name.split('/').pop()
 )
