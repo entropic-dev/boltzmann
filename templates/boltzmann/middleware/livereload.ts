@@ -1,17 +1,24 @@
+// {% if selftest %}
+import bole from '@entropic-dev/bole'
+import { Readable } from 'stream'
 
-function livereload({ reloadPath = '/__livereload' } = {}) {
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+// {% endif %}
+
+/* {% if selftest %} */ export /* {% endif %} */ function livereload({
+  reloadPath = '/__livereload',
+}: { reloadPath?: string } = {}) {
   const logger = bole('boltzmann:livereload')
   logger.info('live reload enabled!')
   const number = Date.now()
-  return next => async context => {
+  return (next: Handler) => async (context: Context) => {
     if (context.url.pathname === reloadPath) {
-      const { Readable } = require('stream')
-
       let active = false
       const stream = new Readable({
-        read (_) {
+        read(_: number) {
           active = true
-        }
+        },
       })
 
       const interval = setInterval(() => {
@@ -21,7 +28,7 @@ function livereload({ reloadPath = '/__livereload' } = {}) {
       }, 5000)
 
       stream
-        .on('pause', () => active = false)
+        .on('pause', () => (active = false))
         .once('error', () => clearInterval(interval))
         .once('end', () => clearInterval(interval))
 
@@ -29,7 +36,7 @@ function livereload({ reloadPath = '/__livereload' } = {}) {
         [Symbol.for('headers')]: {
           'content-type': 'text/event-stream',
           'cache-control': 'no-cache',
-        }
+        },
       })
     }
 
@@ -72,10 +79,7 @@ function livereload({ reloadPath = '/__livereload' } = {}) {
         connect()
       `
 
-      return Object.assign(Buffer.from(
-        String(response).replace('</html>', `<script>${src}</script></html>`),
-        'utf8'
-      ), {
+      return Object.assign(Buffer.from(String(response).replace('</html>', `<script>${src}</script></html>`), 'utf8'), {
         [Symbol.for('status')]: response[Symbol.for('status')],
         [Symbol.for('headers')]: response[Symbol.for('headers')],
       })
