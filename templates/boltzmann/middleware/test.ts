@@ -1,32 +1,32 @@
 // {% if selftest %}
 import { inject, RequestOptions as ShotRequestOptions, Listener, SimulatedResponseObject } from '@hapi/shot'
-import redis, {IHandyRedis} from 'handy-redis'
+import redis, { IHandyRedis } from 'handy-redis'
 import { Client as PGClient } from 'pg'
 import bole from '@entropic-dev/bole'
 import isDev from 'are-we-dev'
 import tap from 'tap'
 
-import { json } from '../body/json'
-import { urlEncoded } from '../body/urlencoded'
 import { Handler, MiddlewareConfig } from '../core/middleware'
+import { BodyParserDefinition } from '../core/body'
+import { urlEncoded } from '../body/urlencoded'
 import { serviceName } from '../core/prelude'
 import { Context } from '../data/context'
+import { main } from '../bin/runserver'
 import { _requireOr } from '../utils'
-import { BodyParserDefinition } from '../core/body'
-import {main} from '../bin/main'
+import { json } from '../body/json'
 
 const THREW = Symbol.for('THREW')
 // {% endif %}
 
-type Test = NonNullable<ConstructorParameters<typeof tap.Test>[0]>;
+type Test = NonNullable<ConstructorParameters<typeof tap.Test>[0]>
 type AugmentedTest = Test & {
   // {% if postgres %}
-  postgresClient: PGClient,
+  postgresClient: PGClient
   // {% endif %}
   // {% if redis %}
-  redisClient: IHandyRedis,
+  redisClient: IHandyRedis
   // {% endif %}
-  request(opts: ShotRequestOptions): Promise<SimulatedResponseObject & { json?: ReturnType<JSON["parse"]>}>
+  request(opts: ShotRequestOptions): Promise<SimulatedResponseObject & { json?: ReturnType<JSON['parse']> }>
 }
 
 let savepointId = 0
@@ -125,7 +125,14 @@ let savepointId = 0
         handlers: resolvedHandlers,
       })
       const [onrequest] = server.listeners('request')
-      const request = async ({ method = 'GET', url = '/', headers = {}, body, payload, ...opts }: Partial<ShotRequestOptions> & { body?: string | Buffer } = {}) => {
+      const request = async ({
+        method = 'GET',
+        url = '/',
+        headers = {},
+        body,
+        payload,
+        ...opts
+      }: Partial<ShotRequestOptions> & { body?: string | Buffer } = {}) => {
         headers = headers || {}
         payload = payload || body
         if (!Buffer.isBuffer(payload) && typeof payload !== 'string' && payload) {

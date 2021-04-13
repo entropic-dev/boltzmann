@@ -8,7 +8,7 @@ import { routes } from '../core/routes'
 import { buildAssets } from '../bin/esbuild'
 // {% endif %}
 import { printRoutes } from '../bin/routes'
-import { main } from '../bin/main'
+import { main } from '../bin/runserver'
 
 import { urlEncoded } from '../body/urlencoded'
 import { json } from '../body/json'

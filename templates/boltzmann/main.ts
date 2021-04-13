@@ -2,7 +2,7 @@
 import bole from '@entropic-dev/bole'
 import isDev from 'are-we-dev'
 
-import { main } from './bin/main'
+import { main } from './bin/runserver'
 import { Handler, MiddlewareConfig } from './core/middleware'
 import { Context } from './data/context'
 import { trace } from './middleware/honeycomb'
