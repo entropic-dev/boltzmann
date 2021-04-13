@@ -1,5 +1,5 @@
 // {% if selftest %}
-const REISSUE = Symbol.for('reissue')
+export const REISSUE = Symbol.for('reissue')
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */class Session extends Map<string, any> {

@@ -4,9 +4,11 @@ import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-import { Session } from '../data/session'
+import { Session, REISSUE } from '../data/session'
 import crypto from 'crypto'
 import uuid from 'uuid'
+
+
 // {% endif %}
 
 let IN_MEMORY = new Map()
@@ -81,7 +83,7 @@ defaultSessionSave = redisSessionSave
 
   return (next: Handler) => {
     return async (context: Context) => {
-      let _session: Session | null = null
+      let _session: Session | undefined
       context._loadSession = async () => {
         if (_session) {
           return _session
@@ -128,15 +130,13 @@ defaultSessionSave = redisSessionSave
       const needsReissue = !_session.id || _session[REISSUE]
       const issued = Date.now()
       const clientId = needsReissue ? `s_${uuid.v4()}:${issued}` : _session.id
-      const id = `s:${crypto.createHash('sha256').update(clientId).update(salt).digest('hex')}`
+      const id = `s:${crypto.createHash('sha256').update(<string>clientId).update(<string>salt).digest('hex')}`
 
       _session.set('modified', issued)
       await save(context, id, Object.fromEntries(_session.entries()), expirySeconds)
 
       if (needsReissue) {
-        _iron = _iron || require('@hapi/iron')
-
-        const sealed = await seal(clientId, secret, { ...ironDefaults, ...iron })
+        const sealed = await seal(<string>clientId, <string>secret, { ...ironDefaults, ...iron })
 
         context.cookie.set(cookie, {
           value: sealed,
