@@ -1,6 +1,17 @@
-let OAuth2 = null
+// {% if selftest %}
+import { decode as decodeJWT } from 'jsonwebtoken'
+import bole from '@entropic-dev/bole'
+import { OAuth2 } from 'oauth'
+import isDev from 'are-we-dev'
+import crypto from 'crypto'
+import { URL } from 'url'
+import uuid from 'uuid'
 
-function handleOAuthLogin ({
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+// {% endif %}
+
+/* {% if selftest %} */ export /* {% endif %} */function handleOAuthLogin ({
   prompt,
   max_age,
   audience,
@@ -13,6 +24,19 @@ function handleOAuthLogin ({
   authorizationUrl = process.env.OAUTH_AUTHORIZATION_URL,
   callbackUrl = process.env.OAUTH_CALLBACK_URL,
   defaultNextPath = '/'
+}: {
+  prompt?: string
+  max_age?: number,
+  audience?: string,
+  connection?: string,
+  login_hint?: string,
+  connection_scope?: string,
+  loginRoute?: string,
+  domain?: string,
+  clientId?: string,
+  authorizationUrl?: string,
+  callbackUrl?: string,
+  defaultNextPath?: string
 } = {}) {
   if (!domain) {
     throw new Error(
@@ -30,9 +54,9 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
-  authorizationUrl = authorizationUrl || `https://${domain}/authorize`
+  const resolvedAuthorizationUrl = authorizationUrl || `https://${domain}/authorize`
 
-  const extraOpts = {}
+  const extraOpts: Record<string, number | string> = {}
 
   if (connection) {
     extraOpts.connection = connection
@@ -58,8 +82,8 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     extraOpts.max_age = max_age
   }
 
-  return next => async context => {
-    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+  return (next: Handler) => async (context: Context) => {
+    callbackUrl = callbackUrl || `http://${String(context.headers.host).split("/")[0] || 'localhost'}/callback`
 
     if (context.url.pathname !== loginRoute || context.method !== 'GET') {
       return next(context)
@@ -86,7 +110,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
       client_id: clientId
     }
 
-    const location = new URL(authorizationUrl)
+    const location = new URL(resolvedAuthorizationUrl)
     for (const [key, value] of Object.entries(authorizationParams)) {
       location.searchParams.set(key, value)
     }
@@ -137,9 +161,8 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 
   authorizationUrl = authorizationUrl || `https://${domain}/authorize`
-  userinfoUrl = userinfoUrl || `https://${domain}/userinfo`
+  const resolvedUserinfoUrl = userinfoUrl || `https://${domain}/userinfo`
   tokenUrl = tokenUrl || `https://${domain}/oauth/token`
-  OAuth2 = OAuth2 || require('oauth').OAuth2
   const oauth = new OAuth2(
     clientId,
     secret,
@@ -149,9 +172,10 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     {}
   )
 
-  let loginRoute = null
-  return next => async context => {
-    callbackUrl = callbackUrl || `http://${context.headers.host.split("/")[0] || 'localhost'}/callback`
+  let loginRoute: string | undefined
+  const logger = bole('boltzmann:oauth')
+  return (next: Handler) => async (context: Context) => {
+    callbackUrl = callbackUrl || `http://${String(context.headers.host).split("/")[0] || 'localhost'}/callback`
     loginRoute = loginRoute || new URL(callbackUrl).pathname
     if (context.url.pathname !== loginRoute || context.method !== 'GET') {
       return next(context)
@@ -177,12 +201,13 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
 
     // NB: we are not checking the signature here; we're relying on the nonce
     // to protect us.
-    _jwt = _jwt || require('jsonwebtoken')
-    _uuid = _uuid || require('uuid')
     try {
-      var decoded = _jwt.decode(params.id_token)
+      var decoded = decodeJWT(params.id_token)
+      if (typeof decoded === 'string' || decoded === null) {
+        throw new Error("Failed to decode")
+      }
     } catch(err) {
-      const correlation = _uuid.v4()
+      const correlation = uuid.v4()
       logger.error(`err=${correlation}: failed to decode JWT (jwt="${params.id_token}")`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
         [Symbol.for('status')]: 400
@@ -190,15 +215,15 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     }
 
     if (decoded.iss !== `https://${domain}/`) {
-      const correlation = _uuid.v4()
+      const correlation = uuid.v4()
       logger.error(`err=${correlation}: Issuer mismatched. Got "${decoded.iss}", expected "https://${process.env.OAUTH_DOMAIN}/"`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
         [Symbol.for('status')]: 403
       })
     }
 
-    if (![].concat(decoded.aud).includes(clientId)) {
-      const correlation = _uuid.v4()
+    if (!([] as string[]).concat(decoded.aud).includes(clientId)) {
+      const correlation = uuid.v4()
       logger.error(`err=${correlation}: Audience mismatched. Got "${decoded.aud}", expected value of "clientId" (default: process.env.OAUTH_CLIENT_ID)`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
         [Symbol.for('status')]: 403
@@ -206,7 +231,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     }
 
     if (decoded.nonce !== expectedNonce) {
-      const correlation = _uuid.v4()
+      const correlation = uuid.v4()
       logger.error(`err=${correlation}: Nonce mismatched. Got "${decoded.nonce}", expected "${expectedNonce}"`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
         [Symbol.for('status')]: 403
@@ -218,7 +243,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     const expires = (Number(decoded.exp) || 0) + window
 
     if (expires < now) {
-      const correlation = _uuid.v4()
+      const correlation = uuid.v4()
       logger.error(`err=${correlation}: Expiration time exceeded. Got "${decoded.exp}", expected "${now}" (leeway=${window})`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
         [Symbol.for('status')]: 403
@@ -226,8 +251,8 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     }
 
     const profile = await new Promise((resolve, reject) => {
-      oauth.get(userinfoUrl, accessToken, (err, body) => {
-        err ? reject(err) : resolve(JSON.parse(body))
+      oauth.get(resolvedUserinfoUrl, accessToken, (err, body) => {
+        err ? reject(err) : resolve(JSON.parse(<string>body))
       })
     })
 
@@ -243,7 +268,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-function handleOAuthLogout ({
+/* {% if selftest %} */ export /* {% endif %} */function handleOAuthLogout ({
   logoutRoute = '/logout',
   clientId = process.env.OAUTH_CLIENT_ID,
   domain = process.env.OAUTH_DOMAIN,
@@ -267,8 +292,8 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
-  logoutUrl = logoutUrl || `https://${domain}/v2/logout`
-  return next => async context => {
+  const resolvedLogoutUrl = logoutUrl || `https://${domain}/v2/logout`
+  return (next: Handler) => async (context: Context) => {
     if (context.url.pathname !== logoutRoute || context.method !== 'POST') {
       return next(context)
     }
@@ -282,7 +307,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
       `http://${context.host}${![80, 443].includes(context.request.connection.localPort) ? ':' + context.request.connection.localPort : ''}/`
     )
 
-    const logout = new URL(logoutUrl)
+    const logout = new URL(resolvedLogoutUrl)
     logout.searchParams.set('returnTo', returnTo)
     logout.searchParams.set('client_id', clientId)
 
@@ -295,10 +320,10 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-function oauth (options = {}) {
+/* {% if selftest %} */ export /* {% endif %} */function oauth (options = {}) {
   const callback = handleOAuthCallback(options)
   const logout = handleOAuthLogout(options)
   const login = handleOAuthLogin(options)
 
-  return next => callback(logout(login(next)))
+  return (next: Handler) => callback(logout(login(next)))
 }
