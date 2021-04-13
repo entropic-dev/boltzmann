@@ -6,7 +6,7 @@ const REISSUE = Symbol.for('reissue')
   [REISSUE]: boolean = false
   public dirty = false
 
-  constructor(public id: string, ...args: any) {
+  constructor(public id: string | null, ...args: any) {
     super(...args)
   }
 
