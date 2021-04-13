@@ -1,3 +1,23 @@
+// {% if selftest %}
+import os from 'os'
+/* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
+
+import { serviceName } from '../core/prelude'
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+import { _requireOr } from '../utils'
+// {% endif %}
+
+interface ReachabilityResult {
+  status: 'failed' | 'healthy' | string,
+  error: Error | null,
+  latency: number
+}
+
+interface ReachabilityCheck {
+  (context: Context, meta: ReachabilityResult): Promise<void> | void
+}
+
 /* {% if selftest %} */export /* {% endif %} */function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = {
@@ -9,20 +29,24 @@
     // {% endif %}
   },
   extraReachability = _requireOr('./reachability', {})
+}: {
+  git?: string,
+  reachability?: Record<string, ReachabilityCheck>,
+  extraReachability?: Promise<Record<string, ReachabilityCheck>>,
 } = {}) {
-  return async next => {
+  return async (next: Handler) => {
     reachability = { ...reachability, ...await extraReachability }
 
     const hostname = os.hostname()
     let requestCount = 0
-    const statuses = {}
-    reachability = Object.entries(reachability)
-    return async function monitor (context) {
+    const statuses: Record<number, number> = {}
+    const reachabilityEntries = Object.entries(reachability)
+    return async function monitor (context: Context) {
       switch (context.url.pathname) {
         case '/monitor/status':
-          const downstream = {}
-          for (const [name, test] of reachability) {
-            const meta = {status: 'failed', latency: 0, error: null}
+          const downstream: Record<string, ReachabilityResult> = {}
+          for (const [name, test] of reachabilityEntries) {
+            const meta: ReachabilityResult = {status: 'failed', latency: 0, error: null}
             const start = Date.now()
             try {
               await test(context, meta)
@@ -66,7 +90,7 @@
 // - - - - - - - - - - - - - - - -
 // {% endif %}
 // {% if postgres %}
-async function postgresReachability (context, meta) {
+async function postgresReachability (context: Context, meta: ReachabilityResult) {
   const client = await context.postgresClient
   meta.status = 'got-client'
   await client.query('select 1;')
@@ -74,7 +98,7 @@ async function postgresReachability (context, meta) {
 // {% endif %}
 
 // {% if redis %}
-async function redisReachability (context, meta) {
+async function redisReachability (context: Context, _: ReachabilityResult) {
   await context.redisClient.ping()
 }
 // {% endif %}

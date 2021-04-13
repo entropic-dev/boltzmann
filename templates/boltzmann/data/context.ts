@@ -65,7 +65,7 @@ import { Cookie } from './cookie'
   }
 
   // {% if postgres %}
-  get postgresClient () {
+  get postgresClient (): Promise<PGPoolClient | PGClient> {
     if (!this._postgresPool) {
       throw new Error('Cannot fetch postgresClient before a pool is assigned (middleware should do this.)')
     }
@@ -90,7 +90,10 @@ import { Cookie } from './cookie'
 
   // {% if redis %}
   /** @type {redis.IHandyRedis} */
-  get redisClient () {
+  get redisClient (): IHandyRedis {
+    if (!this._redisClient) {
+      throw new Error('No redis client available')
+    }
     return this._redisClient
   }
   // {% endif %}

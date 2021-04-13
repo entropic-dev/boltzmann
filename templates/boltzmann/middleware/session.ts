@@ -21,22 +21,13 @@ let IN_MEMORY = new Map()
 
 const inMemorySessionLoad: LoadSession = async (_, id) => JSON.parse(IN_MEMORY.get(id))
 const redisSessionLoad: LoadSession = async (context: Context, id) => {
-  if (context.redisClient) {
-    return JSON.parse(await context.redisClient.get(id) || '{}')
-  }
-
-  throw TypeError('redisClient was not installed')
+  return JSON.parse(await context.redisClient.get(id) || '{}')
 }
 const inMemorySessionSave: SaveSession = async (_, id, session) => {
   IN_MEMORY.set(id, JSON.stringify(session));
 }
 const redisSessionSave: SaveSession = async (context, id, session, expirySeconds) => {
-  // Add 5 seconds of lag
-  if (context.redisClient) {
-    await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
-  }
-
-  throw TypeError('redisClient was not installed')
+  await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
 }
 
 let defaultSessionLoad = inMemorySessionLoad
