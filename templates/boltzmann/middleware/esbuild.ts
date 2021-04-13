@@ -1,12 +1,12 @@
 // {% if selftest %}
 import bole from '@entropic-dev/bole'
+import { promises as fs } from 'fs'
 import { build } from 'esbuild'
 import isDev from 'are-we-dev'
 import crypto from 'crypto'
 import path from 'path'
 import os from 'os'
 
-import { promises as fs } from 'fs'
 import { staticfiles } from '../middleware/staticfiles'
 import { _findESBuildEntries } from '../bin/esbuild'
 import { Handler } from '../core/middleware'
@@ -37,7 +37,7 @@ import { _requireOr } from '../utils'
           return response
         }
 
-        response.ESBUILD_ENTRY_URL = `/${prefix}/${entry.replace(/\\/g, '/')}`
+        response.ESBUILD_ENTRY_URL = `${staticUrl}/${prefix}/${entry.replace(/\\/g, '/')}`
         return response
       })
     }
@@ -53,7 +53,7 @@ import { _requireOr } from '../utils'
   return async (next: Handler) => {
     await fs.mkdir(destination, { recursive: true })
 
-    const _routeMetadata = [...routes(await _requireOr('./handlers', {}))]
+    routes(await _requireOr('./handlers', {}))
 
     const entries = await _findESBuildEntries(source)
 

@@ -1,7 +1,11 @@
+// {% if selftest %}
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+// {% endif %}
 
-function templateContext(extraContext = {}) {
-  return next => {
-    return async context => {
+/* {% if selftest %} */ export /* {% endif %} */function templateContext(extraContext: Record<string, unknown> = {}) {
+  return (next: Handler) => {
+    return async (context: Context) => {
       const result = await next(context)
 
       if (Symbol.for('template') in result) {

@@ -1,9 +1,23 @@
-async function _findESBuildEntries (source) {
-  const routeMetadata = [...routes(await _requireOr('./handlers'))]
+// {% if selftest %}
+import { promises as fs } from 'fs'
+import { build } from 'esbuild'
+import isDev from 'are-we-dev'
+import path from 'path'
+
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+import { route as routing } from '../middleware/route'
+import { routes } from '../core/routes'
+import { esbuild } from '../middleware/esbuild'
+import { _processMiddleware, _requireOr } from '../utils'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */async function _findESBuildEntries (source: string) {
+  const routeMetadata = [...await routes(await _requireOr('./handlers', {}))]
 
   const entries = new Map()
   for (const route of routeMetadata) {
-    if (![].concat(route.props.method).some(xs => xs === 'GET' || xs === 'POST')) {
+    if (!([] as any[]).concat(route.method).some(xs => xs === 'GET' || xs === 'POST')) {
       continue
     }
 
@@ -22,13 +36,13 @@ async function _findESBuildEntries (source) {
   return entries
 }
 
-async function buildAssets (
+/* {% if selftest %} */export /* {% endif %} */async function buildAssets (
   destination = 'build',
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
   handlers = _requireOr('./handlers', {})
 ) {
-  middleware = await middleware
-  let [, config = {}] = [].concat(middleware.find(xs => esbuild === (Array.isArray(xs) ? xs[0] : xs)))
+  const resolvedMiddleware = await middleware
+  let [, config = {}] = ([] as any[]).concat(resolvedMiddleware.find(xs => esbuild === (Array.isArray(xs) ? xs[0] : xs)))
 
   config = {
     source: 'client',
@@ -60,7 +74,6 @@ async function buildAssets (
   }
 
   if (entries.size > 0) {
-    _build = _build || require('esbuild').build
-    await _build(esbuildConfig)
+    await build(esbuildConfig)
   }
 }

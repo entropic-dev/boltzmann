@@ -18,7 +18,10 @@ import { dev } from '../middleware/dev'
   version?: string,
   decorators?: Adaptor[],
   bodyParsers?: BodyParserDefinition[],
-  middleware?: MiddlewareConfig[]
+  middleware?: MiddlewareConfig[],
+  // {% if esbuild %}
+  entry?: string
+  // {% endif %}
 }
 
 /* {% if selftest %} */export /* {% endif %} */interface Adaptor {

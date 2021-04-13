@@ -1,20 +1,33 @@
+// {% if selftest %}
+import bole from '@entropic-dev/bole'
+import isDev from 'are-we-dev'
+import path from 'path'
+import mime from 'mime'
 
-let mime = null
+import { templateContext } from './template-context'
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+// {% endif %}
 
-function staticfiles({ prefix = 'static', dir = 'static', addToContext = true, fs = require('fs'), quiet = false} = {}) {
+/* {% if selftest %} */ export /* {% endif %} */function staticfiles({
+  prefix = 'static',
+  dir = 'static',
+  addToContext = true,
+  fs = require('fs'),
+  quiet = false,
+} = {}) {
   const logger = bole('boltzmann:staticfiles')
   if (!isDev()) {
     return (
       addToContext
       ? templateContext({ STATIC_URL: process.env.STATIC_URL })
-      : next => context => next(context)
+      : (next: Handler) => (context: Context) => next(context)
     )
   }
 
-  mime = mime || require('mime')
   dir = path.isAbsolute(dir) ? dir : path.join(__dirname, dir)
 
-  return next => {
+  return (next: Handler) => {
     if (!quiet) {
       logger.info(`Running in development mode; assets served from /${prefix}`)
     }
@@ -23,10 +36,10 @@ function staticfiles({ prefix = 'static', dir = 'static', addToContext = true, f
     const contextMiddleware = (
       addToContext
       ? templateContext({ STATIC_URL: prefixURL })
-      : next => context => next(context)
+      : (next: Handler) => (context: Context) => next(context)
     )
 
-    return contextMiddleware(async context => {
+    return contextMiddleware(async (context: Context) => {
       if (!context.url.pathname.startsWith(prefixURL)) {
         return next(context)
       }
@@ -34,20 +47,21 @@ function staticfiles({ prefix = 'static', dir = 'static', addToContext = true, f
       const target = path.join(dir, context.url.pathname.slice(1 + prefix.length))
       if (!target.startsWith(dir + path.sep)) {
         throw Object.assign(new Error('File not found'), {
-          [Symbol.for('status')]: 404
+          [Symbol.for('status')]: 404,
         })
       }
 
       const data = await new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(target)
+        const stream = fs
+          .createReadStream(target)
           .on('open', () => resolve(stream))
           .on('error', reject)
       })
       const mimetype = mime.getType(path.extname(target))
       return Object.assign(data, {
         [Symbol.for('headers')]: {
-          'content-type': mimetype || 'application/octet-stream'
-        }
+          'content-type': mimetype || 'application/octet-stream',
+        },
       })
     })
   }

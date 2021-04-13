@@ -1,12 +1,19 @@
-async function routes (handlers) {
+// {% if selftest %}
+import { HTTPMethod } from 'find-my-way'
+import isDev from 'are-we-dev'
+
+import { Handler } from './middleware'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */async function routes (handlers: Record<string, Handler>) {
   const routes = []
   for (let [key, handler] of Object.entries(handlers)) {
     if (typeof handler.route === 'string') {
-      let [method, ...route] = handler.route.split(' ')
-      route = route.join(' ')
+      let [method, ...routeParts] = handler.route.split(' ')
+      let route = routeParts.join(' ')
       if (route.length === 0) {
         route = method
-        method = (handler.method || 'GET')
+        method = (handler.method as string || 'GET')
       }
 
       const { version, middleware, decorators, ...rest } = handler
