@@ -1,5 +1,23 @@
+// {% if selftest %}
+import bole from '@entropic-dev/bole'
+import isDev from 'are-we-dev'
+import path from 'path'
 
-function template ({
+import { ConfigureOptions, Extension } from 'nunjucks'
+
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+const STATUS = Symbol.for('status')
+const HEADERS = Symbol.for('headers')
+const TEMPLATE = Symbol.for('template')
+const THREW = Symbol.for('threw')
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */interface BoltzmannNunjucksFilter {
+  (...args: any[]): Promise<string> | string 
+}
+
+/* {% if selftest %} */export /* {% endif %} */function template ({
   paths = ['templates'],
   filters = {},
   tags = {},
@@ -7,9 +25,15 @@ function template ({
   opts = {
     noCache: isDev()
   }
+}: {
+  paths?: string[],
+  filters?: Record<string, BoltzmannNunjucksFilter>,
+  tags?: Record<string, Extension>,
+  logger?: typeof bole,
+  opts?: Partial<ConfigureOptions>
 } = {}) {
   const nunjucks = require('nunjucks')
-  paths = [].concat(paths)
+  paths = ([] as string[]).concat(paths)
   try {
     const assert = require('assert')
     paths.forEach(xs => assert(typeof xs == 'string'))
@@ -26,7 +50,7 @@ function template ({
   )
 
   for (const name in filters) {
-    env.addFilter(name, (...args) => {
+    env.addFilter(name, (...args: any[]) => {
       const cb = args[args.length - 1]
       new Promise((resolve, _) => {
         resolve(filters[name](...args.slice(0, -1)))
@@ -53,8 +77,8 @@ function template ({
   // production behavior: we try to render a 5xx.html template. If that's not
   // available, return a "raw" error display -- "An error occurred" with a
   // correlation ID.
-  return next => {
-    return async function template (context) {
+  return (next: Handler) => {
+    return async function template (context: Context) {
       const response = await next(context)
       let {
         [STATUS]: status,
@@ -94,18 +118,18 @@ function template ({
 
         renderingErrorTemplate = true
 
-        let frames = null
+        let frames: Record<string, unknown>[] | undefined
         if (useDebug) {
           const stackman = require('stackman')()
-          frames = await new Promise((resolve, reject) => {
-            stackman.callsites(response, (err, frames) => err ? resolve([]) : resolve(frames))
+          frames = await new Promise((resolve, _) => {
+            stackman.callsites(response, (err: Error, frames: Record<string, unknown>[]) => err ? resolve([]) : resolve(frames))
           })
 
-          const contexts = await new Promise((resolve, reject) => {
-            stackman.sourceContexts(frames, (err, contexts) => err ? resolve([]) : resolve(contexts))
+          const contexts: Record<number, unknown> = await new Promise((resolve, _) => {
+            stackman.sourceContexts(frames, (err: Error, contexts: Record<number, unknown>) => err ? resolve([]) : resolve(contexts))
           })
 
-          frames.forEach((frame, idx) => frame.context = contexts[idx])
+          ;(frames as Record<string, unknown>[]).forEach((frame, idx) => frame.context = contexts[idx])
         }
 
         ctxt = {
@@ -121,10 +145,10 @@ function template ({
         }
       }
 
-      let rendered = null
+      let rendered: string | undefined
       try {
         rendered = await new Promise((resolve, reject) => {
-          env.render(name, ctxt, (err, result) => {
+          env.render(name, ctxt, (err: Error, result: string) => {
             err ? reject(err) : resolve(result)
           })
         })
@@ -141,7 +165,7 @@ function template ({
             renderError: err,
             headers,
             status
-          }, (err, result) => {
+          }, (err: Error, result: string) => {
             if (err) {
               const correlation = require('uuid').v4()
               if (response.stack) {
@@ -168,7 +192,7 @@ function template ({
       }
 
       // NB: This removes "THREW" because the template layer is handling the error.
-      return Object.assign(Buffer.from(rendered, 'utf8'), {
+      return Object.assign(Buffer.from(<string>rendered, 'utf8'), {
         [STATUS]: status,
         [HEADERS]: headers,
       })
