@@ -1,6 +1,3 @@
-#!/usr/bin/env node
-{% if not selftest %}/* eslint-disable */{% endif %}
-{% if not selftest %}/* istanbul ignore file */{% endif %}
 'use strict'
 // Boltzmann v{{ version }}
 

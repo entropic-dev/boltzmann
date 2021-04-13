@@ -124,7 +124,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-function handleOAuthCallback ({
+/* {% if selftest %} */ export /* {% endif %} */function handleOAuthCallback ({
   userKey = 'user',
   domain = process.env.OAUTH_DOMAIN,
   secret = process.env.OAUTH_CLIENT_SECRET,

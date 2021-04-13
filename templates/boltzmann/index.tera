@@ -1,3 +1,6 @@
+#!/usr/bin/env node
+{% if not selftest %}/* eslint-disable */{% endif %}
+{% if not selftest %}/* istanbul ignore file */{% endif %}
 {% include "boltzmann/core/prelude.js" %}
 
 {# core functions (middleware, body parsing, and routing support) #}
