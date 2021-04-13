@@ -10,7 +10,7 @@ import { buildAssets } from '../bin/esbuild'
 import { printRoutes } from '../bin/routes'
 import { main } from '../bin/main'
 
-import { urlencoded } from '../body/urlencoded'
+import { urlEncoded } from '../body/urlencoded'
 import { json } from '../body/json'
 
 import { validate } from '../middleware/validators'
@@ -45,8 +45,8 @@ import { test } from '../middleware/test'
 
 const body = {
   json,
-  urlEncoded: urlencoded,
-  urlencoded
+  urlEncoded,
+  urlencoded: urlEncoded
 }
 
 const decorators = {

@@ -1,18 +1,32 @@
+// {% if selftest %}
+import { Algorithm, verify as verifyJWT } from 'jsonwebtoken'
+import bole from '@entropic-dev/bole'
+import { promises as fs } from 'fs'
+import assert from 'assert'
+import crypto from 'crypto'
 
-let _jwt = null
-function authenticateJWT ({
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */function authenticateJWT ({
   scheme = 'Bearer',
   publicKey = process.env.AUTHENTICATION_KEY,
   algorithms=['RS256'],
   storeAs = 'user'
+}: {
+  scheme?: string,
+  publicKey?: string,
+  algorithms?: Algorithm | Algorithm[],
+  storeAs?: string
 } = {}) {
-  algorithms = [].concat(algorithms)
+  const resolvedAlgorithms = ([] as Algorithm[]).concat(algorithms)
   try {
-    const assert = require('assert')
-    algorithms.forEach(xs => assert(typeof xs == 'string'))
+    resolvedAlgorithms.forEach(xs => assert(typeof xs == 'string'))
   } catch (_c) {
     throw new TypeError('The `algorithms` config option for JWTs must be an array of strings')
   }
+
   if (!publicKey) {
     throw new Error(
       `To authenticate JWTs you must pass the path to a public key file in either
@@ -20,10 +34,8 @@ the environment variable "AUTHENTICATION_KEY" or the publicKey config field
 https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '))
   }
-  _jwt = _jwt || require('jsonwebtoken')
-  const verifyJWT = _jwt.verify
 
-  return async next => {
+  return async (next: Handler) => {
     const publicKeyContents = (
       String(publicKey)[0] === '/'
       ? await fs.readFile(publicKey).catch(err => {
@@ -38,7 +50,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
       : publicKey
     )
 
-    return async context => {
+    return async (context: Context) => {
       if (!context.headers.authorization) {
         return next(context)
       }
@@ -51,7 +63,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
       let data = null
       try {
         data = await new Promise((resolve, reject) => {
-          verifyJWT(token, publicKeyContents, {algorithms}, (err, data) => {
+          verifyJWT(token, publicKeyContents, {algorithms: resolvedAlgorithms}, (err, data) => {
             err ? reject(err) : resolve(data)
           })
         })

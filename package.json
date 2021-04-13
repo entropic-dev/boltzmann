@@ -33,6 +33,7 @@
     "@types/cookie": "^0.4.0",
     "@types/csrf": "^3.1.0",
     "@types/hapi__iron": "^6.0.1",
+    "@types/jsonwebtoken": "^8.5.1",
     "@types/mime": "^2.0.3",
     "@types/on-headers": "^1.0.0",
     "@types/pg": "^7.14.11",
