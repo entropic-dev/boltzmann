@@ -6,7 +6,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */ function livereload({
+/* {% if selftest %} */ export /* {% endif %} */function livereload({
   reloadPath = '/__livereload',
 }: { reloadPath?: string } = {}) {
   const logger = bole('boltzmann:livereload')

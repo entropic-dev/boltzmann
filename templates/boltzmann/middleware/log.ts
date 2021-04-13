@@ -1,4 +1,14 @@
-function log ({
+// {% if selftest %}
+import bole from '@entropic-dev/bole'
+import isDev from 'are-we-dev'
+
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+
+const THREW = Symbol.for('THREW')
+// {% endif %}
+
+/* {% if selftest %} */ export /* {% endif %} */function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout
@@ -10,8 +20,8 @@ function log ({
   }
   bole.output({ level, stream })
 
-  return function logMiddleware (next) {
-    return async function inner (context) {
+  return function logMiddleware (next: Handler) {
+    return async function inner (context: Context) {
       const result = await next(context)
 
       const body = result || {}
