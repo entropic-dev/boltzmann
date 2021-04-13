@@ -3,8 +3,8 @@ import bole from '@entropic-dev/bole'
 import isDev from 'are-we-dev'
 import http from 'http'
 
-import { MiddlewareConfig, handler, buildMiddleware } from '../core/middleware'
-import { buildBodyParser } from '../core/body'
+import { MiddlewareConfig, handler, buildMiddleware, Handler } from '../core/middleware'
+import { BodyParserDefinition, buildBodyParser } from '../core/body'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { _requireOr, _processMiddleware, _processBodyParsers } from '../utils'
@@ -24,11 +24,15 @@ interface DebugLocationInfo {
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
   bodyParsers = _requireOr('./body', [urlEncoded, json]).then(_processBodyParsers),
   handlers = _requireOr('./handlers', {}),
-} = {}) {
+}: {
+  middleware?: MiddlewareConfig[] | Promise<MiddlewareConfig[]>,
+  bodyParsers?: BodyParserDefinition[] | Promise<BodyParserDefinition[]>,
+  handlers?: Record<string, Handler> | Promise<Record<string, Handler>>
+}= {}) {
   const [resolvedMiddleware, resolvedBodyParsers, resolvedHandlers] = await Promise.all([
-    middleware,
-    bodyParsers,
-    handlers,
+    <Promise<MiddlewareConfig[]>>middleware,
+    <Promise<BodyParserDefinition[]>>bodyParsers,
+    <Promise<Record<string, Handler>>>handlers,
   ])
 
   const server = http.createServer()
