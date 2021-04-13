@@ -9,12 +9,9 @@ import { Handler } from './middleware'
   const routes = []
   for (let [key, handler] of Object.entries(handlers)) {
     if (typeof handler.route === 'string') {
-      let [method, ...routeParts] = handler.route.split(' ')
-      let route = routeParts.join(' ')
-      if (route.length === 0) {
-        route = method
-        method = (handler.method as string || 'GET')
-      }
+      const [methodPart, ...routeParts] = handler.route.split(' ')
+      const route = routeParts.length === 0 ? methodPart : routeParts.join(' ')
+      const method = route.length === 0 ? ([] as HTTPMethod[]).concat(handler.method as HTTPMethod) || ['GET'] : methodPart as HTTPMethod
 
       const { version, middleware, decorators, ...rest } = handler
 
@@ -31,7 +28,7 @@ import { Handler } from './middleware'
         key,
         location,
         link,
-        method: handler.method || method || 'GET',
+        method: ([] as HTTPMethod[]).concat(handler.method as HTTPMethod) || method || ['GET' as 'GET'],
         route,
         version,
         middleware,

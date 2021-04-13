@@ -1,14 +1,19 @@
-async function printRoutes () {
-  const metadata = [...routes(await _requireOr('./handlers'))]
+// {% if selftest %}
+import { routes } from '../core/routes'
+import { _requireOr } from '../utils'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */async function printRoutes () {
+  const metadata = await routes(await _requireOr('./handlers', {}))
 
   const maxRouteLen = metadata.reduce((acc, { route }) => Math.max(acc, route.length), 0)
   const maxHandlerLen = metadata.reduce((acc, { handler, key }) => Math.max(acc, (handler.name || key).length), 0)
   const maxMethodLen = metadata
-    .map(({method}) => [].concat(method))
+    .map(({method}) => ([] as any[]).concat(method))
     .flat()
     .reduce((acc, method) => Math.max(acc, method.length), 0)
 
-  const map = {
+  const map: Record<string, string> = {
     'GET': '\x1b[32;1m',
     'DELETE': '\x1b[31m',
     'POST': '\x1b[33;1m',
@@ -21,13 +26,13 @@ async function printRoutes () {
   const supportsHyperlinks = require('supports-hyperlinks')
 
   for (const meta of metadata) {
-    for (let method of [].concat(meta.method)) {
-      const originalMethod = method.toUpperCase().trim()
+    for (let originalMethod of meta.method) {
+      let method = (originalMethod as string).toUpperCase().trim()
       method = `${(map[originalMethod] || map['*'])}${originalMethod}\x1b[0m`
       method = method + ' '.repeat(Math.max(0, maxMethodLen - originalMethod.length + 1))
 
       const rlen = meta.route.trim().length
-      const route = meta.route.trim().replace(/:([^\/-]+)/g, (a, m) => {
+      const route = meta.route.trim().replace(/:([^\/-]+)/g, (_, m) => {
         return `\x1b[4m:${m}\x1b[0m`
       }) + ' '.repeat(Math.max(0, maxRouteLen - rlen) + 1)
 

@@ -7,8 +7,6 @@ import { Context } from '../data/context'
 import { Session, REISSUE } from '../data/session'
 import crypto from 'crypto'
 import uuid from 'uuid'
-
-
 // {% endif %}
 
 let IN_MEMORY = new Map()
