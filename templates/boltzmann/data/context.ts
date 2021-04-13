@@ -20,7 +20,7 @@ import { Cookie } from './cookie'
   private _accepts?: Accepts
   private _query?: Record<string, any>
   private _parsedUrl?: URL
-  private _body?: Record<string, any>
+  private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
   public _loadSession: LoadSession
   public id: string
