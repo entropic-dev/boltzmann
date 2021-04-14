@@ -16,7 +16,7 @@ import { _processMiddleware, _requireOr } from './utils'
 // {% endif %}
 
 /* istanbul ignore next */
-if (require.main === module) {
+if (require.main === module && !process.env.TAP) {
   function passthrough() {
     return (next: Handler) => (context: Context) => next(context)
   }

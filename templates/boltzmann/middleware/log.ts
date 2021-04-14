@@ -50,6 +50,7 @@ import { STATUS, THREW } from '../core/prelude'
 
 /* {% if selftest %} */
 import tap from 'tap'
+import {enforceInvariants} from './enforce-invariants'
 /* istanbul ignore next */
 if (require.main === module) {
   const { test } = tap
@@ -92,10 +93,10 @@ if (require.main === module) {
     assert.ok('ip' in logged[0][1])
   })
 
-  test('log: logs expected keys for error responses', async (assert) => {
+  test('log: logs expected keys for thrown error responses', async (assert) => {
     const logged: [string, Record<string, any>][] = []
     const handler = (_: Context) => {
-      return Object.assign(new Error('foo'), { [THREW]: true })
+      throw new Error('foo')
     }
 
     const middleware = log({
@@ -107,7 +108,7 @@ if (require.main === module) {
           logged.push(['error', what])
         },
       },
-    })((context: Context) => handler(context))
+    })(enforceInvariants()((context: Context) => handler(context)))
     await middleware(<Context><unknown>{
       request: {
         method: 'GET',
@@ -117,10 +118,11 @@ if (require.main === module) {
       start: 0,
     })
 
-    assert.equal(logged.length, 3)
-    assert.equal(logged[1][0], 'error')
-    assert.equal(logged[1][1].message, 'foo')
-    assert.equal(logged[2][0], 'info')
+    assert.equal(logged.length, 2)
+    assert.equal(logged[0][0], 'error')
+    assert.equal(logged[0][1].message, 'foo')
+    assert.equal(logged[1][0], 'info')
+    assert.equal(logged[1][1].message, '500 GET /bloo')
   })
 }
 /* {% endif %} */
