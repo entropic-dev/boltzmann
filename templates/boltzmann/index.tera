@@ -22,7 +22,7 @@
 
 {# body parsers #}
 
-{% include "boltzmann/body/tson.ts" %}
+{% include "boltzmann/body/json.ts" %}
 {% include "boltzmann/body/urlencoded.ts" %}
 
 {# middleware (wow, we have a lot of middleware) #}
@@ -46,7 +46,7 @@
 {% if staticfiles or esbuild %}{% include "boltzmann/middleware/staticfiles.ts" %}{% endif %}
 {% if staticfiles or esbuild or templates %}{% include "boltzmann/middleware/template-context.ts" %}{% endif %}
 {% if status %}{% include "boltzmann/middleware/status.ts" %}{% endif %}
-{% if templates %}{% include "boltzmann/middleware/templates.ts" %}{% endif %}
+{% if templates %}{% include "boltzmann/middleware/template.ts" %}{% endif %}
 {% include "boltzmann/middleware/test.ts" %}
 {% include "boltzmann/middleware/vary.ts" %}
 {% include "boltzmann/middleware/validators.ts" %}
@@ -56,7 +56,6 @@
 {% include "boltzmann/core/exports.ts" %}
 
 
-{% if selftest %}
-
+{% if not selftest %}
   {% include "boltzmann/main.ts" %}
 {% endif %}
