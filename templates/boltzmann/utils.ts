@@ -49,7 +49,7 @@ type BodyImport = { APP_BODY_PARSERS: BodyParserDefinition[] } | BodyParserDefin
 import { Test } from './middleware/test'
 import tap from 'tap'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('_requireOr only returns default for top-level failure', async (assert: Test) => {

@@ -21,7 +21,7 @@ import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('vary middleware: accepts single values', async (assert) => {

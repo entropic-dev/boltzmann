@@ -39,8 +39,9 @@ import {Context} from '../data/context'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
+  process.env.NODE_ENV = 'production'
 
   test('json body: returns 415 if request is not application/json', async (assert) => {
     const handler = async (context: Context) => {

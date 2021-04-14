@@ -1,7 +1,6 @@
 // {% if selftest %}
 import isDev from 'are-we-dev'
-import { Ajv } from 'ajv'
-import ajv from 'ajv'
+import Ajv from 'ajv'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
@@ -12,7 +11,7 @@ const addAJVFormats = (validator: Ajv): Ajv => (require('ajv-formats')(validator
 const addAJVKeywords = (validator: Ajv): Ajv => (require('ajv-keywords')(validator), validator)
 
 function validateBody(schema: object, {
-  ajv: validator = addAJVFormats(addAJVKeywords(new ajv(<any>{
+  ajv: validator = addAJVFormats(addAJVKeywords(new Ajv(<any>{
     useDefaults: true,
     allErrors: true,
     strictTypes: isDev() ? true : "log",
@@ -28,7 +27,7 @@ function validateBody(schema: object, {
       if (!valid) {
         const newBody = Promise.reject(Object.assign(
           new Error('Bad request'),
-          { errors: validator.errors, [STATUS]: 400 }
+          { errors: compiled.errors, [STATUS]: 400 }
         ))
         newBody.catch(() => {})
         context.body = newBody
@@ -43,7 +42,7 @@ function validateBody(schema: object, {
 
 function validateBlock(what: (c: Context) => object) {
   return function validate(schema: object, {
-    ajv: validator = addAJVFormats(addAJVKeywords(new ajv(<any>{
+    ajv: validator = addAJVFormats(addAJVKeywords(new Ajv(<any>{
       useDefaults: true,
       allErrors: true,
       coerceTypes: 'array',
@@ -61,7 +60,7 @@ function validateBlock(what: (c: Context) => object) {
           return Object.assign(new Error('Bad request'), {
             [THREW]: true,
             [STATUS]: 400,
-            errors: validator.errors
+            errors: compiled.errors
           })
         }
 
@@ -82,7 +81,9 @@ import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
+  process.env.NODE_ENV = 'production'
+
   const { test } = tap
 
   test('validate.query decorator returns 400 on bad query param', async (assert) => {

@@ -112,7 +112,7 @@ import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('cookie signature check short-circuits on length check', async (assert) => {

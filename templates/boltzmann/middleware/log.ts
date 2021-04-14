@@ -51,7 +51,7 @@ import { STATUS, THREW } from '../core/prelude'
 /* {% if selftest %} */
 import tap from 'tap'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('log: logs expected keys for success responses', async (assert) => {

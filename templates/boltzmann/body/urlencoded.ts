@@ -28,7 +28,7 @@ import {Context} from '../data/context'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('urlEncoded body: returns 415 if request is not application/x-www-form-urlencoded', async (assert) => {

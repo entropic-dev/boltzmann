@@ -84,7 +84,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
 /* {% if selftest %} */
 import tap from 'tap'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('jwt ignores requests without authorization header', async (assert) => {

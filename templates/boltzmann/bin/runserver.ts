@@ -52,8 +52,8 @@ interface DebugLocationInfo {
     })
   }
 
-  const respond = await buildMiddleware([[route, resolvedHandlers], ...resolvedMiddleware], handler)
   Context._bodyParser = buildBodyParser(resolvedBodyParsers)
+  const respond = await buildMiddleware([[route, resolvedHandlers], ...resolvedMiddleware], handler)
 
   // {% if templates %}
   let _middleware: DebugLocationInfo[] = []
@@ -128,7 +128,7 @@ interface DebugLocationInfo {
 /* {% if selftest %} */
 import {Test} from '../middleware/test'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('empty server; router handles 404', async (assert: Test) => {

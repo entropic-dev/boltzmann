@@ -68,8 +68,10 @@ import {Context} from './context'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
+
+  process.env.NODE_ENV = 'production'
 
   test('context.cookie contains the request cookies', async (assert) => {
     const handler = async (context: Context) => {

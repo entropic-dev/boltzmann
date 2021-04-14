@@ -11,6 +11,7 @@
     "moduleResolution": "node",
     "esModuleInterop": true,
     "baseUrl": ".",
+    "importHelpers": true,
     "typeRoots": [ "types", "node_modules/@types"]
   },
   "extends": "@tsconfig/node14/tsconfig.json",

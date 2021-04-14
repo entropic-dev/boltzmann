@@ -29,7 +29,7 @@ import { Cookie } from './cookie'
   public remote: string
   public host: string
   public params: Record<string, any>
-  public handler: Handler = this.baseHandler
+  public handler: Handler = Context.baseHandler
 
   // {% if redis %}
   public _redisClient?: IHandyRedis
@@ -61,8 +61,8 @@ import { Cookie } from './cookie'
     }
   }
 
-  baseHandler (_: Context): Promise<any> {
-    throw new NoMatchError(String(this.request.method), this.url.pathname)
+  static baseHandler (context: Context): Promise<any> {
+    throw new NoMatchError(String(context.request.method), context.url.pathname)
   }
 
   // {% if postgres %}
@@ -175,7 +175,7 @@ import { runserver } from '../bin/runserver'
 import tap from 'tap'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
-{
+if (require.main === module) {
   const { test } = tap
 
   test('context.url may be set to a url', async (assert: Test) => {

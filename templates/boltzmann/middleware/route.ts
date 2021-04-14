@@ -92,7 +92,6 @@ import { vary } from '../middleware/vary'
 
       context.params = match.params
       context.handler = <Handler><unknown>match.handler
-
       return next(context)
     }
   }
