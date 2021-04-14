@@ -8,3 +8,4 @@ docs/static/processed_images
 node_modules
 .nyc_output
 .vs
+coverage
