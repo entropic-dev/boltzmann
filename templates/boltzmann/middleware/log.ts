@@ -48,3 +48,79 @@ const THREW = Symbol.for('THREW')
     }
   }
 }
+
+/* {% if selftest %} */
+import tap from 'tap'
+{
+  const { test } = tap
+
+  test('log: logs expected keys for success responses', async (assert) => {
+    const logged: [string, Record<string, any>][] = []
+
+    const handler = (_: Context) => {
+      return { [STATUS]: 202, result: 'ok' }
+    }
+
+    const middleware = log({
+      logger: <typeof bole><unknown>{
+        info(what: object) {
+          logged.push(['info', what])
+        },
+        error(what: object) {
+          logged.push(['error', what])
+        },
+      },
+    })((context: Context) => handler(context))
+    await middleware(<Context><unknown>{
+      request: {
+        method: 'GET',
+        url: '/bloo',
+        headers: {},
+      },
+      start: 0,
+    })
+
+    assert.equal(logged.length, 1)
+    assert.equal(logged[0][0], 'info')
+    assert.equal(logged[0][1].message, '202 GET /bloo')
+    assert.equal(logged[0][1].status, 202)
+    assert.ok('userAgent' in logged[0][1])
+    assert.ok('referer' in logged[0][1])
+    assert.ok('elapsed' in logged[0][1])
+    assert.ok('url' in logged[0][1])
+    assert.ok('host' in logged[0][1])
+    assert.ok('ip' in logged[0][1])
+  })
+
+  test('log: logs expected keys for error responses', async (assert) => {
+    const logged: [string, Record<string, any>][] = []
+    const handler = (_: Context) => {
+      return Object.assign(new Error('foo'), { [THREW]: true })
+    }
+
+    const middleware = log({
+      logger: <typeof bole><unknown>{
+        info(what: object) {
+          logged.push(['info', what])
+        },
+        error(what: object) {
+          logged.push(['error', what])
+        },
+      },
+    })((context: Context) => handler(context))
+    await middleware(<Context><unknown>{
+      request: {
+        method: 'GET',
+        url: '/bloo',
+        headers: {},
+      },
+      start: 0,
+    })
+
+    assert.equal(logged.length, 3)
+    assert.equal(logged[1][0], 'error')
+    assert.equal(logged[1][1].message, 'foo')
+    assert.equal(logged[2][0], 'info')
+  })
+}
+/* {% endif %} */

@@ -80,3 +80,168 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
     }
   }
 }
+
+/* {% if selftest %} */
+import tap from 'tap'
+{
+  const { test } = tap
+
+  test('jwt ignores requests without authorization header', async (assert) => {
+    let called = 0
+    const handler = await authenticateJWT({ publicKey: 'unused' })(() => {
+      ++called
+      return 'ok'
+    })
+
+    const result = await handler(<any>{ headers: {} })
+
+    assert.equal(called, 1)
+    assert.equal(result, 'ok')
+  })
+
+  test('jwt ignores requests with authorization header that do not match configured scheme', async (assert) => {
+    let called = 0
+    const handler = await authenticateJWT({ publicKey: 'unused' })(() => {
+      ++called
+      return 'ok'
+    })
+
+    const result = await handler(<any>{
+      headers: {
+        authorization: 'Boggle asfzxcdofj', // the Boggle-based authentication scheme
+      },
+    })
+
+    assert.equal(called, 1)
+    assert.equal(result, 'ok')
+  })
+
+  test('jwt validates and attaches payload for valid jwt headers', async (assert) => {
+    const crypto = require('crypto')
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 4096,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    })
+
+    const jsonwebtoken = require('jsonwebtoken')
+    const blob = await new Promise((resolve, reject) => {
+      jsonwebtoken.sign(
+        {
+          ifItFits: 'iSits',
+        },
+        privateKey,
+        {
+          algorithm: 'RS256',
+          noTimestamp: true,
+        },
+        (err: Error, data: any) => (err ? reject(err) : resolve(data))
+      )
+    })
+
+    let called = 0
+    const handler = await authenticateJWT({ publicKey })((context) => {
+      ++called
+      return context.user
+    })
+
+    const result = await handler(<any>{
+      headers: {
+        authorization: `Bearer ${blob}`,
+      },
+    })
+
+    assert.equal(called, 1)
+    assert.same(result, { ifItFits: 'iSits' })
+  })
+
+  test('jwt throws a 403 for valid jwt token using incorrect algo', async (assert) => {
+    const crypto = require('crypto')
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+      modulusLength: 4096,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    })
+
+    const jsonwebtoken = require('jsonwebtoken')
+    await new Promise((resolve, reject) => {
+      jsonwebtoken.sign(
+        {
+          ifItFits: 'iSits',
+        },
+        privateKey,
+        {
+          algorithm: 'HS256',
+        },
+        (err: Error, data: any) => (err ? reject(err) : resolve(data))
+      )
+    })
+
+    let called = 0
+    const handler = await authenticateJWT({ publicKey })((context) => {
+      ++called
+      return context.user
+    })
+
+    try {
+      await handler(<any>{
+        headers: {
+          authorization: 'Bearer banana', // WHO WOULDN'T WANT A BANANA, I ASK YOU
+        },
+      })
+      assert.fail('expected failure, unexpected success. not cause for celebration')
+    } catch (err) {
+      assert.equal(called, 0)
+      assert.equal(err[Symbol.for('status')], 403)
+    }
+  })
+
+  test('jwt throws a 403 for invalid jwt headers', async (assert) => {
+    let called = 0
+    const handler = await authenticateJWT({ publicKey: 'unused' })(() => {
+      ++called
+      return 'ok'
+    })
+
+    try {
+      await handler(<any>{
+        headers: {
+          authorization: 'Bearer banana', // WHO WOULDN'T WANT A BANANA, I ASK YOU
+        },
+      })
+      assert.fail('expected failure, unexpected success. not cause for celebration')
+    } catch (err) {
+      assert.equal(called, 0)
+      assert.equal(err[Symbol.for('status')], 403)
+    }
+  })
+
+  test('authenticateJWT() ensures `algorithms` is an array', async (assert) => {
+    let caught = 0
+    try {
+      authenticateJWT({ publicKey: 'unused', algorithms: <any>{ object: 'Object' } })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      authenticateJWT({ publicKey: 'unused', algorithms: <any>'foo' })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+  })
+}
+/* {% endif %} */

@@ -167,3 +167,93 @@ import { Cookie } from './cookie'
   static _bodyParser?: BodyParser
 }
 
+
+/* {% if selftest %} */
+import { Test } from '../middleware/test'
+import { main } from '../bin/runserver'
+import tap from 'tap'
+import {inject} from '@hapi/shot'
+{
+  const { test } = tap
+
+  test('context.url may be set to a url', async (assert: Test) => {
+    let called = null
+    const handler = (context: Context) => {
+      context.url = new URL('/hello/world', 'https://www.womp.com/')
+      called = context.url
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal((called as any).pathname, '/hello/world')
+    assert.same(response.payload, '')
+  })
+
+  test('context: has expected properties', async (assert) => {
+    const mockRequest = {
+      socket: {
+        remoteAddress: '::80',
+      },
+      headers: {
+        host: 'example.com:443',
+        accept: 'text/plain;q=0.9, text/html;q=0.8',
+      },
+      url: 'https://example.com/hello?there=1',
+      method: 'PROPFIND',
+    }
+    const now = Date.now()
+    const ctx = new Context(<any>mockRequest, <any>{})
+
+    assert.ok(ctx.start >= now)
+    assert.equal(ctx.host, 'example.com')
+    assert.equal(ctx.url.pathname, '/hello')
+    assert.equal(ctx.query.there, '1')
+
+    ;(ctx as any)._parsedUrl = { pathname: '/floo' }
+    assert.equal(ctx.url.pathname, '/floo')
+    assert.equal(ctx.headers, ctx.request.headers)
+    assert.equal(ctx.method, ctx.request.method)
+
+    assert.equal(ctx.accepts.type(['text/html', 'text/plain', 'application/json']), 'text/plain')
+
+    ;(ctx as any)._accepts = accepts(<any>{ headers: { accept: '*/*' } })
+    assert.equal(ctx.accepts.type(['text/html', 'text/plain', 'application/json']), 'text/html')
+  })
+
+  test('context: default body parser returns 415', async (assert) => {
+    const handler = async (context: Context) => {
+      await context.body
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 415)
+    assert.equal(JSON.parse(response.payload).message, 'Cannot parse request body')
+  })
+
+}
+/* {% endif %} */

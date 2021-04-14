@@ -4,9 +4,6 @@ import { IncomingMessage } from 'http'
 import path from 'path'
 import { BodyParserDefinition } from './core/body'
 import { MiddlewareConfig } from './core/middleware'
-
-import { Test } from './middleware/test'
-import tap from 'tap'
 // {% endif %}
 
 /* {% if selftest %} */ export /* {% endif %} */ async function _collect(request: IncomingMessage) {
@@ -49,6 +46,8 @@ type BodyImport = { APP_BODY_PARSERS: BodyParserDefinition[] } | BodyParserDefin
 }
 
 /* {% if selftest %} */
+import { Test } from './middleware/test'
+import tap from 'tap'
 {
   const { test } = tap
 

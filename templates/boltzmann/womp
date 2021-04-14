@@ -1,0 +1,8 @@
+
+/* {% if selftest %} */
+import { Test } from './middleware/test'
+import tap from 'tap'
+{
+  const { test } = tap
+}
+/* {% endif %} */

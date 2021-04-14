@@ -1,6 +1,7 @@
+// {% if selftest %}
+import isDev from 'are-we-dev'
 import * as cookie from 'cookie'
-
-const isDev = require('are-we-dev')
+// {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}> {
   public changed: Set<string>
@@ -60,3 +61,86 @@ const isDev = require('are-we-dev')
     return new Cookie(Object.entries(cookie.parse(string)))
   }
 }
+
+/* {% if selftest %} */
+import tap from 'tap'
+import {Context} from './context'
+import {main} from '../bin/runserver'
+import {inject} from '@hapi/shot'
+{
+  const { test } = tap
+
+  test('context.cookie contains the request cookies', async (assert) => {
+    const handler = async (context: Context) => {
+      assert.same(context.cookie.get('foo'), {
+        value: 'bar',
+        secure: true,
+        sameSite: true,
+        httpOnly: true,
+      })
+
+      assert.same(context.cookie.get('hello'), {
+        value: 'world',
+        secure: true,
+        sameSite: true,
+        httpOnly: true,
+      })
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        cookie: 'foo=bar; hello=world',
+      },
+    })
+
+    assert.equal(response.statusCode, 204)
+    assert.ok(!('set-cookie' in response.headers))
+  })
+
+  test('context.cookie.set creates cookies', async (assert) => {
+    const handler = async (context: Context) => {
+      context.cookie.delete('foo')
+      context.cookie.set('zu', 'bat')
+      context.cookie.set('hello', {
+        value: 'world',
+        httpOnly: false,
+      })
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        cookie: 'foo=bar; hello=world',
+      },
+    })
+
+    const parsed = ([] as string[]).concat(response.headers['set-cookie']).sort()
+
+    assert.equal(parsed.length, 3)
+    assert.match(parsed[0], /foo=null; Max-Age=0; Expires=.* GMT; HttpOnly/)
+    assert.match(parsed[1], /hello=world; Secure; SameSite=Strict/)
+    assert.match(parsed[2], /zu=bat; HttpOnly; Secure; SameSite=Strict/)
+  })
+}
+/* {% endif %} */

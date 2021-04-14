@@ -142,3 +142,41 @@ defaultSessionSave = redisSessionSave
   }
 }
 
+
+/* {% if selftest %} */
+import tap from 'tap'
+import {main} from '../bin/runserver'
+import {inject} from '@hapi/shot'
+{
+  const { test } = tap
+
+  test('session middleware throws on malformed session data', async (assert) => {
+    const _c = require('cookie')
+    const _iron = require('@hapi/iron')
+
+    const config = {
+      secret: 'wow a great secret, just amazing wootles'.repeat(2),
+      salt: 'potassium',
+    }
+    const handler = async (context: Context) => {
+      await context.session
+      return 'OK'
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [[session, config]],
+      handlers: { handler },
+    })
+
+    const baddata = await _iron.seal('I-am-malformed', config.secret, { ..._iron.defaults })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: { cookie: _c.serialize('sid', baddata) },
+    })
+    assert.equal(response.statusCode, 400)
+  })
+}
+/* {% endif %} */

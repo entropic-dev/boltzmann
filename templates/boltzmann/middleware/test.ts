@@ -1,5 +1,5 @@
 // {% if selftest %}
-import { inject, RequestOptions as ShotRequestOptions, Listener, SimulatedResponseObject } from '@hapi/shot'
+import { inject, RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
 import redis, { IHandyRedis } from 'handy-redis'
 import { Client as PGClient } from 'pg'
 import bole from '@entropic-dev/bole'
@@ -18,7 +18,8 @@ import { json } from '../body/json'
 const THREW = Symbol.for('THREW')
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */type Test = NonNullable<ConstructorParameters<typeof tap.Test>[0]>
+/* {% if selftest %} */ export /* {% endif %} */type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string | Buffer };
+/* {% if selftest %} */ export /* {% endif %} */type Test = (typeof tap.Test)["prototype"]
 /* {% if selftest %} */ export /* {% endif %} */type BoltzmannTest = Test & {
   // {% if postgres %}
   postgresClient: PGClient
@@ -26,7 +27,7 @@ const THREW = Symbol.for('THREW')
   // {% if redis %}
   redisClient: IHandyRedis
   // {% endif %}
-  request(opts: ShotRequestOptions): Promise<SimulatedResponseObject & { json?: ReturnType<JSON['parse']> }>
+  request(opts: BoltzmannShotRequestOptions): Promise<ResponseObject & { json?: ReturnType<JSON['parse']> }>
 }
 
 let savepointId = 0
@@ -74,15 +75,13 @@ let savepointId = 0
   // {% endif %}
 
   return (inner: (t: BoltzmannTest) => Promise<unknown> | unknown) => {
-    return async (assert: Test) => {
+    return async (outerAssert: Test) => {
+      const assert: BoltzmannTest = <BoltzmannTest>outerAssert
       const [resolvedHandlers, resolvedBodyParsers, resolvedMiddleware] = await Promise.all([
         handlers,
         bodyParsers,
         middleware,
       ])
-      // {% if redis %}
-      assert.redisClient = redisClient
-      // {% endif %}
 
       // {% if postgres %}
       // if we're in postgres, run the test in a transaction, run
@@ -132,7 +131,7 @@ let savepointId = 0
         body,
         payload,
         ...opts
-      }: Partial<ShotRequestOptions> & { body?: string | Buffer } = {}) => {
+      }: BoltzmannShotRequestOptions = {}) => {
         headers = headers || {}
         payload = payload || body
         if (!Buffer.isBuffer(payload) && typeof payload !== 'string' && payload) {

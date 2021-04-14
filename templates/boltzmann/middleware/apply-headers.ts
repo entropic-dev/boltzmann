@@ -20,3 +20,77 @@ type XFOMode = 'DENY' | 'SAMEORIGIN'
   }
   return applyHeaders({ 'x-frame-options': mode })
 }
+
+/* {% if selftest %} */
+import tap from 'tap'
+import {main} from '../bin/runserver'
+import {inject} from '@hapi/shot'
+{
+  const { test } = tap
+
+  test('applyXFO() ensures its option is DENY or SAMEORIGIN', async (assert) => {
+    let caught = 0
+    try {
+      applyXFO(<any>'BADSTRING')
+    } catch (_) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      applyXFO('DENY')
+    } catch (_) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      applyXFO('SAMEORIGIN')
+    } catch (_) {
+      caught++
+    }
+    assert.equal(caught, 1)
+  })
+
+  test('applyHeaders adds requested headers', async (assert) => {
+    const handler = async () => {
+      return 'woot'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [[applyHeaders, { currency: 'zorkmid' }]],
+      handlers: { handler },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.payload, 'woot')
+    assert.equal(response.headers.currency, 'zorkmid')
+  })
+
+  test('applyXFO adds xfo header', async (assert) => {
+    const handler = async () => {
+      return 'woot'
+    }
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [[applyXFO, 'DENY']],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.headers['x-frame-options'], 'DENY')
+  })
+}
+/* {% endif %} */

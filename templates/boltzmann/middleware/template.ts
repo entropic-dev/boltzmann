@@ -1,12 +1,11 @@
 // {% if selftest %}
 import bole from '@entropic-dev/bole'
 import isDev from 'are-we-dev'
+import {ConfigureOptions, Extension} from 'nunjucks'
 import path from 'path'
+import {Handler} from '../core/middleware'
+import {Context} from '../data/context'
 
-import { ConfigureOptions, Extension } from 'nunjucks'
-
-import { Handler } from '../core/middleware'
-import { Context } from '../data/context'
 const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
@@ -200,3 +199,274 @@ const THREW = Symbol.for('threw')
   }
 }
 
+
+/* {% if selftest %} */
+import { promises as fs } from 'fs'
+import tap from 'tap'
+import {main} from '../bin/runserver'
+import {inject} from '@hapi/shot'
+{
+  const { test } = tap
+
+  test('template() ensures `paths` is an array', async (assert) => {
+    let caught = 0
+    try {
+      template(<any>{ paths: { foo: 'bar' } })
+    } catch (err) {
+      assert.match(err.message, /must be an array/)
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      template(<any>{ paths: 'foo' })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+    try {
+      template({ paths: ['foo', 'bar'] })
+    } catch (err) {
+      caught++
+    }
+    assert.equal(caught, 1)
+  })
+
+  test('template middleware intercepts template symbol responses', async (assert) => {
+    let called = 0
+    const handler = async () => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello',
+      }
+    }
+
+    await fs.writeFile(
+      path.join(__dirname, 'templates', 'test.html'),
+      `
+      {% raw %}{{ greeting }} world{% endraw %}
+    `.trim()
+    )
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [template],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(called, 1)
+    assert.equal(response.payload, 'hello world')
+  })
+
+  test('template middleware allows custom filters', async (assert) => {
+    let called = 0
+    const handler = async () => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello',
+      }
+    }
+
+    await fs.writeFile(
+      path.join(__dirname, 'templates', 'test.html'),
+      `
+      {% raw %}{{ greeting|frobnify }} world{% endraw %}
+    `.trim()
+    )
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [
+          template,
+          {
+            filters: {
+              // explicitly async to test our munging
+              frobnify: async (xs: string) => xs + 'frob',
+            },
+          },
+        ],
+      ],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(called, 1)
+    assert.equal(response.payload, 'hellofrob world')
+  })
+
+  test('template middleware allows custom tags', async (assert) => {
+    let called = 0
+    const handler = async () => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello',
+      }
+    }
+
+    class FrobTag {
+      tags = ['frob']
+      parse(parser: any, nodes: any) {
+        const tok = parser.nextToken()
+        const args = parser.parseSignature(null, true)
+        parser.advanceAfterBlockEnd(tok.value)
+        const body = parser.parseUntilBlocks('endfrob')
+        parser.advanceAfterBlockEnd()
+        return new nodes.CallExtension(this, 'run', args, [body])
+      }
+
+      run(_: any, body: any) {
+        return body().split(/\s+/).join('frob ') + 'frob'
+      }
+    }
+
+    await fs.writeFile(
+      path.join(__dirname, 'templates', 'test.html'),
+      `
+      {% raw %}{% frob %}{{ greeting }} world{% endfrob %}{% endraw %}
+    `.trim()
+    )
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [
+          template,
+          {
+            tags: {
+              frob: new FrobTag(),
+            },
+          },
+        ],
+      ],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(called, 1)
+    assert.equal(response.payload, 'hellofrob worldfrob')
+  })
+
+  test('template middleware custom filters may throw', async (assert) => {
+    let called = 0
+    process.env.NODE_ENV = ''
+    const handler = async () => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello',
+      }
+    }
+
+    await fs.writeFile(
+      path.join(__dirname, 'templates', 'test.html'),
+      `
+      {% raw %}{{ greeting|frobnify }} world{% endraw %}
+    `.trim()
+    )
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [
+          template,
+          {
+            filters: {
+              frobnify: (_: string) => {
+                throw new Error('oops oh no')
+              },
+            },
+          },
+        ],
+      ],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(called, 1)
+    assert.match(response.payload, /oops oh no/)
+  })
+
+  test('reset env', async (_) => {
+    process.env.NODE_ENV = 'test'
+  })
+
+  test('template errors are hidden in non-dev mode', async (assert) => {
+    let called = 0
+    const handler = async () => {
+      ++called
+      return {
+        [TEMPLATE]: 'test.html',
+        greeting: 'hello',
+      }
+    }
+
+    await fs.writeFile(
+      path.join(__dirname, 'templates', 'test.html'),
+      `
+      {% raw %}{{ greeting|frobnify }} world{% endraw %}
+    `.trim()
+    )
+
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [
+        [
+          template,
+          {
+            filters: {
+              frobnify: () => {
+                throw new Error('oops oh no')
+              },
+            },
+          },
+        ],
+      ],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(called, 1)
+    assert.notMatch(response.payload, /oops oh no/)
+  })
+
+}
+/* {% endif %} */

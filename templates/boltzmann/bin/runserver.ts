@@ -1,16 +1,21 @@
 // {% if selftest %}
 import bole from '@entropic-dev/bole'
+import {inject} from '@hapi/shot'
 import isDev from 'are-we-dev'
 import http from 'http'
+import querystring from 'querystring'
+import tap from 'tap'
+import {json} from '../body/json'
+import {urlEncoded} from '../body/urlencoded'
+import {BodyParser, BodyParserDefinition, buildBodyParser} from '../core/body'
+import {buildMiddleware, handler, Handler, MiddlewareConfig} from '../core/middleware'
+import {Context} from '../data/context'
+import {route} from '../middleware/route'
+/* {% if selftest %} */
+import {Test} from '../middleware/test'
+import {_processBodyParsers, _processMiddleware, _requireOr} from '../utils'
 
-import { MiddlewareConfig, handler, buildMiddleware, Handler } from '../core/middleware'
-import { BodyParserDefinition, buildBodyParser } from '../core/body'
-import { route } from '../middleware/route'
-import { Context } from '../data/context'
-import { _requireOr, _processMiddleware, _processBodyParsers } from '../utils'
 
-import { urlEncoded } from '../body/urlencoded'
-import { json } from '../body/json'
 const STATUS = Symbol.for('status')
 const HEADERS = Symbol.for('headers')
 const THREW = Symbol.for('threw')
@@ -124,3 +129,346 @@ interface DebugLocationInfo {
 
   return server
 }
+
+{
+  const { test } = tap
+
+  test('empty server; router handles 404', async (assert: Test) => {
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {},
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 404)
+    const parsed = JSON.parse(response.payload)
+    assert.equal(parsed.message, 'Could not find route for GET /')
+
+    if (isDev()) {
+      assert.ok('stack' in parsed)
+    }
+  })
+
+  test('200 ok: json; returns expected headers and response', async (assert: Test) => {
+    const handler = () => {
+      return { message: 'hello world' }
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 200)
+    const parsed = JSON.parse(response.payload)
+    assert.equal(response.headers['content-type'], 'application/json; charset=utf-8')
+    assert.same(parsed, { message: 'hello world' })
+  })
+
+  test('200 ok: string; returns expected headers and response', async (assert: Test) => {
+    const handler = () => {
+      return 'hi there'
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.headers['content-type'], 'text/plain; charset=utf-8')
+    assert.same(response.payload, 'hi there')
+  })
+
+  test('204 no content', async (assert: Test) => {
+    const handler = () => {}
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 204)
+    assert.same(response.payload, '')
+  })
+
+  test('throwing an error results in 500 internal server error', async (assert) => {
+    const handler = () => {
+      throw new Error('wuh oh')
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 500)
+    const parsed = JSON.parse(response.payload)
+    assert.equal(response.headers['content-type'], 'application/json; charset=utf-8')
+    assert.equal(parsed.message, 'wuh oh')
+
+    if (isDev()) {
+      assert.ok('stack' in parsed)
+    }
+  })
+
+  test('throwing an error in non-dev mode results in 500 internal server error w/no stack', async (assert) => {
+    const handler = () => {
+      throw new Error('wuh oh')
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    process.env.NODE_ENV = 'prod'
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 500)
+    const parsed = JSON.parse(response.payload)
+    assert.equal(response.headers['content-type'], 'application/json; charset=utf-8')
+    assert.equal(parsed.message, 'wuh oh')
+
+    assert.ok(!('stack' in parsed))
+  })
+
+  test('reset env', async (_) => {
+    process.env.NODE_ENV = 'test'
+  })
+
+  test('return a pipe-able response', async (assert) => {
+    const { Readable } = require('stream')
+
+    const handler = () => {
+      const chunks = ['hi ', 'there ', 'world', null]
+      return new Readable({
+        read() {
+          const next = chunks.shift()
+          if (next !== undefined) {
+            this.push(next)
+          }
+        },
+      })
+    }
+    handler.route = 'GET /'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.equal(response.headers['content-type'], 'application/octet-stream')
+    assert.equal(response.payload, 'hi there world')
+  })
+
+  test('router: accept-version is respected', async (assert) => {
+    const old = async () => {
+      return 'old'
+    }
+    old.route = 'GET /'
+
+    const neue = async () => {
+      return 'new'
+    }
+    neue.route = 'GET /'
+    neue.version = '420.0.0'
+
+    const server = await main({
+      middleware: [],
+      bodyParsers: [],
+      handlers: {
+        old,
+        neue,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    {
+      const response = await inject(<any>onrequest, {
+        method: 'GET',
+        url: '/',
+      })
+
+      assert.equal(response.statusCode, 200)
+      assert.equal(response.payload, 'old')
+    }
+
+    {
+      const response = await inject(<any>onrequest, {
+        method: 'GET',
+        url: '/',
+        headers: { 'accept-version': '*' },
+      })
+
+      assert.equal(response.statusCode, 200)
+      assert.equal(response.payload, 'new')
+      assert.same(response.headers.vary, ['accept-version'])
+    }
+  })
+
+  test('body: custom body parsers on handler are used', async (assert) => {
+    const handler = async (context: Context) => {
+      return await context.body
+    }
+    handler.route = 'GET /'
+    handler.bodyParsers = [() => () => 'flooble']
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: querystring.stringify({ hello: 'world' }),
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.same(String(response.payload), 'flooble')
+  })
+
+  test('body: custom body parsers on handler do not effect other handlers', async (assert) => {
+    const handler = async (context: Context) => {
+      return await context.body
+    }
+    handler.bodyParsers = [() => () => 'flooble']
+    handler.route = 'GET /'
+    const otherHandler = async (context: Context) => {
+      return await context.body
+    }
+    otherHandler.route = 'GET /other'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+        otherHandler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: querystring.stringify({ hello: 'world' }),
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.same(String(response.payload), 'flooble')
+
+    const anotherResponse = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/other',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: querystring.stringify({ hello: 'world' }),
+    })
+
+    assert.equal(anotherResponse.statusCode, 200)
+    assert.same(JSON.parse(anotherResponse.payload), { hello: 'world' })
+  })
+
+  test('body: context.body can be set explicitly', async (assert) => {
+    const handler = async (context: Context) => {
+      context.body = <any>'three ducks'
+      return await context.body
+    }
+    handler.route = 'GET /'
+    const otherHandler = async (context: Context) => {
+      return await context.body
+    }
+    otherHandler.route = 'GET /other'
+    const server = await main({
+      middleware: [],
+      bodyParsers: [urlEncoded],
+      handlers: {
+        handler,
+        otherHandler,
+      },
+    })
+
+    const [onrequest] = server.listeners('request')
+    const response = await inject(<any>onrequest, {
+      method: 'GET',
+      url: '/',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: querystring.stringify({ hello: 'world' }),
+    })
+
+    assert.equal(response.statusCode, 200)
+    assert.same(String(response.payload), 'three ducks') // in THIS ECONOMY?!
+  })
+}
+/* {% endif %} */
