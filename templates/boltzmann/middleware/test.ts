@@ -18,8 +18,8 @@ import { json } from '../body/json'
 const THREW = Symbol.for('THREW')
 // {% endif %}
 
-type Test = NonNullable<ConstructorParameters<typeof tap.Test>[0]>
-type AugmentedTest = Test & {
+/* {% if selftest %} */ export /* {% endif %} */type Test = NonNullable<ConstructorParameters<typeof tap.Test>[0]>
+/* {% if selftest %} */ export /* {% endif %} */type BoltzmannTest = Test & {
   // {% if postgres %}
   postgresClient: PGClient
   // {% endif %}
@@ -73,7 +73,7 @@ let savepointId = 0
   })
   // {% endif %}
 
-  return (inner: (t: AugmentedTest) => Promise<unknown> | unknown) => {
+  return (inner: (t: BoltzmannTest) => Promise<unknown> | unknown) => {
     return async (assert: Test) => {
       const [resolvedHandlers, resolvedBodyParsers, resolvedMiddleware] = await Promise.all([
         handlers,
@@ -159,7 +159,7 @@ let savepointId = 0
       assert.request = request
 
       try {
-        await inner(<AugmentedTest>assert)
+        await inner(<BoltzmannTest>assert)
       } finally {
         // {% if postgres %}
         await postgresClient.query('rollback')
