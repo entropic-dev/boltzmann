@@ -65,7 +65,7 @@ import * as cookie from 'cookie'
 /* {% if selftest %} */
 import tap from 'tap'
 import {Context} from './context'
-import {main} from '../bin/runserver'
+import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
 {
@@ -89,7 +89,7 @@ import {inject} from '@hapi/shot'
     }
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       handlers: {
         handler,
@@ -120,7 +120,7 @@ import {inject} from '@hapi/shot'
     }
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       handlers: {
         handler,

@@ -1,5 +1,5 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 import path from 'path'
 import mime from 'mime'

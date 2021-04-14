@@ -1,5 +1,5 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import { promises as fs } from 'fs'
 import { build } from 'esbuild'
 import isDev from 'are-we-dev'

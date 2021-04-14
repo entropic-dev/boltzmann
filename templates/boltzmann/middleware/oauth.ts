@@ -1,6 +1,6 @@
 // {% if selftest %}
 import { decode as decodeJWT } from 'jsonwebtoken'
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import { OAuth2 } from 'oauth'
 import isDev from 'are-we-dev'
 import crypto from 'crypto'

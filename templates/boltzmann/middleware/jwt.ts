@@ -1,6 +1,6 @@
 // {% if selftest %}
 import { Algorithm, verify as verifyJWT } from 'jsonwebtoken'
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import { promises as fs } from 'fs'
 import assert from 'assert'
 import crypto from 'crypto'

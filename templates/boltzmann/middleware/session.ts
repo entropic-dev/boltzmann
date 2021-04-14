@@ -1,6 +1,6 @@
 // {% if selftest %}
 import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import crypto from 'crypto'
 import uuid from 'uuid'
 
@@ -146,7 +146,7 @@ defaultSessionSave = redisSessionSave
 
 /* {% if selftest %} */
 import tap from 'tap'
-import {main} from '../bin/runserver'
+import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
 {
@@ -165,7 +165,7 @@ import {inject} from '@hapi/shot'
       return 'OK'
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[session, config]],
       handlers: { handler },
     })

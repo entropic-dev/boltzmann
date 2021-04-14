@@ -1,4 +1,4 @@
-declare module '@entropic-dev/bole' {
+declare module '@entropic/bole' {
   interface Bole {
     (name: string): Bole;
     output(...config: any[]): void;

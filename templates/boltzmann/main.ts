@@ -1,8 +1,8 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { main } from './bin/runserver'
+import { runserver } from './bin/runserver'
 import { Handler, MiddlewareConfig } from './core/middleware'
 import { Context } from './data/context'
 import { trace } from './middleware/honeycomb'
@@ -21,7 +21,7 @@ if (require.main === module) {
     return (next: Handler) => (context: Context) => next(context)
   }
 
-  main({
+  runserver({
     middleware: (_requireOr('./middleware', [] as MiddlewareConfig[]) as Promise<MiddlewareConfig[]>)
       .then(_processMiddleware)
       .then((mw) =>

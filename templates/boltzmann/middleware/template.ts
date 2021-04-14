@@ -1,5 +1,5 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 import {ConfigureOptions, Extension} from 'nunjucks'
 import path from 'path'
@@ -200,7 +200,7 @@ import {Context} from '../data/context'
 /* {% if selftest %} */
 import { promises as fs } from 'fs'
 import tap from 'tap'
-import {main} from '../bin/runserver'
+import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
 {
@@ -247,7 +247,7 @@ import {inject} from '@hapi/shot'
     )
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [template],
       handlers: {
         handler,
@@ -282,7 +282,7 @@ import {inject} from '@hapi/shot'
     )
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [
         [
           template,
@@ -343,7 +343,7 @@ import {inject} from '@hapi/shot'
     )
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [
         [
           template,
@@ -388,7 +388,7 @@ import {inject} from '@hapi/shot'
     )
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [
         [
           template,
@@ -438,7 +438,7 @@ import {inject} from '@hapi/shot'
     )
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [
         [
           template,

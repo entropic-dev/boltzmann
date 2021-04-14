@@ -79,7 +79,7 @@ function validateBlock(what: (c: Context) => object) {
 
 /* {% if selftest %} */
 import tap from 'tap'
-import {main} from '../bin/runserver'
+import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
 {
@@ -129,7 +129,7 @@ import {inject} from '@hapi/shot'
       ],
     ]
 
-    const server = await main({
+    const server = await runserver({
       handlers: { handler: <any>handler },
       middleware: [],
     })
@@ -190,7 +190,7 @@ import {inject} from '@hapi/shot'
       ],
     ]
 
-    const server = await main({
+    const server = await runserver({
       handlers: { handler: <any>handler },
       middleware: [],
     })
@@ -237,7 +237,7 @@ import {inject} from '@hapi/shot'
       ],
     ]
 
-    const server = await main({
+    const server = await runserver({
       handlers: { handler: <any>handler },
       middleware: [],
     })
@@ -282,7 +282,7 @@ import {inject} from '@hapi/shot'
       ],
     ]
 
-    const server = await main({
+    const server = await runserver({
       handlers: { handler: <any>handler },
       middleware: [],
     })

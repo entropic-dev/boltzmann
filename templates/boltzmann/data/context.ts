@@ -171,7 +171,7 @@ import { Cookie } from './cookie'
 
 /* {% if selftest %} */
 import { Test } from '../middleware/test'
-import { main } from '../bin/runserver'
+import { runserver } from '../bin/runserver'
 import tap from 'tap'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
@@ -185,7 +185,7 @@ import {inject} from '@hapi/shot'
       called = context.url
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -239,7 +239,7 @@ import {inject} from '@hapi/shot'
       await context.body
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {

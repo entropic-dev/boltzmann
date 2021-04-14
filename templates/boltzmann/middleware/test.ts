@@ -2,7 +2,7 @@
 import { inject, RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
 import redis, { IHandyRedis } from 'handy-redis'
 import { Client as PGClient } from 'pg'
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 import tap from 'tap'
 
@@ -11,7 +11,7 @@ import { BodyParserDefinition } from '../core/body'
 import { urlEncoded } from '../body/urlencoded'
 import { serviceName } from '../core/prelude'
 import { Context } from '../data/context'
-import { main } from '../bin/runserver'
+import { runserver } from '../bin/runserver'
 import { THREW } from '../core/prelude'
 import { _requireOr } from '../utils'
 import { json } from '../body/json'
@@ -118,7 +118,7 @@ let savepointId = 0
       assert.redisClient = redisClient
       // {% endif %}
 
-      const server = await main({
+      const server = await runserver({
         middleware: resolvedMiddleware,
         bodyParsers: resolvedBodyParsers,
         handlers: resolvedHandlers,

@@ -1,5 +1,5 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import { Readable } from 'stream'
 
 import { Handler } from '../core/middleware'

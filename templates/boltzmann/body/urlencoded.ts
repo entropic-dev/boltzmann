@@ -25,7 +25,7 @@ import { _collect } from '../utils'
 /* {% if selftest %} */
 import tap from 'tap'
 import {Context} from '../data/context'
-import {main} from '../bin/runserver'
+import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
 {
@@ -36,7 +36,7 @@ import {inject} from '@hapi/shot'
       await context.body
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [urlEncoded],
       handlers: {
@@ -59,7 +59,7 @@ import {inject} from '@hapi/shot'
       return await context.body
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [urlEncoded],
       handlers: {

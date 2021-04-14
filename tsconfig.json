@@ -9,8 +9,10 @@
     "sourceMap": true,
     "downlevelIteration": true,
     "moduleResolution": "node",
-    "typeRoots": [ "./types", "./node_modules/@types"]
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "typeRoots": [ "types", "node_modules/@types"]
   },
   "extends": "@tsconfig/node14/tsconfig.json",
-  "include": ["./templates/boltzmann/**/*.ts", "./types/*.ts"]
+  "include": ["templates/boltzmann/**/*.ts", "types/*.ts"]
 }

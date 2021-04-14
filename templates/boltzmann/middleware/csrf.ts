@@ -109,7 +109,7 @@ const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 /* {% if selftest %} */
 import tap from 'tap'
-import {main} from '../bin/runserver'
+import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
 /* istanbul ignore next */
 {
@@ -124,7 +124,7 @@ import {inject} from '@hapi/shot'
     let error
     let threw = false
     try {
-      (await main({
+      (await runserver({
         middleware: [[applyCSRF, {}]],
         handlers: {},
       })).close()
@@ -147,7 +147,7 @@ import {inject} from '@hapi/shot'
     }
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret: 'not-very-secret' }]],
       handlers: { handler },
     })
@@ -172,7 +172,7 @@ import {inject} from '@hapi/shot'
     }
 
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret: 'not-very-secret' }]],
       handlers: { handler },
     })
@@ -194,7 +194,7 @@ import {inject} from '@hapi/shot'
     }
 
     handler.route = 'PUT /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret: 'not-very-secret' }]],
       handlers: { handler },
     })
@@ -227,7 +227,7 @@ import {inject} from '@hapi/shot'
     const signedUserSecret = signCookie(userSecret, cookieSecret)
 
     handler.route = 'PUT /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret }]],
       handlers: { handler },
     })
@@ -261,7 +261,7 @@ import {inject} from '@hapi/shot'
     const token = tokens.create(userSecret)
 
     handler.route = 'PUT /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret, header: 'my-header' }]],
       handlers: { handler },
     })
@@ -298,7 +298,7 @@ import {inject} from '@hapi/shot'
     tokens.create(userSecret)
 
     handler.route = 'PUT /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret }]],
       handlers: { handler },
     })
@@ -332,7 +332,7 @@ import {inject} from '@hapi/shot'
     tokens.create(userSecret)
 
     handler.route = 'PUT /'
-    const server = await main({
+    const server = await runserver({
       middleware: [[applyCSRF, { cookieSecret }]],
       handlers: { handler },
     })

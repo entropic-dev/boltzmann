@@ -1,5 +1,5 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import {inject} from '@hapi/shot'
 import isDev from 'are-we-dev'
 import http from 'http'
@@ -20,7 +20,7 @@ interface DebugLocationInfo {
   name: string,
   location: string
 }
-/* {% if selftest %} */export /* {% endif %} */async function main ({
+/* {% if selftest %} */export /* {% endif %} */async function runserver ({
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
   bodyParsers = _requireOr('./body', [urlEncoded, json]).then(_processBodyParsers),
   handlers = _requireOr('./handlers', {}),
@@ -132,7 +132,7 @@ import {Test} from '../middleware/test'
   const { test } = tap
 
   test('empty server; router handles 404', async (assert: Test) => {
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {},
@@ -158,7 +158,7 @@ import {Test} from '../middleware/test'
       return { message: 'hello world' }
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -183,7 +183,7 @@ import {Test} from '../middleware/test'
       return 'hi there'
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -205,7 +205,7 @@ import {Test} from '../middleware/test'
   test('204 no content', async (assert: Test) => {
     const handler = () => {}
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -228,7 +228,7 @@ import {Test} from '../middleware/test'
       throw new Error('wuh oh')
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -257,7 +257,7 @@ import {Test} from '../middleware/test'
       throw new Error('wuh oh')
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -299,7 +299,7 @@ import {Test} from '../middleware/test'
       })
     }
     handler.route = 'GET /'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -330,7 +330,7 @@ import {Test} from '../middleware/test'
     neue.route = 'GET /'
     neue.version = '420.0.0'
 
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [],
       handlers: {
@@ -369,7 +369,7 @@ import {Test} from '../middleware/test'
     }
     handler.route = 'GET /'
     handler.bodyParsers = [() => () => 'flooble']
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [urlEncoded],
       handlers: {
@@ -401,7 +401,7 @@ import {Test} from '../middleware/test'
       return await context.body
     }
     otherHandler.route = 'GET /other'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [urlEncoded],
       handlers: {
@@ -446,7 +446,7 @@ import {Test} from '../middleware/test'
       return await context.body
     }
     otherHandler.route = 'GET /other'
-    const server = await main({
+    const server = await runserver({
       middleware: [],
       bodyParsers: [urlEncoded],
       handlers: {

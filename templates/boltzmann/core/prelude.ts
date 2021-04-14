@@ -1,10 +1,16 @@
 'use strict'
 // Boltzmann v{{ version }}
 
-/* {% if selftest %} */export /* {% endif %} */const serviceName = (
-  process.env.SERVICE_NAME ||
-  require('./package.json').name.split('/').pop()
-)
+/* {% if selftest %} */export /* {% endif %} */const serviceName = _getServiceName()
+
+function _getServiceName () {
+  try {
+    return process.env.SERVICE_NAME ||
+    require('./package.json').name.split('/').pop()
+  } catch {
+    return 'boltzmann'
+  }
+}
 
 // {% if honeycomb %}
 import beeline from 'honeycomb-beeline'
@@ -32,7 +38,7 @@ import accepts from 'accepts'
 import { promises as fs } from 'fs'
 import crypto from 'crypto'
 import http from 'http'
-import bole from '@entropic-dev/bole'
+import bole from '@entropic/bole'
 import path from 'path'
 import os from 'os'
 // {% if redis %}
