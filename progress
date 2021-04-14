@@ -3,4 +3,4 @@ tslines=$(find templates/boltzmann -type f -name '*.ts' | { while read file; do 
 jslines=$(find templates/boltzmann -type f -name '*.js' | { while read file; do echo -n "$(wc -l "$file" | awk '{print $1}') + "; done; echo "0"; } | bc -l); 
 
 echo -n "% lines converted: "; echo "($tslines / $(($tslines + $jslines))) * 100" | bc -l
-echo -n "% files converted: "; echo "($(find templates/boltzmann -type f -name '*.ts'  | wc -l) / $(find templates/boltzmann -type f | grep -v tera  | wc -l)) * 100" | bc -l
+echo -n "% files converted: "; echo "($(find templates/boltzmann -type f -name '*.ts'  | wc -l) / $(find templates/boltzmann -type f | grep -v tera | grep -v html | wc -l)) * 100" | bc -l
