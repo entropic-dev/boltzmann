@@ -1,8 +1,7 @@
 // {% if selftest %}
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-const HEADERS = Symbol.for('headers')
+import { HEADERS } from '../core/prelude'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */function vary (on: string[] | string = []) {
@@ -21,6 +20,7 @@ const HEADERS = Symbol.for('headers')
 import tap from 'tap'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

@@ -12,10 +12,10 @@ import { urlEncoded } from '../body/urlencoded'
 import { serviceName } from '../core/prelude'
 import { Context } from '../data/context'
 import { main } from '../bin/runserver'
+import { THREW } from '../core/prelude'
 import { _requireOr } from '../utils'
 import { json } from '../body/json'
 
-const THREW = Symbol.for('THREW')
 // {% endif %}
 
 /* {% if selftest %} */ export /* {% endif %} */type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string | Buffer };

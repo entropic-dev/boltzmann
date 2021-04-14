@@ -3,13 +3,10 @@ import bole from '@entropic-dev/bole'
 import isDev from 'are-we-dev'
 import {ConfigureOptions, Extension} from 'nunjucks'
 import path from 'path'
+
+import {STATUS, HEADERS, TEMPLATE, THREW} from '../core/prelude'
 import {Handler} from '../core/middleware'
 import {Context} from '../data/context'
-
-const STATUS = Symbol.for('status')
-const HEADERS = Symbol.for('headers')
-const TEMPLATE = Symbol.for('template')
-const THREW = Symbol.for('threw')
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */interface BoltzmannNunjucksFilter {
@@ -205,6 +202,7 @@ import { promises as fs } from 'fs'
 import tap from 'tap'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

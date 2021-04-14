@@ -6,6 +6,7 @@ import { v4 } from 'uuid'
 
 import { Handler } from '../core/middleware'
 import { BodyParser } from '../core/body'
+import {NoMatchError} from './errors'
 import { Session } from './session'
 import { Cookie } from './cookie'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
@@ -173,6 +174,7 @@ import { Test } from '../middleware/test'
 import { main } from '../bin/runserver'
 import tap from 'tap'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

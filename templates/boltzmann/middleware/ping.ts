@@ -1,8 +1,7 @@
 // {% if selftest %}
-import ships from 'culture-ships'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-const ship = ships.random()
+import { ship } from '../core/prelude'
 // {% endif %}
 
 /* {% if selftest %} */ export /* {% endif %} */function handlePing () {

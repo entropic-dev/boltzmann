@@ -1,10 +1,7 @@
 // {% if selftest %}
+import {STATUS, HEADERS, TEMPLATE, THREW} from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-const STATUS = Symbol.for('status')
-const HEADERS = Symbol.for('headers')
-const TEMPLATE = Symbol.for('template')
-const THREW = Symbol.for('threw')
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */function enforceInvariants () {

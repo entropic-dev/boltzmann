@@ -40,7 +40,7 @@ import { LoadSession, SaveSession, session } from '../middleware/session'
 // {% if csrf %}
 import { applyCSRF } from '../middleware/csrf'
 // {% endif %}
-import { test } from '../middleware/test'
+import { BoltzmannTest, Test, test } from '../middleware/test'
 // {% endif %}
 
 const body = {
@@ -97,6 +97,8 @@ export {
   SaveSession,
   Adaptor,
   Handler,
+  BoltzmannTest,
+  Test,
 
   Context,
   main,

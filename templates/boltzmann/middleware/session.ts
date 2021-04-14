@@ -1,12 +1,13 @@
 // {% if selftest %}
-import bole from '@entropic-dev/bole'
 import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
-
-import { Handler } from '../core/middleware'
-import { Context } from '../data/context'
-import { Session, REISSUE } from '../data/session'
+import bole from '@entropic-dev/bole'
 import crypto from 'crypto'
 import uuid from 'uuid'
+
+import { Session, REISSUE } from '../data/session'
+import { BadSessionError } from '../data/errors'
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
 // {% endif %}
 
 let IN_MEMORY = new Map()
@@ -147,6 +148,7 @@ defaultSessionSave = redisSessionSave
 import tap from 'tap'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

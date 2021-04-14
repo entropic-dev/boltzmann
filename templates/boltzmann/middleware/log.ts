@@ -4,8 +4,7 @@ import isDev from 'are-we-dev'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-const THREW = Symbol.for('THREW')
+import { STATUS, THREW } from '../core/prelude'
 // {% endif %}
 
 /* {% if selftest %} */ export /* {% endif %} */function log ({
@@ -51,6 +50,7 @@ const THREW = Symbol.for('THREW')
 
 /* {% if selftest %} */
 import tap from 'tap'
+/* istanbul ignore next */
 {
   const { test } = tap
 

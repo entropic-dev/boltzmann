@@ -2,6 +2,7 @@
 import isDev from 'are-we-dev'
 
 import { BodyParser, BodyInput } from '../core/body'
+import {STATUS} from '../core/prelude'
 import { _collect } from '../utils'
 // {% endif %}
 
@@ -37,6 +38,7 @@ import tap from 'tap'
 import {Context} from '../data/context'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

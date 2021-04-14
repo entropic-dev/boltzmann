@@ -48,6 +48,7 @@ type BodyImport = { APP_BODY_PARSERS: BodyParserDefinition[] } | BodyParserDefin
 /* {% if selftest %} */
 import { Test } from './middleware/test'
 import tap from 'tap'
+/* istanbul ignore next */
 {
   const { test } = tap
 

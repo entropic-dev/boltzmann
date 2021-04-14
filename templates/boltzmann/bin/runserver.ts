@@ -5,20 +5,15 @@ import isDev from 'are-we-dev'
 import http from 'http'
 import querystring from 'querystring'
 import tap from 'tap'
-import {json} from '../body/json'
-import {urlEncoded} from '../body/urlencoded'
-import {BodyParser, BodyParserDefinition, buildBodyParser} from '../core/body'
+
 import {buildMiddleware, handler, Handler, MiddlewareConfig} from '../core/middleware'
-import {Context} from '../data/context'
-import {route} from '../middleware/route'
-/* {% if selftest %} */
-import {Test} from '../middleware/test'
+import {BodyParser, BodyParserDefinition, buildBodyParser} from '../core/body'
 import {_processBodyParsers, _processMiddleware, _requireOr} from '../utils'
-
-
-const STATUS = Symbol.for('status')
-const HEADERS = Symbol.for('headers')
-const THREW = Symbol.for('threw')
+import {STATUS, HEADERS, THREW} from '../core/prelude'
+import {urlEncoded} from '../body/urlencoded'
+import {route} from '../middleware/route'
+import {Context} from '../data/context'
+import {json} from '../body/json'
 // {% endif %}
 
 interface DebugLocationInfo {
@@ -130,6 +125,9 @@ interface DebugLocationInfo {
   return server
 }
 
+/* {% if selftest %} */
+import {Test} from '../middleware/test'
+/* istanbul ignore next */
 {
   const { test } = tap
 

@@ -1,10 +1,8 @@
 // {% if selftest %}
-import { serviceName } from '../core/prelude'
+import { serviceName, THREW } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 /* {% if postgres %} */import pg from 'pg'/* {% endif %} */
-
-const THREW = Symbol.for('threw')
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */function attachPostgres ({

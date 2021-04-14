@@ -5,8 +5,7 @@ import ajv from 'ajv'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-const THREW = Symbol.for('threw')
+import { STATUS, THREW } from '../core/prelude'
 // {% endif %}
 
 const addAJVFormats = (validator: Ajv): Ajv => (require('ajv-formats')(validator), validator)
@@ -82,6 +81,7 @@ function validateBlock(what: (c: Context) => object) {
 import tap from 'tap'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

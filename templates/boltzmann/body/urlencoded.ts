@@ -27,6 +27,7 @@ import tap from 'tap'
 import {Context} from '../data/context'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

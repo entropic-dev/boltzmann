@@ -2,7 +2,7 @@
 import os from 'os'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 
-import { serviceName } from '../core/prelude'
+import { serviceName, STATUS } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { _requireOr } from '../utils'

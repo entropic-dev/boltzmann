@@ -1,9 +1,12 @@
-const STATUS: unique symbol = Symbol.for('status')
-class BadSessionError extends Error {
+// {% if selftest %}
+import {STATUS} from '../core/prelude'
+// {% endif %}
+
+/* {% if selftest %} */export /* {% endif %} */class BadSessionError extends Error {
   [STATUS]: number = 400
 }
 
-class NoMatchError extends Error {
+/* {% if selftest %} */export /* {% endif %} */class NoMatchError extends Error {
   [STATUS]: number = 404
   public __noMatch: boolean = true
 

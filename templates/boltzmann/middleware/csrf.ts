@@ -111,6 +111,7 @@ const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 import tap from 'tap'
 import {main} from '../bin/runserver'
 import {inject} from '@hapi/shot'
+/* istanbul ignore next */
 {
   const { test } = tap
 

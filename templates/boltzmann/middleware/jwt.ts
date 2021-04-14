@@ -83,6 +83,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
 
 /* {% if selftest %} */
 import tap from 'tap'
+/* istanbul ignore next */
 {
   const { test } = tap
 
