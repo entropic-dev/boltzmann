@@ -73,7 +73,7 @@
     "typescript": "^4.2.3"
   },
   "scripts": {
-    "test": "TS_NODE_PROJECT=./tsconfig.json node_modules/.bin/tap --ts --no-cov  templates/boltzmann/middleware/vary.ts"
+    "test": "TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json node_modules/.bin/tap --ts --no-cov  templates/boltzmann/middleware/vary.ts"
   },
   "repository": {
     "type": "git",
