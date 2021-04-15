@@ -1,6 +1,6 @@
 // {% if selftest %}
+import { _requireOr } from '../core/utils'
 import { routes } from '../core/routes'
-import { _requireOr } from '../utils'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */async function printRoutes () {

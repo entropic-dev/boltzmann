@@ -2,17 +2,17 @@
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { runserver } from './bin/runserver'
-import { Handler, MiddlewareConfig } from './core/middleware'
-import { Context } from './data/context'
-import { trace } from './middleware/honeycomb'
-import { livereload } from './middleware/livereload'
-import { log } from './middleware/log'
-import { handlePing } from './middleware/ping'
-import { attachPostgres } from './middleware/postgres'
-import { attachRedis } from './middleware/redis'
-import { handleStatus } from './middleware/status'
-import { _processMiddleware, _requireOr } from './utils'
+import { Handler, MiddlewareConfig } from '../core/middleware'
+import { _processMiddleware, _requireOr } from '../core/utils'
+import { attachPostgres } from '../middleware/postgres'
+import { livereload } from '../middleware/livereload'
+import { handleStatus } from '../middleware/status'
+import { attachRedis } from '../middleware/redis'
+import { handlePing } from '../middleware/ping'
+import { trace } from '../middleware/honeycomb'
+import { runserver } from '../bin/runserver'
+import { Context } from '../data/context'
+import { log } from '../middleware/log'
 // {% endif %}
 
 /* istanbul ignore next */

@@ -12,8 +12,8 @@ import { urlEncoded } from '../body/urlencoded'
 import { serviceName } from '../core/prelude'
 import { Context } from '../data/context'
 import { runserver } from '../bin/runserver'
+import { _requireOr } from '../core/utils'
 import { THREW } from '../core/prelude'
-import { _requireOr } from '../utils'
 import { json } from '../body/json'
 
 // {% endif %}

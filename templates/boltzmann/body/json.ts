@@ -2,8 +2,8 @@
 import isDev from 'are-we-dev'
 
 import { BodyParser, BodyInput } from '../core/body'
+import { _collect } from '../core/utils'
 import {STATUS} from '../core/prelude'
-import { _collect } from '../utils'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */function json (next: BodyParser) {

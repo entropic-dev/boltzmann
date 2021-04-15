@@ -2,7 +2,7 @@
 import querystring from 'querystring'
 
 import { BodyParser, BodyInput } from '../core/body'
-import { _collect } from '../utils'
+import { _collect } from '../core/utils'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */function urlEncoded (next: BodyParser) {

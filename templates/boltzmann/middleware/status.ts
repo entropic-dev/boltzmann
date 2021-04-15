@@ -5,7 +5,7 @@ import os from 'os'
 import { serviceName, STATUS } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-import { _requireOr } from '../utils'
+import { _requireOr } from '../core/utils'
 // {% endif %}
 
 interface ReachabilityResult {

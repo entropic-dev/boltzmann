@@ -4,12 +4,12 @@ import { build } from 'esbuild'
 import isDev from 'are-we-dev'
 import path from 'path'
 
+import { _processMiddleware, _requireOr } from '../core/utils'
+import { route as routing } from '../middleware/route'
+import { esbuild } from '../middleware/esbuild'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-import { route as routing } from '../middleware/route'
 import { routes } from '../core/routes'
-import { esbuild } from '../middleware/esbuild'
-import { _processMiddleware, _requireOr } from '../utils'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */async function _findESBuildEntries (source: string) {

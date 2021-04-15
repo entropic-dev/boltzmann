@@ -10,9 +10,9 @@ import os from 'os'
 import { staticfiles } from '../middleware/staticfiles'
 import { _findESBuildEntries } from '../bin/esbuild'
 import { Handler } from '../core/middleware'
+import { _requireOr } from '../core/utils'
 import { Context } from '../data/context'
 import { routes } from '../core/routes'
-import { _requireOr } from '../utils'
 // {% endif %}
 
 /* {% if selftest %} */export /* {% endif %} */function esbuild({

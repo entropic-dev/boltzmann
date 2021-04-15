@@ -7,8 +7,8 @@ import querystring from 'querystring'
 import tap from 'tap'
 
 import {buildMiddleware, handler, Handler, MiddlewareConfig} from '../core/middleware'
+import {_processBodyParsers, _processMiddleware, _requireOr} from '../core/utils'
 import {BodyParser, BodyParserDefinition, buildBodyParser} from '../core/body'
-import {_processBodyParsers, _processMiddleware, _requireOr} from '../utils'
 import {STATUS, HEADERS, THREW} from '../core/prelude'
 import {urlEncoded} from '../body/urlencoded'
 import {route} from '../middleware/route'
@@ -52,6 +52,7 @@ interface DebugLocationInfo {
     })
   }
 
+  console.log({bodyParsers, resolvedBodyParsers})
   Context._bodyParser = buildBodyParser(resolvedBodyParsers)
   const respond = await buildMiddleware([[route, resolvedHandlers], ...resolvedMiddleware], handler)
 

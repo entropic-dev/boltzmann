@@ -1,5 +1,5 @@
 target
-templates/boltzmann/require-or-test
+templates/boltzmann/core/require-or-test
 tmp
 bin/zola
 docs/output
