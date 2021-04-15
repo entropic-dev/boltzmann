@@ -3,8 +3,8 @@ import { promises as fs, createReadStream } from 'fs'
 import { IncomingMessage } from 'http'
 import path from 'path'
 
-import { MiddlewareConfig } from '../core/middleware'
-import { BodyParserDefinition } from '../core/body'
+import { MiddlewareConfig } from '../../core/middleware'
+import { BodyParserDefinition } from '../../core/body'
 // {% endif %}
 
 /* {% if selftest %} */ export /* {% endif %} */ async function _collect(request: IncomingMessage) {
@@ -47,7 +47,7 @@ type BodyImport = { APP_BODY_PARSERS: BodyParserDefinition[] } | BodyParserDefin
 }
 
 /* {% if selftest %} */
-import { Test } from '../middleware/test'
+import { Test } from '../../middleware/test'
 import tap from 'tap'
 /* istanbul ignore next */
 if (require.main === module) {
