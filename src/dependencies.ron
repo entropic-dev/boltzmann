@@ -5,18 +5,35 @@
     kind: Normal,
     preconditions: None
   ),
+
   DependencySpec(
     name: "uuid",
     version: "^8.3.0",
     kind: Normal,
     preconditions: None
   ),
+
+  DependencySpec(
+    name: "@types/uuid",
+    version: "^8.3.0",
+    kind: Development,
+    preconditions: None
+  ),
+
   DependencySpec(
     name: "@hapi/iron",
     version: "^6.0.0",
     kind: Normal,
     preconditions: None
   ),
+
+  DependencySpec(
+    name: "@types/hapi__iron",
+    version: "^6.0.1",
+    kind: Development,
+    preconditions: Some(When(all_of: ["typescript"]))
+  ),
+
   DependencySpec(
     name: "nunjucks",
     version: "^3.2.1",
@@ -25,6 +42,16 @@
       all_of: ["templates"],
     ))
   ),
+
+  DependencySpec(
+    name: "@types/nunjucks",
+    version: "^3.1.4",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript", "templates"],
+    ))
+  ),
+
   DependencySpec(
     name: "oauth",
     version: "^0.9.15",
@@ -33,6 +60,16 @@
       all_of: ["oauth"],
     ))
   ),
+
+  DependencySpec(
+    name: "@types/oauth",
+    version: "^0.9.1",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript", "oauth"],
+    ))
+  ),
+
   DependencySpec(
     name: "mime",
     version: "^2.4.6",
@@ -41,6 +78,17 @@
       any_of: ["esbuild", "staticfiles"],
     ))
   ),
+
+  DependencySpec(
+    name: "@types/mime",
+    version: "^2.0.3",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript"],
+      any_of: ["esbuild", "staticfiles"],
+    ))
+  ),
+
   DependencySpec(
     name: "culture-ships",
     version: "^1.0.0",
@@ -59,6 +107,7 @@
     kind: Normal,
     preconditions: None
   ),
+
   DependencySpec(
     name: "jsonwebtoken",
     version: "^8.5.1",
@@ -71,12 +120,36 @@
     kind: Normal,
     preconditions: Some(When(all_of: ["oauth"]))
   ),
+
+  DependencySpec(
+    name: "@types/jsonwebtoken",
+    version: "^8.5.1",
+    kind: Development,
+    preconditions: Some(When(all_of: ["jwt", "typescript"]))
+  ),
+  DependencySpec(
+    name: "@types/jsonwebtoken",
+    version: "^8.5.1",
+    kind: Development,
+    preconditions: Some(When(all_of: ["oauth", "typescript"]))
+  ),
+
   DependencySpec(
     name: "ajv",
     version: "^8.0.5",
     kind: Normal,
     preconditions: None
   ),
+
+  DependencySpec(
+    name: "@types/ajv",
+    version: "^1.0.0",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript"]
+    ))
+  ),
+
   DependencySpec(
     name: "ajv-formats",
     version: "^2.0.2",
@@ -101,30 +174,65 @@
     kind: Normal,
     preconditions: None
   ),
+
+  DependencySpec(
+    name: "@types/accepts",
+    version: "^1.3.5",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript"]
+    ))
+  ),
+
   DependencySpec(
     name: "csrf",
     version: "^3.1.0",
     kind: Normal,
     preconditions: Some(When(all_of: ["csrf"]))
   ),
+
+  DependencySpec(
+    name: "@types/csrf",
+    version: "^3.1.0",
+    kind: Development,
+    preconditions: Some(When(all_of: ["csrf", "typescript"]))
+  ),
+
   DependencySpec(
     name: "honeycomb-beeline",
     version: "^2.1.1",
     kind: Normal,
     preconditions: Some(When(all_of: ["honeycomb"]))
   ),
+
   DependencySpec(
     name: "on-headers",
     version: "^1.0.2",
     kind: Normal,
-    preconditions: Some(When(  all_of: ["honeycomb"]))
+    preconditions: Some(When(all_of: ["honeycomb"]))
   ),
+
+  DependencySpec(
+    name: "@types/on-headers",
+    version: "^1.0.0",
+    kind: Development,
+    preconditions: Some(When(all_of: ["typescript", "honeycomb"]))
+  ),
+
   DependencySpec(
     name: "pg",
-    version: "^8.3.3",
+    version: "^8.6.0",
     kind: Normal,
-    preconditions: Some(When(  all_of: ["postgres"]))
+    preconditions: Some(When(all_of: ["postgres"]))
   ),
+
+  DependencySpec(
+    name: "@types/pg",
+    version: "^7.14.11",
+    kind: Development,
+    preconditions: Some(When(all_of: ["typescript", "postgres"]))
+  ),
+
   DependencySpec(
     name: "handy-redis",
     version: "^1.8.1",
@@ -146,17 +254,35 @@
   ),
 
   DependencySpec(
+    name: "@types/cookie",
+    version: "^0.4.0",
+    kind: Development,
+    preconditions: Some(When(
+      all_of: ["typescript"]
+    ))
+  ),
+
+  DependencySpec(
     name: "esbuild",
-    version: "^0.8.6",
+    version: "^0.11.9",
     kind: Development,
     preconditions: Some(When(all_of: ["esbuild"]))
   ),
+
   DependencySpec(
     name: "tap",
-    version: "^14.10.7",
+    version: "^15.0.2",
     kind: Development,
     preconditions: None
   ),
+
+  DependencySpec(
+    name: "@types/tap",
+    version: "^15.0.0",
+    kind: Development,
+    preconditions: Some(When(all_of: ["typescript"]))
+  ),
+
   DependencySpec(
     name: "stackman",
     version: "^4.0.1",
@@ -183,12 +309,21 @@
     kind: Development,
     preconditions: None
   ),
+
   DependencySpec(
     name: "@hapi/shot",
     version: "^5.0.4",
     kind: Development,
     preconditions: None
   ),
+
+  DependencySpec(
+    name: "@types/hapi__shot",
+    version: "^4.1.1",
+    kind: Development,
+    preconditions: Some(When(all_of: ["typescript"]))
+  ),
+
   DependencySpec(
     name: "bistre",
     version: "^1.0.1",
@@ -249,7 +384,7 @@
 
   DependencySpec(
     name: "typescript",
-    version: "^4.1.3",
+    version: "^4.2.3",
     kind: Development,
     preconditions: Some(When(
       all_of: ["typescript"]
@@ -259,15 +394,6 @@
   DependencySpec(
     name: "@tsconfig/node14",
     version: "^1.0.0",
-    kind: Development,
-    preconditions: Some(When(
-      all_of: ["typescript"]
-    ))
-  ),
-
-  DependencySpec(
-    name: "@types/tap",
-    version: "^14.10.1",
     kind: Development,
     preconditions: Some(When(
       all_of: ["typescript"]

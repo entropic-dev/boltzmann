@@ -33,7 +33,9 @@ impl When {
                 let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
                 has_feature.as_bool().unwrap_or(false)
             })
-        } else if !self.any_of.is_empty() {
+        } else {
+            true
+        } && if !self.any_of.is_empty() {
             self.any_of.iter().any(|feature| {
                 let has_feature = settings.get(feature).unwrap_or(&false_sentinel);
                 has_feature.as_bool().unwrap_or(false)
