@@ -30,6 +30,44 @@ import ships from 'culture-ships'
 /* {% if selftest %} */export /* {% endif %} */const ship = ships.random()
 // {% endif %}
 
+import { IncomingMessage, ServerResponse } from 'http'
+import { URL } from 'url'
+import * as uuid from 'uuid'
+import { seal, unseal, defaults as ironDefaults } from '@hapi/iron' 
+import { Accepts } from 'accepts'
+import { RouteOptions, Handler as FMWHandler, HTTPVersion, HTTPMethod } from 'find-my-way'
+import Ajv from 'ajv'
+import assert from 'assert'
+import * as cookie from 'cookie'
+/* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
+/* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
+/* {% if templates %} */import {ConfigureOptions, Extension} from 'nunjucks'/* {% endif %} */
+// {% if jwt or oauth %}
+import { Algorithm, verify as verifyJWT, decode as decodeJWT } from 'jsonwebtoken'
+// {% endif %}
+
+// {% if csrf %}
+import CsrfTokens from 'csrf'
+// {% endif %}
+
+// {% if esbuild %}
+import { build } from 'esbuild'
+// {% endif %}
+
+
+
+// {% if esbuild or staticfiles %}
+import mime from 'mime'
+// {% endif %}
+// {% if oauth %}
+import { OAuth2 } from 'oauth'
+// {% endif %}
+
+import { Readable } from 'stream'
+
+import { inject, RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot' // todo: how to represent conditional imports for dev deps?
+import tap from 'tap'
+
 import querystring from 'querystring'
 import {promisify} from 'util'
 import isDev from 'are-we-dev'
@@ -42,11 +80,12 @@ import bole from '@entropic/bole'
 import path from 'path'
 import os from 'os'
 // {% if redis %}
-import redis from 'handy-redis'
+import * as redis from 'handy-redis'
 // {% endif %}
 // {% if postgres %}
 import pg from 'pg'
 // {% endif %}
+
 
 /* {% if selftest %} */export /* {% endif %} */const THREW = Symbol.for('threw')
 /* {% if selftest %} */export /* {% endif %} */const STATUS = Symbol.for('status')
@@ -56,6 +95,26 @@ import pg from 'pg'
 
 // {% if selftest %}
 export {
+  IncomingMessage,
+  ServerResponse,
+  URL,
+  uuid,
+  seal,
+  unseal,
+  ironDefaults,
+  tap,
+  Accepts,
+  RouteOptions,
+  FMWHandler,
+  HTTPVersion,
+  HTTPMethod,
+  Ajv,
+  inject,
+  ShotRequestOptions,
+  Listener,
+  ResponseObject,
+  cookie,
+
 // {% if postgres %}
   pg,
 // {% endif %}

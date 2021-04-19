@@ -28,7 +28,7 @@ import { Handler } from './middleware'
         key,
         location,
         link,
-        method: ([] as HTTPMethod[]).concat(handler.method as HTTPMethod) || method || ['GET' as 'GET'],
+        method: ([] as HTTPMethod[]).concat(handler.method as HTTPMethod || method || 'GET' as 'GET'),
         route,
         version,
         middleware,

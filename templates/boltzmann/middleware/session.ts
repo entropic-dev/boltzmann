@@ -20,14 +20,14 @@ let IN_MEMORY = new Map()
   (context: Context, id: string, session: Record<string, unknown>, expirySeconds: number): Promise<void>
 }
 
-const inMemorySessionLoad: LoadSession = async (_, id) => JSON.parse(IN_MEMORY.get(id))
-const redisSessionLoad: LoadSession = async (context: Context, id) => {
+const inMemorySessionLoad: LoadSession = async (_: Context, id: string) => JSON.parse(IN_MEMORY.get(id))
+const redisSessionLoad: LoadSession = async (context: Context, id: string) => {
   return JSON.parse(await context.redisClient.get(id) || '{}')
 }
-const inMemorySessionSave: SaveSession = async (_, id, session) => {
+const inMemorySessionSave: SaveSession = async (_: Context, id: string, session: Record<string, unknown>) => {
   IN_MEMORY.set(id, JSON.stringify(session));
 }
-const redisSessionSave: SaveSession = async (context, id, session, expirySeconds) => {
+const redisSessionSave: SaveSession = async (context: Context, id: string, session: Record<string, unknown>, expirySeconds: number) => {
   await context.redisClient.setex(id, expirySeconds + 5, JSON.stringify(session))
 }
 

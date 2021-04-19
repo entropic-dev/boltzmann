@@ -38,10 +38,10 @@ let savepointId = 0
   bodyParsers = _requireOr('./body', [urlEncoded, json]),
   after = require('tap').teardown,
 }: {
-  middleware?: Promise<MiddlewareConfig[]>
-  handlers?: Promise<Record<string, Handler>>
-  bodyParsers?: Promise<BodyParserDefinition[]>
-  after: (...args: any[]) => void
+  middleware?: Promise<MiddlewareConfig[]> | MiddlewareConfig[]
+  handlers?: Promise<Record<string, Handler>> | Record<string, Handler>
+  bodyParsers?: Promise<BodyParserDefinition[]> | BodyParserDefinition[]
+  after?: (...args: any[]) => void
 }) {
   // {% if postgres %}
   const database = process.env.TEST_DB_NAME || `${serviceName}_test`

@@ -2,7 +2,15 @@ Dir(DirSpec(
   children: [
     ("boltzmann.js", 0o755, Template(TemplateSpec(
       template_name: "boltzmann/index.tera"
-    )), None),
+    )), Some(When(
+      none_of: ["typescript"],
+    ))),
+
+    ("boltzmann.ts", 0o755, Template(TemplateSpec(
+      template_name: "boltzmann/index.tera"
+    )), Some(When(
+      all_of: ["typescript"],
+    ))),
 
     ("handlers.js", 0o644, Template(TemplateSpec(
       template_name: "handlers_cjs.js"
@@ -37,12 +45,6 @@ Dir(DirSpec(
     )), Some(When(
       all_of: ["typescript"],
       if_not_present: ["tsconfig.json"]
-    ))),
-
-    ("boltzmann.d.ts", 0o644, Template(TemplateSpec(
-      template_name: "boltzmann.d.ts",
-    )), Some(When(
-      all_of: ["typescript"],
     ))),
 
     ("nodemon.json", 0o644, Template(TemplateSpec(
@@ -106,6 +108,75 @@ Dir(DirSpec(
     )), Some(When(
       all_of: ["selftest"],
     ))),
+
+    ("types", 0o755, Dir(DirSpec(
+        children: [
+            ("are-we-dev.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module 'are-we-dev' {
+  interface IsDev {
+    (): boolean
+  }
+
+  declare const isDev: IsDev;
+  export = isDev;
+}"#
+            )), None),
+
+            ("culture-ships.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module 'culture-ships' {
+  interface Ships {
+    ships: string[],
+    random(): string
+  }
+
+  declare const ships: Ships;
+  export = ships;
+}"#
+            )), None),
+
+            ("entropic__bole.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module '@entropic/bole' {
+  interface Bole {
+    (name: string): Bole;
+    output(...config: any[]): void;
+    info(...args: any[]): void;
+    debug(...args: any[]): void;
+    error(...args: any[]): void;
+    warn(...args: any[]): void;
+  }
+
+  declare const bole: Bole;
+  export = bole;
+}"#
+            )), None),
+
+            ("honeycomb-beeline.d.ts", 0o644, File(FileSpec(
+                contents:
+r#"declare module 'honeycomb-beeline' {
+  interface Fn {
+    (...args: any[]): any
+  }
+
+  interface Beeline {
+    (config: Record<string, unknown>): void
+    startSpan: (opts?: Record<string, unknown>) => string
+    unmarshalTraceContext(string): any
+    finishSpan: (_: string) => void
+    startTrace: (opts?: Record<string, unknown>, _?: string, _?: string, _?: string) => string
+    finishTrace: (_: string) => void
+    bindFunctionToTrace<T extends Fn>(...args: Parameters<T>): ReturnType<T>
+    addContext: (opts?: Record<string, unknown>) => void
+  }
+
+  declare const beeline: Beeline;
+  export = beeline;
+}"#
+            )), Some(When(all_of: ["honeycomb"]))),
+        ]
+    )), Some(When(all_of: ["typescript"]))),
 
     ("tests", 0o755, Dir(DirSpec(
         children: [

@@ -1,7 +1,7 @@
-import { Context, Response } from './boltzmann.js'
+import { Context } from './boltzmann'
 
 index.route = 'GET /'
-export async function index({% if not oauth %}_{% endif %}context: Context): Promise<Response> {
+export async function index({% if not oauth %}_{% endif %}context: Context) {
   {% if oauth -%}
   const session = await context.session
   const user = session.get('user')
@@ -24,20 +24,20 @@ export async function index({% if not oauth %}_{% endif %}context: Context): Pro
 
 greeting.route = 'GET /hello/:name'
 {% if templates -%}
-export async function greeting(context: Context): Promise<Response> {
+export async function greeting(context: Context) {
   return {
     [Symbol.for('template')]: 'index.html',
     name: context.params.name,
   }
 }
 {% else -%}
-export async function greeting(context: Context): Promise<Response> {
+export async function greeting(context: Context) {
   return `hello ${context.params.name}`
 }
 {%- endif %}
 {%- if oauth %}
 callback.route = 'GET /callback'
-export async function callback(context: Context): Promise<Response> {
+export async function callback(context: Context) {
   // This handler is only called for valid oauth login attempts by the OAuth
   // middleware. context.{userKey, profile, nextUrl} are provided by the
   // aforementioned middleware. It is your application's responsibility to

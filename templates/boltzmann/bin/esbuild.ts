@@ -5,13 +5,14 @@ import isDev from 'are-we-dev'
 import path from 'path'
 
 import { _processMiddleware, _requireOr } from '../core/utils'
-import { route as routing } from '../middleware/route'
+import { route } from '../middleware/route'
 import { esbuild } from '../middleware/esbuild'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { routes } from '../core/routes'
 // {% endif %}
 
+const routing = route
 /* {% if selftest %} */export /* {% endif %} */async function _findESBuildEntries (source: string) {
   const routeMetadata = [...await routes(await _requireOr('./handlers', {}))]
 

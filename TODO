@@ -1,5 +1,26 @@
 ## TODO
 
+### 2021-04-18 TYPESCRIPT EDITION
+
+Typescript update: turn all of boltzmann into typescript. This lets us maintain
+a single version of all files, then compile the typescript out for javascript
+mode. Typescript also gives us a high-level pass on our compiled boltzmann.js
+file for any given set of flags -- if it passes typescript it'll (probably)
+work.
+
+- [ ] ensure devdeps are only required in dev mode
+- [ ] add "setup for local boltzmann dev"
+    - this should allow testing files with `tap` + typescript
+    - to do this, we want to grab the package.json that would be generated for a new
+      typescript project along with tsconfig & typings and put them in cwd
+    - then `npm i`
+- [ ] post-process typescript to get to javascript mode
+- [ ] note missing defs from boltzmann.d.ts
+    - "Next" is now "Handler"
+    - "Response" does not exist / needs defined + exported I think
+- [ ] implement hayes' middleware validation typedefs
+- [ ] add tests to ALL FILES / make sure all features are working as expected (again, write tests!)
+
 ### 2020-12-10
 
 - [ ] typescript support

@@ -86,11 +86,26 @@
         key: "start",
         value: "nodemon ./boltzmann.js",
         preconditions: Some(When(
-            if_not_present: ["lint"]
+            none_of: ["typescript"],
+            if_not_present: ["start"]
         )),
         versions: [
             VersionedScript(version: "0.1.0", value: "./boltzmann.js"),
             VersionedScript(version: "0.1.4", value: "nodemon ./boltzmann.js"),
+        ]
+    ),
+
+    RunScriptSpec(
+        key: "start",
+        value: "nodemon ./boltzmann.ts",
+        preconditions: Some(When(
+            all_of: ["typescript"],
+            if_not_present: ["start"]
+        )),
+        versions: [
+            VersionedScript(version: "0.1.0", value: "./boltzmann.js"),
+            VersionedScript(version: "0.1.4", value: "nodemon ./boltzmann.js"),
+            VersionedScript(version: "0.4.3", value: "nodemon ./boltzmann.ts"),
         ]
     ),
 

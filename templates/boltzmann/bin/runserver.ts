@@ -52,7 +52,6 @@ interface DebugLocationInfo {
     })
   }
 
-  console.log({bodyParsers, resolvedBodyParsers})
   Context._bodyParser = buildBodyParser(resolvedBodyParsers)
   const respond = await buildMiddleware([[route, resolvedHandlers], ...resolvedMiddleware], handler)
 

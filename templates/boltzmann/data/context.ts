@@ -1,8 +1,8 @@
 // {% if selftest %}
 import { IncomingMessage, ServerResponse } from 'http'
 import { default as accepts, Accepts } from 'accepts'
+import * as uuid from 'uuid'
 import { URL } from 'url'
-import { v4 } from 'uuid'
 
 import { Handler } from '../core/middleware'
 import { BodyParser } from '../core/body'
@@ -13,7 +13,7 @@ import { Cookie } from './cookie'
 /* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */interface LoadSession {
+/* {% if selftest %} */export /* {% endif %} */interface GetSession {
   (): Promise<Session>
 }
 
@@ -23,7 +23,7 @@ import { Cookie } from './cookie'
   private _parsedUrl?: URL
   private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
-  public _loadSession: LoadSession
+  public _loadSession: GetSession
   public id: string
   public start: number
   public remote: string
@@ -39,7 +39,7 @@ import { Cookie } from './cookie'
   public _postgresConnection?: Promise<PGClient | PGPoolClient>
   // {% endif %}
 
-  [extensions: string]: any
+  ;[extensions: string]: any
 
   constructor(public request: IncomingMessage, public _response: ServerResponse) {
     this.request = request
@@ -54,7 +54,7 @@ import { Cookie } from './cookie'
     this.id = String(
       request.headers['x-honeycomb-trace'] ||
       request.headers['x-request-id'] ||
-      v4()
+      uuid.v4()
     )
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')

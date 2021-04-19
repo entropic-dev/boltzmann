@@ -52,7 +52,7 @@
 {% include "boltzmann/middleware/validators.ts" %}
 
 {# utilities for loading body.ts/middleware.ts #}
-{% include "boltzmann/core/utils.ts" %}
+{% include "boltzmann/core/utils/index.ts" %}
 {% include "boltzmann/core/exports.ts" %}
 
 
