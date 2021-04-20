@@ -65,8 +65,8 @@ import { OAuth2 } from 'oauth'
 
 import { Readable } from 'stream'
 
-import { inject, RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot' // todo: how to represent conditional imports for dev deps?
-import tap from 'tap'
+import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
+import type tap from 'tap'
 
 import querystring from 'querystring'
 import {promisify} from 'util'
@@ -102,14 +102,12 @@ export {
   seal,
   unseal,
   ironDefaults,
-  tap,
   Accepts,
   RouteOptions,
   FMWHandler,
   HTTPVersion,
   HTTPMethod,
   Ajv,
-  inject,
   ShotRequestOptions,
   Listener,
   ResponseObject,

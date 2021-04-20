@@ -1,10 +1,10 @@
 // {% if selftest %}
-import { inject, RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
+import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
+import type tap from 'tap'
 import redis, { IHandyRedis } from 'handy-redis'
 import { Client as PGClient } from 'pg'
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
-import tap from 'tap'
 
 import { Handler, MiddlewareConfig } from '../core/middleware'
 import { BodyParserDefinition } from '../core/body'
@@ -74,6 +74,7 @@ let savepointId = 0
   })
   // {% endif %}
 
+  const { inject } = require('@hapi/shot')
   return (inner: (t: BoltzmannTest) => Promise<unknown> | unknown) => {
     return async (outerAssert: Test) => {
       const assert: BoltzmannTest = <BoltzmannTest>outerAssert
