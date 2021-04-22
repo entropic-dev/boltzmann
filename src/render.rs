@@ -9,20 +9,163 @@ use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 #[cfg(target_os = "windows")]
 use std::os::windows::fs::OpenOptionsExt;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use anyhow::{Context as ErrorContext, Result};
 use serde::Deserialize;
+use serde_json::Value;
 use tera::{Context, Tera};
 
 use super::Settings;
 use super::When;
 
+use pulldown_cmark::{Event, LinkType, Options, Parser, Tag};
+use pulldown_cmark_to_cmark::cmark;
+
 const TEMPLATES_DIR: include_dir::Dir = include_dir::include_dir!("templates");
+const DOCS_DIR: include_dir::Dir = include_dir::include_dir!("docs/content/reference");
+
+fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
+    let page = args
+        .get("page")
+        .map(|xs| xs.as_str())
+        .flatten()
+        .ok_or_else(|| tera::Error::msg("page argument is required"))?;
+
+    let section = args
+        .get("section")
+        .map(|xs| xs.as_str())
+        .flatten()
+        .ok_or_else(|| tera::Error::msg("section argument is required"))?;
+
+    let file = DOCS_DIR
+        .get_file(page)
+        .ok_or_else(|| tera::Error::msg(format!("cannot find page \"{}\"", &page)))?;
+
+    let contents = file
+        .contents_utf8()
+        .ok_or_else(|| tera::Error::msg(format!("cannot find page \"{}\"", &page)))?;
+
+    let mut opts = Options::empty();
+    opts.insert(Options::ENABLE_TABLES);
+    opts.insert(Options::ENABLE_FOOTNOTES);
+    opts.insert(Options::ENABLE_STRIKETHROUGH);
+    opts.insert(Options::ENABLE_TASKLISTS);
+
+    // transformations:
+    // 1. slice from heading match to next heading of same level
+    // 2. turn bold "Arguments" next to a list into @param <li>
+    // 3. add a link to the full docs.
+    let mut recording = false;
+    let mut match_level = 0u32;
+    let mut last: Option<String> = None;
+    let mut events: Vec<_> = Parser::new_ext(contents, opts)
+        .filter_map(|event| match event {
+            Event::Start(Tag::Heading(level)) => {
+                if recording {
+                    if match_level == level {
+                        recording = false;
+                        None
+                    } else {
+                        Some(event)
+                    }
+                } else {
+                    match_level = level;
+                    last = Some(String::new());
+                    None
+                }
+            }
+
+            Event::End(Tag::Heading(_)) => {
+                if let Some(text) = last.take() {
+                    let id = if text.as_bytes().last() == Some(&b'}') {
+                        if let Some(mut i) = text.find("{#") {
+                            let id = text[i + 2..text.len() - 1].to_owned();
+                            while i > 0 && text.as_bytes()[i - 1] == b' ' {
+                                i -= 1;
+                            }
+                            id
+                        } else {
+                            slug::slugify(text)
+                        }
+                    } else {
+                        slug::slugify(text)
+                    };
+
+                    if id == section {
+                        recording = true;
+                    }
+
+                    return None;
+                }
+
+                if recording {
+                    Some(event)
+                } else {
+                    None
+                }
+            }
+
+            Event::Start(Tag::Link(_, _, _)) => {
+                last = Some(String::new());
+                if recording {
+                    Some(Event::Start(Tag::Link(
+                        LinkType::Reference,
+                        "".into(),
+                        "".into(),
+                    )))
+                } else {
+                    None
+                }
+            }
+
+            Event::End(Tag::Link(_, url, _)) => {
+                if recording {
+                    Some(Event::End(Tag::Link(LinkType::Reference, "".into(), url)))
+                } else {
+                    None
+                }
+            }
+
+            Event::Text(ref text) | Event::Code(ref text) => {
+                if let Some(v) = &mut last {
+                    v.push_str(text.as_ref());
+                }
+
+                if recording {
+                    Some(event)
+                } else {
+                    None
+                }
+            }
+
+            _ => {
+                if recording {
+                    Some(event)
+                } else {
+                    None
+                }
+            }
+        })
+        .collect();
+
+    let canonical = format!("\"https://www.boltzmann.dev/en/latest/docs/reference/{}#{}\"", &page[..page.len() - 3], section);
+    events.push(Event::Start(Tag::Link(LinkType::Reference, canonical.as_str().into(), "".into())));
+    events.push(Event::Text("Docs".into()));
+    events.push(Event::End(Tag::Link(LinkType::Reference, canonical.as_str().into(), "".into())));
+
+    let mut buf = String::with_capacity(1024);
+    cmark(events.into_iter(), &mut buf, None).map_err(|e| tera::Error::msg(e.to_string()))?;
+
+    Ok(buf.split("\n").collect::<Vec<_>>().join("\n * ").into())
+}
 
 lazy_static::lazy_static! {
     pub static ref TEMPLATES: Tera = {
         let mut tera = Tera::default();
+
+        tera.register_function("tsdoc", tsdoc);
 
         let items: Vec<_> = TEMPLATES_DIR.find("**/*").unwrap().filter_map(|xs| {
             if let include_dir::DirEntry::File(fd) = xs {

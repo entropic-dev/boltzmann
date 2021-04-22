@@ -8,7 +8,11 @@ mode. Typescript also gives us a high-level pass on our compiled boltzmann.js
 file for any given set of flags -- if it passes typescript it'll (probably)
 work.
 
-- [ ] ensure devdeps are only required in dev mode
+- [x] ensure devdeps are only required in dev mode
+- [ ] change "selftest" setup
+    - "selftest" is kind of a misnomer now: there's "test in situ" – i.e., before
+      concatenating a `boltzmann.ts` together – and "test compiled", which are integration
+      tests against a compiled `boltzmann.ts`
 - [ ] add "setup for local boltzmann dev"
     - this should allow testing files with `tap` + typescript
     - to do this, we want to grab the package.json that would be generated for a new
@@ -20,6 +24,8 @@ work.
     - "Response" does not exist / needs defined + exported I think
 - [ ] implement hayes' middleware validation typedefs
 - [ ] add tests to ALL FILES / make sure all features are working as expected (again, write tests!)
+- [x] docstrings -- pull from reference docs (somehow)
+- [ ] render {% changelog %} correctly in docstrings
 
 ### 2020-12-10
 

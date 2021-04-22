@@ -6,6 +6,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 // {% endif %}
 
+/**{{- tsdoc(page="03-middleware.md", section="handlecors") -}}*/
 /* {% if selftest %} */export /* {% endif %} */function handleCORS ({
   origins = isDev() ? '*' : String(process.env.CORS_ALLOW_ORIGINS).split(','),
   methods = String(process.env.CORS_ALLOW_METHODS).split(',') as HTTPMethod[],
