@@ -9,9 +9,11 @@ import uuid from 'uuid'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+
+export { handleOAuthLogout, handleOAuthCallback, handleOAuthLogin, oauth }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */function handleOAuthLogin ({
+function handleOAuthLogin ({
   prompt,
   max_age,
   audience,
@@ -124,7 +126,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-/* {% if selftest %} */ export /* {% endif %} */function handleOAuthCallback ({
+function handleOAuthCallback ({
   userKey = 'user',
   domain = process.env.OAUTH_DOMAIN,
   secret = process.env.OAUTH_CLIENT_SECRET,
@@ -268,7 +270,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-/* {% if selftest %} */ export /* {% endif %} */function handleOAuthLogout ({
+function handleOAuthLogout ({
   logoutRoute = '/logout',
   clientId = process.env.OAUTH_CLIENT_ID,
   domain = process.env.OAUTH_DOMAIN,
@@ -320,7 +322,8 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-/* {% if selftest %} */ export /* {% endif %} */function oauth (options = {}) {
+/**{{- tsdoc(page="03-middleware.md", section="oauth") -}}*/
+function oauth (options = {}) {
   const callback = handleOAuthCallback(options)
   const logout = handleOAuthLogout(options)
   const login = handleOAuthLogin(options)

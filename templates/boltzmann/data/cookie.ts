@@ -1,9 +1,12 @@
 // {% if selftest %}
 import isDev from 'are-we-dev'
 import * as cookie from 'cookie'
+
+export { Cookie }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}> {
+/**{{- tsdoc(page="02-handlers.md", section="cookie") -}}*/
+class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}> {
   public changed: Set<string>
 
   constructor(values: Iterable<[string, any]>) {

@@ -14,13 +14,15 @@ import {urlEncoded} from '../body/urlencoded'
 import {route} from '../middleware/route'
 import {Context} from '../data/context'
 import {json} from '../body/json'
+
+export { runserver }
 // {% endif %}
 
 interface DebugLocationInfo {
   name: string,
   location: string
 }
-/* {% if selftest %} */export /* {% endif %} */async function runserver ({
+async function runserver ({
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
   bodyParsers = _requireOr('./body', [urlEncoded, json]).then(_processBodyParsers),
   handlers = _requireOr('./handlers', {}),

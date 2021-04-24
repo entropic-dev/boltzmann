@@ -383,6 +383,20 @@
   ),
 
   DependencySpec(
+    name: "c8",
+    version: "^7.7.1",
+    kind: Development,
+    preconditions: None
+  ),
+
+  DependencySpec(
+    name: "cross-env",
+    version: "^7.0.3",
+    kind: Development,
+    preconditions: None
+  ),
+
+  DependencySpec(
     name: "typescript",
     version: "^4.2.3",
     kind: Development,

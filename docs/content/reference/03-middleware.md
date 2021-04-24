@@ -14,6 +14,10 @@ you need to attach yourself, either to specific handlers or to your app.
 
 ## User-attached middleware
 
+### `applyHeaders`
+
+[To be documented.](https://github.com/entropic-dev/boltzmann/issues/68)
+
 ### `applyXFO`
 
 The `applyXFO` middleware adds an
@@ -187,6 +191,14 @@ as documented above.
 
 * * *
 
+### `route` {#route}
+
+{{ changelog(version = "0.5.0") }}
+
+[To be documented.](#TKTKTK)
+
+* * *
+
 ### `session`
 
 {{ changelog(version = "0.1.4") }}
@@ -335,6 +347,14 @@ module.exports = {
   ],
 }
 ```
+
+* * *
+
+### `test`
+
+[To be documented](#TKTKTK)
+
+* * *
 
 ### `validate.body`
 
@@ -738,6 +758,16 @@ async function greeting(/** @type {Context} */ context) {
     return `hello ${context.params.name}`
 }
 ```
+
+* * *
+
+### `route` {#auto-route}
+
+{{ changelog(version = "0.5.0") }}
+
+Boltzmann automatically attaches one instance of [`route`](#route).
+
+[To be documented.](#TKTKTK)
 
 * * *
 

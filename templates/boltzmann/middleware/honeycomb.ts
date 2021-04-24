@@ -5,9 +5,12 @@ import { ServerResponse } from 'http'
 import onHeaders from 'on-headers'
 import beeline from 'honeycomb-beeline'
 import isDev from 'are-we-dev'
+
+export { trace, honeycombMiddlewareSpans }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function trace ({
+/**{{- tsdoc(page="03-middleware.md", section="trace") -}}*/
+function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
 } = {}) {
   if (!process.env.HONEYCOMBIO_WRITE_KEY) {
@@ -101,7 +104,7 @@ import isDev from 'are-we-dev'
   }
 }
 
-/* {% if selftest %} */export /* {% endif %} */function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
+function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
   if (!process.env.HONEYCOMBIO_WRITE_KEY) {
     return (next: Handler) => (context: Context) => next(context)
   }

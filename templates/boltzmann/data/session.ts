@@ -1,8 +1,10 @@
 // {% if selftest %}
 export const REISSUE = Symbol.for('reissue')
+export { Session }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */class Session extends Map<string, any> {
+/**{{- tsdoc(page="02-handlers.md", section="session") -}}*/
+class Session extends Map<string, any> {
   [REISSUE]: boolean = false
   public dirty = false
 

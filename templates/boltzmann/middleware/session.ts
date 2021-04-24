@@ -8,15 +8,17 @@ import { Session, REISSUE } from '../data/session'
 import { BadSessionError } from '../data/errors'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+
+export { LoadSession, SaveSession, session }
 // {% endif %}
 
 let IN_MEMORY = new Map()
 
-/* {% if selftest %} */export /* {% endif %} */interface LoadSession {
+interface LoadSession {
   (context: Context, id: string): Promise<Record<string, unknown>>
 }
 
-/* {% if selftest %} */export /* {% endif %} */interface SaveSession {
+interface SaveSession {
   (context: Context, id: string, session: Record<string, unknown>, expirySeconds: number): Promise<void>
 }
 
@@ -41,7 +43,8 @@ let defaultSessionSave = inMemorySessionSave
 defaultSessionSave = redisSessionSave
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function session ({
+/**{{- tsdoc(page="03-middleware.md", section="session") -}}*/
+function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,
   salt = process.env.SESSION_SALT,

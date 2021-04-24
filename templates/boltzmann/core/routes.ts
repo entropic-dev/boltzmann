@@ -3,9 +3,11 @@ import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
 import { Handler } from './middleware'
+
+export { routes }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */async function routes (handlers: Record<string, Handler>) {
+async function routes (handlers: Record<string, Handler>) {
   const routes = []
   for (let [key, handler] of Object.entries(handlers)) {
     if (typeof handler.route === 'string') {

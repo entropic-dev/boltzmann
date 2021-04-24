@@ -10,9 +10,12 @@ import { buildMiddleware } from '../core/middleware'
 import { buildBodyParser } from '../core/body'
 import { Context } from '../data/context'
 import { vary } from '../middleware/vary'
+
+export { route }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function route (handlers: Record<string, Handler> = {}) {
+/**{{- tsdoc(page="03-middleware.md", section="route") -}}*/
+function route (handlers: Record<string, Handler> = {}) {
   const wayfinder = fmw({})
 
   return async (next: Handler) => {

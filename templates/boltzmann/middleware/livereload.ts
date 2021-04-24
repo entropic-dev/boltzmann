@@ -4,9 +4,12 @@ import { Readable } from 'stream'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+
+export { livereload }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */function livereload({
+/**{{- tsdoc(page="03-middleware.md", section="livereload") -}}*/
+function livereload({
   reloadPath = '/__livereload',
 }: { reloadPath?: string } = {}) {
   const logger = bole('boltzmann:livereload')

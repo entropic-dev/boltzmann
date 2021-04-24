@@ -11,24 +11,37 @@ import { Session } from './session'
 import { Cookie } from './cookie'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 /* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
+export { GetSession, Context }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */interface GetSession {
+interface GetSession {
   (): Promise<Session>
 }
 
-/* {% if selftest %} */export /* {% endif %} */class Context {
+class Context {
   private _accepts?: Accepts
   private _query?: Record<string, any>
   private _parsedUrl?: URL
   private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
   public _loadSession: GetSession
+
+  /**{{- tsdoc(page="02-handlers.md", section="id") -}}*/
   public id: string
+
+  /**{{- tsdoc(page="02-handlers.md", section="start") -}}*/
   public start: number
+
+  /**{{- tsdoc(page="02-handlers.md", section="remote") -}}*/
   public remote: string
+
+  /**{{- tsdoc(page="02-handlers.md", section="host") -}}*/
   public host: string
+
+  /**{{- tsdoc(page="02-handlers.md", section="params") -}}*/
   public params: Record<string, any>
+
+  /**{{- tsdoc(page="02-handlers.md", section="handler") -}}*/
   public handler: Handler = Context.baseHandler
 
   // {% if redis %}
@@ -66,6 +79,7 @@ import { Cookie } from './cookie'
   }
 
   // {% if postgres %}
+  /**{{- tsdoc(page="02-handlers.md", section="postgresclient") -}}*/
   get postgresClient (): Promise<PGPoolClient | PGClient> {
     if (!this._postgresPool) {
       throw new Error('Cannot fetch postgresClient before a pool is assigned (middleware should do this.)')
@@ -79,18 +93,19 @@ import { Cookie } from './cookie'
     return Boolean(this._cookie)
   }
 
+  /**{{- tsdoc(page="02-handlers.md", section="cookie") -}}*/
   get cookie () {
     this._cookie = this._cookie || Cookie.from(this.headers.cookie || '')
     return this._cookie
   }
 
-  /** @type {Promise<Session>} */
-  get session () {
+  /**{{- tsdoc(page="02-handlers.md", section="session") -}}*/
+  get session (): Promise<Session> {
     return this._loadSession()
   }
 
   // {% if redis %}
-  /** @type {redis.IHandyRedis} */
+  /**{{- tsdoc(page="02-handlers.md", section="redisClient") -}}*/
   get redisClient (): IHandyRedis {
     if (!this._redisClient) {
       throw new Error('No redis client available')
@@ -99,17 +114,18 @@ import { Cookie } from './cookie'
   }
   // {% endif %}
 
-  /** @type {string} */
+  /**{{- tsdoc(page="02-handlers.md", section="method") -}}*/
   get method() {
     return this.request.method
   }
 
-  /** @type {Object<string,string>} */
+  /**{{- tsdoc(page="02-handlers.md", section="headers") -}}*/
   get headers() {
     return this.request.headers
   }
 
   // {% if honeycomb %}
+  /**{{- tsdoc(page="02-handlers.md", section="traceURL") -}}*/
   get traceURL () {
     const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace`)
     url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
@@ -118,6 +134,7 @@ import { Cookie } from './cookie'
   }
   // {% endif %}
 
+  /**{{- tsdoc(page="02-handlers.md", section="url") -}}*/
   get url() {
     if (this._parsedUrl) {
       return this._parsedUrl
@@ -126,6 +143,7 @@ import { Cookie } from './cookie'
     return this._parsedUrl
   }
 
+  /**{{- tsdoc(page="02-handlers.md", section="url") -}}*/
   set url(value) {
     this._query = undefined
     if (value instanceof URL) {
@@ -137,12 +155,13 @@ import { Cookie } from './cookie'
     }
   }
 
+  /**{{- tsdoc(page="02-handlers.md", section="query") -}}*/
   get query () {
     this._query = this._query || Object.fromEntries(this.url.searchParams)
     return this._query
   }
 
-  /** @type {Promise<Object>} */
+  /**{{- tsdoc(page="02-handlers.md", section="body") -}}*/
   get body () {
     if (this._body) {
       return this._body
@@ -153,10 +172,12 @@ import { Cookie } from './cookie'
     return this._body
   }
 
+  /**{{- tsdoc(page="02-handlers.md", section="body") -}}*/
   set body (v) {
     this._body = Promise.resolve(v)
   }
 
+  /**{{- tsdoc(page="02-handlers.md", section="accepts") -}}*/
   get accepts () {
     if (this._accepts) {
       return this._accepts

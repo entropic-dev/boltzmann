@@ -35,7 +35,7 @@
 
     RunScriptSpec(
         key: "test",
-        value: "tap tests",
+        value: "c8 tap --no-cov tests",
         preconditions: Some(When(
             if_not_present: ["test"],
             none_of: ["typescript", "selftest" ]
@@ -72,7 +72,7 @@
 
     RunScriptSpec(
         key: "test",
-        value: "tap --no-ts --node-arg=--require=ts-node/register tests/",
+        value: "cross-env TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov tests/",
         preconditions: Some(When(
             if_not_present: ["test"],
             all_of: ["typescript"]

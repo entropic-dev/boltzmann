@@ -1,9 +1,12 @@
 // {% if selftest %}
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+
+export { templateContext }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */function templateContext(extraContext: Record<string, unknown> = {}) {
+/**{{- tsdoc(page="03-middleware.md", section="templatecontext") -}}*/
+function templateContext(extraContext: Record<string, unknown> = {}) {
   return (next: Handler) => {
     return async (context: Context) => {
       const result = await next(context)

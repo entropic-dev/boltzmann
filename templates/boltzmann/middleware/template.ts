@@ -7,9 +7,11 @@ import path from 'path'
 import {STATUS, HEADERS, TEMPLATE, THREW} from '../core/prelude'
 import {Handler} from '../core/middleware'
 import {Context} from '../data/context'
+
+export { BoltzmannNunjucksFilter, template }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */interface BoltzmannNunjucksFilter {
+interface BoltzmannNunjucksFilter {
   (...args: any[]): Promise<string> | string 
 }
 
@@ -452,7 +454,8 @@ const devErrorTemplateSource = `
 `
 // {% endraw %}
 
-/* {% if selftest %} */export /* {% endif %} */function template ({
+/**{{- tsdoc(page="03-middleware.md", section="template") -}}*/
+function template ({
   paths = ['templates'],
   filters = {},
   tags = {},

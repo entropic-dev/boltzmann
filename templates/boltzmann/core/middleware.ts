@@ -9,9 +9,11 @@ import { BodyParserDefinition } from '../core/body'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
+
+export { Handler, Adaptor, Middleware, MiddlewareConfig, buildMiddleware, handler }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */interface Handler {
+interface Handler {
   (context: Context): Promise<any> | any,
   method?: HTTPMethod[] | HTTPMethod,
   route?: string,
@@ -24,18 +26,18 @@ import { dev } from '../middleware/dev'
   // {% endif %}
 }
 
-/* {% if selftest %} */export /* {% endif %} */interface Adaptor {
+interface Adaptor {
   (next: Handler): Handler | Promise<Handler>
 }
 
-/* {% if selftest %} */export /* {% endif %} */interface Middleware {
+interface Middleware {
   (...args: any[]): Adaptor
   name?: string
 }
 
-/* {% if selftest %} */export /* {% endif %} */type MiddlewareConfig = Middleware | [Middleware, ...any[]]
+type MiddlewareConfig = Middleware | [Middleware, ...any[]]
 
-/* {% if selftest %} */export /* {% endif %} */async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler) {
+async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler) {
   const middlewareToSplice = (
     isDev()
     ? (mw: Middleware) => [
@@ -68,7 +70,7 @@ import { dev } from '../middleware/dev'
   }, Promise.resolve(router))
 }
 
-/* {% if selftest %} */export /* {% endif %} */async function handler (context: Context) {
+async function handler (context: Context) {
   const handler = context.handler as Handler
   // {% if honeycomb %}
   let span = null

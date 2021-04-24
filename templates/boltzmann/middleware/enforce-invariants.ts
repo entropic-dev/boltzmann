@@ -1,10 +1,11 @@
 // {% if selftest %}
-import {STATUS, HEADERS, TEMPLATE, THREW} from '../core/prelude'
+import { STATUS, HEADERS, TEMPLATE, THREW } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+export { enforceInvariants }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function enforceInvariants () {
+function enforceInvariants () {
   return function invariantMiddleware (next: Handler) {
     // the "...args" here are load-bearing: this is applied between
     // decorators _and_ middleware

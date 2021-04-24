@@ -1,7 +1,7 @@
 'use strict'
 // Boltzmann v{{ version }}
 
-/* {% if selftest %} */export /* {% endif %} */const serviceName = _getServiceName()
+const serviceName = _getServiceName()
 
 function _getServiceName () {
   try {
@@ -27,7 +27,7 @@ import onHeaders from 'on-headers'
 
 import ships from 'culture-ships'
 // {% if ping %}
-/* {% if selftest %} */export /* {% endif %} */const ship = ships.random()
+const ship = ships.random()
 // {% endif %}
 
 import { IncomingMessage, ServerResponse } from 'http'
@@ -86,15 +86,22 @@ import * as redis from 'handy-redis'
 import pg from 'pg'
 // {% endif %}
 
-
-/* {% if selftest %} */export /* {% endif %} */const THREW = Symbol.for('threw')
-/* {% if selftest %} */export /* {% endif %} */const STATUS = Symbol.for('status')
-/* {% if selftest %} */export /* {% endif %} */const REISSUE = Symbol.for('reissue')
-/* {% if selftest %} */export /* {% endif %} */const HEADERS = Symbol.for('headers')
-/* {% if selftest %} */export /* {% endif %} */const TEMPLATE = Symbol.for('template')
+const THREW = Symbol.for('threw')
+const STATUS = Symbol.for('status')
+const REISSUE = Symbol.for('reissue')
+const HEADERS = Symbol.for('headers')
+const TEMPLATE = Symbol.for('template')
 
 // {% if selftest %}
 export {
+  serviceName,
+  ship,
+  THREW,
+  STATUS,
+  REISSUE,
+  HEADERS,
+  TEMPLATE,
+
   IncomingMessage,
   ServerResponse,
   URL,

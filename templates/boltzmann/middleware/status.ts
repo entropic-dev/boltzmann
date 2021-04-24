@@ -6,6 +6,12 @@ import { serviceName, STATUS } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { _requireOr } from '../core/utils'
+
+export {
+  ReachabilityResult,
+  ReachabilityCheck,
+  handleStatus
+}
 // {% endif %}
 
 interface ReachabilityResult {
@@ -18,7 +24,8 @@ interface ReachabilityCheck {
   (context: Context, meta: ReachabilityResult): Promise<void> | void
 }
 
-/* {% if selftest %} */export /* {% endif %} */function handleStatus ({
+/**{{- tsdoc(page="03-middleware.md", section="handlestatus") -}}*/
+function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = {
     // {% if postgres %}

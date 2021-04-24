@@ -2,10 +2,12 @@
 import { serviceName, THREW } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-/* {% if postgres %} */import pg from 'pg'/* {% endif %} */
+import pg from 'pg'
+export { attachPostgres }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function attachPostgres ({
+/**{{- tsdoc(page="03-middleware.md", section="attachpostgres") -}}*/
+function attachPostgres ({
   url = process.env.PGURL || `postgres://postgres@localhost:5432/${serviceName}`,
   max = Number(process.env.PGPOOLSIZE) || 20
 } = {}) {

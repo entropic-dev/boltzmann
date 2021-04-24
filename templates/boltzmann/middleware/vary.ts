@@ -2,9 +2,12 @@
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { HEADERS } from '../core/prelude'
+
+export { vary }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function vary (on: string[] | string = []) {
+/**{{- tsdoc(page="03-middleware.md", section="vary") -}}*/
+function vary (on: string[] | string = []) {
   const headers = [].concat(<any>on) as string[]
 
   return (next: Handler) => {

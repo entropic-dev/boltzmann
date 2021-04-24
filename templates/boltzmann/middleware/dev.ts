@@ -1,12 +1,13 @@
 // {% if selftest %}
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+export { dev }
 // {% endif %}
 
 const hangWarning: unique symbol = Symbol('hang-stall')
 const hangError: unique symbol  = Symbol('hang-error')
 
-/* {% if selftest %} */export /* {% endif %} */function dev(
+function dev(
   nextName?: string,
   warnAt = Number(process.env.DEV_LATENCY_WARNING_MS) || 500,
   errorAt = Number(process.env.DEV_LATENCY_ERROR_MS) || 2000

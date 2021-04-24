@@ -7,9 +7,12 @@ import mime from 'mime'
 import { templateContext } from './template-context'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+
+export { staticfiles }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */function staticfiles({
+/**{{- tsdoc(page="03-middleware.md", section="staticfiles") -}}*/
+function staticfiles({
   prefix = 'static',
   dir = 'static',
   addToContext = true,

@@ -5,9 +5,11 @@ import path from 'path'
 
 import { MiddlewareConfig } from '../../core/middleware'
 import { BodyParserDefinition } from '../../core/body'
+
+export { _collect, _processMiddleware, _processBodyParsers, _requireOr }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */ async function _collect(request: IncomingMessage) {
+async function _collect(request: IncomingMessage) {
   const acc = []
   for await (const chunk of request) {
     acc.push(chunk)
@@ -16,7 +18,7 @@ import { BodyParserDefinition } from '../../core/body'
 }
 
 type MiddlewareImport = { APP_MIDDLEWARE: MiddlewareConfig[] } | MiddlewareConfig[]
-/* {% if selftest %} */ export /* {% endif %} */ function _processMiddleware(
+function _processMiddleware(
   middleware: MiddlewareImport
 ): MiddlewareConfig[] {
   if (Array.isArray(middleware)) {
@@ -27,7 +29,7 @@ type MiddlewareImport = { APP_MIDDLEWARE: MiddlewareConfig[] } | MiddlewareConfi
 }
 
 type BodyImport = { APP_BODY_PARSERS: BodyParserDefinition[] } | BodyParserDefinition[]
-/* {% if selftest %} */ export /* {% endif %} */ function _processBodyParsers(parsers: BodyImport) {
+function _processBodyParsers(parsers: BodyImport) {
   if (Array.isArray(parsers)) {
     return parsers
   } else {
@@ -35,7 +37,7 @@ type BodyImport = { APP_BODY_PARSERS: BodyParserDefinition[] } | BodyParserDefin
   }
 }
 
-/* {% if selftest %} */ export /* {% endif %} */ async function _requireOr(target: string, value: any) {
+async function _requireOr(target: string, value: any) {
   try {
     return require(target)
   } catch (err) {

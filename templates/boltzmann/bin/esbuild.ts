@@ -10,10 +10,12 @@ import { esbuild } from '../middleware/esbuild'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { routes } from '../core/routes'
+
+export { _findESBuildEntries, buildAssets }
 // {% endif %}
 
 const routing = route
-/* {% if selftest %} */export /* {% endif %} */async function _findESBuildEntries (source: string) {
+async function _findESBuildEntries (source: string) {
   const routeMetadata = [...await routes(await _requireOr('./handlers', {}))]
 
   const entries = new Map()
@@ -37,7 +39,7 @@ const routing = route
   return entries
 }
 
-/* {% if selftest %} */export /* {% endif %} */async function buildAssets (
+async function buildAssets (
   destination = 'build',
   middleware = _requireOr('./middleware', []).then(_processMiddleware),
   handlers = _requireOr('./handlers', {})

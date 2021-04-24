@@ -13,9 +13,12 @@ import { Handler } from '../core/middleware'
 import { _requireOr } from '../core/utils'
 import { Context } from '../data/context'
 import { routes } from '../core/routes'
+
+export { esbuild }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function esbuild({
+/**{{- tsdoc(page="03-middleware.md", section="esbuild") -}}*/
+function esbuild({
   source = 'client',
   prefix = '_assets',
   staticUrl = process.env.STATIC_URL,

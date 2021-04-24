@@ -1,12 +1,14 @@
 // {% if selftest %}
 import {STATUS} from '../core/prelude'
+
+export { BadSessionError, NoMatchError }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */class BadSessionError extends Error {
+class BadSessionError extends Error {
   [STATUS]: number = 400
 }
 
-/* {% if selftest %} */export /* {% endif %} */class NoMatchError extends Error {
+class NoMatchError extends Error {
   [STATUS]: number = 404
   public __noMatch: boolean = true
 

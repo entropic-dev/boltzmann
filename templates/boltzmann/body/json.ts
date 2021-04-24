@@ -4,9 +4,12 @@ import isDev from 'are-we-dev'
 import { BodyParser, BodyInput } from '../core/body'
 import { _collect } from '../core/utils'
 import {STATUS} from '../core/prelude'
+
+export { json }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function json (next: BodyParser) {
+/**{{- tsdoc(page="04-body-parsers.md", section="json") -}}*/
+function json (next: BodyParser) {
   return async (request: BodyInput) => {
     if (
       request.contentType.type === 'application' &&

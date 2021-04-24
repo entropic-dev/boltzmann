@@ -1,8 +1,9 @@
 // {% if selftest %}
 import { IncomingMessage } from 'http'
+export { ContentType, BodyInput, BodyParser, BodyParserDefinition, buildBodyParser }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */interface ContentType {
+interface ContentType {
   contentType: {
     vnd: string,
     type: string,
@@ -12,17 +13,17 @@ import { IncomingMessage } from 'http'
   }
 }
 
-/* {% if selftest %} */export /* {% endif %} */type BodyInput = IncomingMessage & ContentType;
+type BodyInput = IncomingMessage & ContentType;
 
-/* {% if selftest %} */export /* {% endif %} */interface BodyParser {
+interface BodyParser {
   (request: BodyInput): unknown | Promise<unknown>
 }
 
-/* {% if selftest %} */export /* {% endif %} */interface BodyParserDefinition {
+interface BodyParserDefinition {
   (next: BodyParser): BodyParser
 }
 
-/* {% if selftest %} */export /* {% endif %} */function buildBodyParser (bodyParsers: BodyParserDefinition[]): BodyParser {
+function buildBodyParser (bodyParsers: BodyParserDefinition[]): BodyParser {
   const parserDefs = [_attachContentType as BodyParserDefinition, ...bodyParsers]
   return parserDefs.reduceRight((lhs: BodyParser, rhs: BodyParserDefinition) => rhs(lhs), (_) => {
     throw Object.assign(new Error('Cannot parse request body'), {

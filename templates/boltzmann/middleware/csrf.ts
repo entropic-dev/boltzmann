@@ -3,6 +3,8 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import CsrfTokens from 'csrf'
 import crypto from 'crypto'
+
+export { applyCSRF }
 // {% endif %}
 
 // csrf protection middleware
@@ -24,7 +26,8 @@ function checkCookieSignature(input: string, secret: string) {
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
-/* {% if selftest %} */export /* {% endif %} */function applyCSRF ({
+/**{{- tsdoc(page="03-middleware.md", section="applycsrf") -}}*/
+function applyCSRF ({
   cookieSecret = process.env.COOKIE_SECRET,
   csrfCookie = '_csrf',
   param = '_csrf',

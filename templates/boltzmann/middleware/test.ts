@@ -16,9 +16,10 @@ import { _requireOr } from '../core/utils'
 import { THREW } from '../core/prelude'
 import { json } from '../body/json'
 
+export { BoltzmannShotRequestOptions, test }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string | Buffer };
+type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string | Buffer };
 /* {% if selftest %} */ export /* {% endif %} */type Test = (typeof tap.Test)["prototype"]
 /* {% if selftest %} */ export /* {% endif %} */type BoltzmannTest = Test & {
   // {% if postgres %}
@@ -32,7 +33,8 @@ import { json } from '../body/json'
 
 let savepointId = 0
 
-/* {% if selftest %} */ export /* {% endif %} */ function test({
+/**{{- tsdoc(page="03-middleware.md", section="test") -}}*/
+function test({
   middleware = Promise.resolve([] as MiddlewareConfig[]),
   handlers = _requireOr('./handlers', {}),
   bodyParsers = _requireOr('./body', [urlEncoded, json]),

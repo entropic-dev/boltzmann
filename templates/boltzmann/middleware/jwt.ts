@@ -3,13 +3,15 @@ import { Algorithm, verify as verifyJWT } from 'jsonwebtoken'
 import bole from '@entropic/bole'
 import { promises as fs } from 'fs'
 import assert from 'assert'
-import crypto from 'crypto'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
+
+export { authenticateJWT }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function authenticateJWT ({
+/**{{- tsdoc(page="03-middleware.md", section="authenticatejwt") -}}*/
+function authenticateJWT ({
   scheme = 'Bearer',
   publicKey = process.env.AUTHENTICATION_KEY,
   algorithms=['RS256'],

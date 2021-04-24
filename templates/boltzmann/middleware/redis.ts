@@ -1,10 +1,12 @@
 // {% if selftest %}
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-/* {% if redis %} */import redis from 'handy-redis'/* {% endif %} */
+import redis from 'handy-redis'
+export { attachRedis }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function attachRedis ({ url = process.env.REDIS_URL } = {}) {
+/**{{- tsdoc(page="03-middleware.md", section="attachredis") -}}*/
+function attachRedis ({ url = process.env.REDIS_URL } = {}) {
   return (next: Handler) => {
     const client = redis.createHandyClient({ url })
     return async function redis (context: Context) {

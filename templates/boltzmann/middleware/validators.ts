@@ -5,11 +5,14 @@ import Ajv from 'ajv'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
+
+export { validate }
 // {% endif %}
 
 const addAJVFormats = (validator: Ajv): Ajv => (require('ajv-formats')(validator), validator)
 const addAJVKeywords = (validator: Ajv): Ajv => (require('ajv-keywords')(validator), validator)
 
+/**{{- tsdoc(page="03-middleware.md", section="validate-body") -}}*/
 function validateBody(schema: object, {
   ajv: validator = addAJVFormats(addAJVKeywords(new Ajv(<any>{
     useDefaults: true,
@@ -70,10 +73,16 @@ function validateBlock(what: (c: Context) => object) {
   }
 }
 
-/* {% if selftest %} */export /* {% endif %} */const validate = {
+/**{{- tsdoc(page="03-middleware.md", section="validate-query") -}}*/
+const validateQuery = validateBlock(ctx => ctx.query)
+
+/**{{- tsdoc(page="03-middleware.md", section="validate-params") -}}*/
+const validateParams = validateBlock(ctx => ctx.params)
+
+const validate = {
   body: validateBody,
-  query: validateBlock(ctx => ctx.query),
-  params: validateBlock(ctx => ctx.params)
+  query: validateQuery,
+  params: validateParams
 }
 
 /* {% if selftest %} */

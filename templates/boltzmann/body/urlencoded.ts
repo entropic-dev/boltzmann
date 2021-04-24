@@ -3,9 +3,11 @@ import querystring from 'querystring'
 
 import { BodyParser, BodyInput } from '../core/body'
 import { _collect } from '../core/utils'
+export { urlEncoded }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function urlEncoded (next: BodyParser) {
+/**{{- tsdoc(page="04-body-parsers.md", section="urlencoded") -}}*/
+function urlEncoded (next: BodyParser) {
   return async (request: BodyInput) => {
     if (
       request.contentType.type !== 'application' ||

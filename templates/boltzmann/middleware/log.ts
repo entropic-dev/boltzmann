@@ -5,9 +5,12 @@ import isDev from 'are-we-dev'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
+
+export { log }
 // {% endif %}
 
-/* {% if selftest %} */ export /* {% endif %} */function log ({
+/**{{- tsdoc(page="03-middleware.md", section="log") -}}*/
+function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout

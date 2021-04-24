@@ -3,7 +3,8 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */function applyHeaders (headers: Record<string, string | string[]> = {}) {
+/**{{- tsdoc(page="03-middleware.md", section="applyheaders") -}}*/
+function applyHeaders (headers: Record<string, string | string[]> = {}) {
   return (next: Handler) => {
     return async function xfo (context: Context) {
       const result = await next(context)
@@ -14,7 +15,7 @@ import { Context } from '../data/context'
 }
 
 type XFOMode = 'DENY' | 'SAMEORIGIN'
-/* {% if selftest %} */export /* {% endif %} */const applyXFO = (mode: XFOMode) => {
+const applyXFO = (mode: XFOMode) => {
   if (!['DENY', 'SAMEORIGIN'].includes(mode)) {
     throw new Error('applyXFO(): Allowed x-frame-options directives are DENY and SAMEORIGIN.')
   }
@@ -22,6 +23,12 @@ type XFOMode = 'DENY' | 'SAMEORIGIN'
 }
 
 /* {% if selftest %} */
+export {
+  XFOMode,
+  applyHeaders,
+  applyXFO
+}
+
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'

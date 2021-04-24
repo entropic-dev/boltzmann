@@ -1,9 +1,10 @@
 // {% if selftest %}
 import { _requireOr } from '../core/utils'
 import { routes } from '../core/routes'
+export { printRoutes }
 // {% endif %}
 
-/* {% if selftest %} */export /* {% endif %} */async function printRoutes () {
+async function printRoutes () {
   const metadata = await routes(await _requireOr('./handlers', {}))
 
   const maxRouteLen = metadata.reduce((acc, { route }) => Math.max(acc, route.length), 0)
