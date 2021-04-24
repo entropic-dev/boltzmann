@@ -637,7 +637,7 @@ function template ({
 }
 
 
-/* {% if selftest %} */
+// {% if selftest %}
 import { promises as fs } from 'fs'
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
@@ -910,4 +910,4 @@ if (require.main === module) {
 
 // {% endraw %}
 }
-/* {% endif %} */
+// {% endif %}

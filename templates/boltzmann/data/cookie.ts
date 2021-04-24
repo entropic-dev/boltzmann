@@ -65,7 +65,7 @@ class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}
   }
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 import {Context} from './context'
 import {runserver} from '../bin/runserver'
@@ -149,4 +149,4 @@ if (require.main === module) {
     assert.match(parsed[2], /zu=bat; HttpOnly; Secure; SameSite=Strict/)
   })
 }
-/* {% endif %} */
+// {% endif %}

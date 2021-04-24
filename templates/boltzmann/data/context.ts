@@ -190,7 +190,7 @@ class Context {
 }
 
 
-/* {% if selftest %} */
+// {% if selftest %}
 import { Test } from '../middleware/test'
 import { runserver } from '../bin/runserver'
 import tap from 'tap'
@@ -279,4 +279,4 @@ if (require.main === module) {
   })
 
 }
-/* {% endif %} */
+// {% endif %}

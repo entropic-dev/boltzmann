@@ -51,7 +51,7 @@ function log ({
   }
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 import {enforceInvariants} from './enforce-invariants'
 /* istanbul ignore next */
@@ -128,4 +128,4 @@ if (require.main === module) {
     assert.equal(logged[1][1].message, '500 GET /bloo')
   })
 }
-/* {% endif %} */
+// {% endif %}

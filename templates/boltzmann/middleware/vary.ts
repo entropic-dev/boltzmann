@@ -19,7 +19,7 @@ function vary (on: string[] | string = []) {
   }
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -114,4 +114,4 @@ if (require.main === module) {
     assert.same(response.headers.vary, ['sprockets'])
   })
 }
-/* {% endif %} */
+// {% endif %}

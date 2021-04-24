@@ -48,7 +48,7 @@ async function _requireOr(target: string, value: any) {
   }
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import { Test } from '../../middleware/test'
 import tap from 'tap'
 /* istanbul ignore next */
@@ -78,4 +78,4 @@ if (require.main === module) {
     assert.equals(String(result), String(expect))
   })
 }
-/* {% endif %} */
+// {% endif %}

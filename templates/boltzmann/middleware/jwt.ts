@@ -83,7 +83,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
   }
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 /* istanbul ignore next */
 if (require.main === module) {
@@ -247,4 +247,4 @@ if (require.main === module) {
     assert.equal(caught, 1)
   })
 }
-/* {% endif %} */
+// {% endif %}

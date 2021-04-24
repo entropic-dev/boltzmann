@@ -36,7 +36,7 @@ function json (next: BodyParser) {
   }
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 import {Context} from '../data/context'
 import {runserver} from '../bin/runserver'
@@ -203,4 +203,4 @@ if (require.main === module) {
     assert.equal(response.statusCode, 415)
   })
 }
-/* {% endif %} */
+// {% endif %}

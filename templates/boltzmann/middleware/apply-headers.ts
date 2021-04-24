@@ -22,7 +22,7 @@ const applyXFO = (mode: XFOMode) => {
   return applyHeaders({ 'x-frame-options': mode })
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 export {
   XFOMode,
   applyHeaders,
@@ -101,4 +101,4 @@ if (require.main === module) {
     assert.equal(response.headers['x-frame-options'], 'DENY')
   })
 }
-/* {% endif %} */
+// {% endif %}

@@ -127,7 +127,7 @@ async function runserver ({
   return server
 }
 
-/* {% if selftest %} */
+// {% if selftest %}
 import {Test} from '../middleware/test'
 /* istanbul ignore next */
 if (require.main === module) {
@@ -471,4 +471,4 @@ if (require.main === module) {
     assert.same(String(response.payload), 'three ducks') // in THIS ECONOMY?!
   })
 }
-/* {% endif %} */
+// {% endif %}

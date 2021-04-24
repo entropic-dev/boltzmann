@@ -147,7 +147,7 @@ function session ({
 }
 
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -184,4 +184,4 @@ if (require.main === module) {
     assert.equal(response.statusCode, 400)
   })
 }
-/* {% endif %} */
+// {% endif %}

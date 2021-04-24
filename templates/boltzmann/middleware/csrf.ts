@@ -110,7 +110,7 @@ function applyCSRF ({
 }
 
 
-/* {% if selftest %} */
+// {% if selftest %}
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -353,4 +353,4 @@ if (require.main === module) {
     assert.equal(called, 0)
   })
 }
-/* {% endif %} */
+// {% endif %}
