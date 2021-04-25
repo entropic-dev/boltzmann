@@ -158,7 +158,7 @@ fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
     let mut buf = String::with_capacity(1024);
     cmark(events.into_iter(), &mut buf, None).map_err(|e| tera::Error::msg(e.to_string()))?;
 
-    Ok(buf.split("\n").collect::<Vec<_>>().join("\n * ").into())
+    Ok(buf.split("\n").collect::<Vec<_>>().join("\n * ").replace("*/", "*\\/").into())
 }
 
 lazy_static::lazy_static! {

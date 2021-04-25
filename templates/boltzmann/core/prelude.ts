@@ -107,7 +107,28 @@ export { redis }
 export { onHeaders, beeline }
 // {% endif %}
 
+// {% if jwt or oauth %}
+export { verifyJWT, decodeJWT }
+// {% endif %}
+
+// {% if csrf %}
+export { CsrfTokens }
+// {% endif %}
+
+// {% if esbuild %}
+export { build }
+// {% endif %}
+
+// {% if esbuild or staticfiles %}
+export { mime }
+// {% endif %}
+// {% if oauth %}
+export { OAuth2 }
+// {% endif %}
+export { Readable }
+
 export {
+  assert,
   serviceName,
   ship,
   THREW,
