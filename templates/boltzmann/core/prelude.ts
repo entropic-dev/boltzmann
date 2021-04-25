@@ -1,5 +1,22 @@
 'use strict'
 // Boltzmann v{{ version }}
+/*{% comment %}
+Hi, dear reader! You're probably here because you want to add some
+imports. That's great! Here's an admonition:
+
+!!! This file is transpiled into JS a bit differently than the rest !!!
+
+See bin/buildjs.sh for the details, but TL;DR: we transpile from TS to
+JS, then regex replace the ESM import syntax for CommonJS import syntax.
+Here's what you need to know:
+
+- Anything you import, you _must_ export in the selftest {if} block at the 
+  end of the function. Otherwise, Typescript may _remove_ the import entirely
+  from the JS build which BREAKS STUFF.
+- Anytime you use typescript-specific syntax, you may wish to use "void `<template directive>;`"
+  instead of comment-based template directives. Typescript is very finicky about
+  eliminating comments around syntax it actively edits!
+{% endcomment %}*/
 
 const serviceName = _getServiceName()
 
