@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
@@ -13,7 +13,7 @@ import { trace } from '../middleware/honeycomb'
 import { runserver } from '../bin/runserver'
 import { Context } from '../data/context'
 import { log } from '../middleware/log'
-// {% endif %}
+void `{% endif %}`;
 
 /* istanbul ignore next */
 if (require.main === module && !process.env.TAP) {
@@ -24,31 +24,43 @@ if (require.main === module && !process.env.TAP) {
   runserver({
     middleware: (_requireOr('./middleware', [] as MiddlewareConfig[]) as Promise<MiddlewareConfig[]>)
       .then(_processMiddleware)
-      .then((mw) =>
-        [
-          // {% if honeycomb %}
-          trace ,
-          // {% endif %}
-          // {% if ping %}
-          handlePing ,
-          // {% endif %}
-          // {% if livereload %}
-          (isDev() ? livereload : passthrough) ,
-          // {% endif %}
-          log ,
+      .then((mw) => {
+        // {# order matters here and typescript is eager to drop comments inside of array syntax #}
+        // {# so we're gonna do this one flag at a time. #}
+        const acc = []
 
-          // {% if redis %}
-          attachRedis ,
-          // {% endif %}
-          // {% if postgres %}
-          attachPostgres ,
-          // {% endif %}
-          ...mw,
-          // {% if status %}
-          ...[handleStatus ],
-          // {% endif %}
-        ].filter(Boolean)
-      ),
+        // {% if honeycomb %}
+        acc.push(trace)
+        // {% endif %}
+
+        // {% if ping %}
+        acc.push(handlePing)
+        // {% endif %}
+
+        // {% if livereload %}
+        if (isDev()) {
+          acc.push(livereload)
+        }
+        // {% endif %}
+
+        acc.push(log)
+
+        // {% if redis %}
+        acc.push(attachRedis)
+        // {% endif %}
+
+        // {% if postgres %}
+        acc.push(attachPostgres)
+        // {% endif %}
+        
+        acc.push(...mw)
+
+        // {% if status %}
+        acc.push(handleStatus)
+        // {% endif %}
+
+        return acc.filter(Boolean)
+      }),
   })
     .then((server) => {
       server.listen(Number(process.env.PORT) || 5000, () => {

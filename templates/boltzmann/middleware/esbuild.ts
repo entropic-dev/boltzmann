@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import { promises as fs } from 'fs'
 import { build } from 'esbuild'
@@ -15,7 +15,7 @@ import { Context } from '../data/context'
 import { routes } from '../core/routes'
 
 export { esbuild }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="esbuild") -}}*/
 function esbuild({

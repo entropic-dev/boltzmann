@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Algorithm, verify as verifyJWT } from 'jsonwebtoken'
 import bole from '@entropic/bole'
 import { promises as fs } from 'fs'
@@ -8,7 +8,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 
 export { authenticateJWT }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="authenticatejwt") -}}*/
 function authenticateJWT ({
@@ -83,7 +83,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
   }
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 /* istanbul ignore next */
 if (require.main === module) {
@@ -247,4 +247,4 @@ if (require.main === module) {
     assert.equal(caught, 1)
   })
 }
-// {% endif %}
+void `{% endif %}`;

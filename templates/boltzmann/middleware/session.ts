@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
 import bole from '@entropic/bole'
 import crypto from 'crypto'
@@ -10,7 +10,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 
 export { LoadSession, SaveSession, session }
-// {% endif %}
+void `{% endif %}`;
 
 let IN_MEMORY = new Map()
 
@@ -147,7 +147,7 @@ function session ({
 }
 
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -184,4 +184,4 @@ if (require.main === module) {
     assert.equal(response.statusCode, 400)
   })
 }
-// {% endif %}
+void `{% endif %}`;

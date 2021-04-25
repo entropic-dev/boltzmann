@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { IncomingMessage, ServerResponse } from 'http'
 import { default as accepts, Accepts } from 'accepts'
 import * as uuid from 'uuid'
@@ -12,7 +12,7 @@ import { Cookie } from './cookie'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 /* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
 export { GetSession, Context }
-// {% endif %}
+void `{% endif %}`;
 
 interface GetSession {
   (): Promise<Session>
@@ -190,7 +190,7 @@ class Context {
 }
 
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Test } from '../middleware/test'
 import { runserver } from '../bin/runserver'
 import tap from 'tap'
@@ -279,4 +279,4 @@ if (require.main === module) {
   })
 
 }
-// {% endif %}
+void `{% endif %}`;

@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 import path from 'path'
@@ -9,7 +9,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 
 export { staticfiles }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="staticfiles") -}}*/
 function staticfiles({

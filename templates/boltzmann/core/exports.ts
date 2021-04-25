@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { MiddlewareConfig, Middleware, Adaptor, Handler } from '../core/middleware'
 import { BodyParserDefinition, BodyParser, BodyInput } from '../core/body'
 import { Context } from '../data/context'
@@ -41,7 +41,7 @@ import { LoadSession, SaveSession, session } from '../middleware/session'
 import { applyCSRF } from '../middleware/csrf'
 // {% endif %}
 import { BoltzmannTest, Test, test } from '../middleware/test'
-// {% endif %}
+void `{% endif %}`;
 
 const body = {
   json,

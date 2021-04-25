@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import beeline from 'honeycomb-beeline'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
@@ -11,7 +11,7 @@ import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
 
 export { Handler, Adaptor, Middleware, MiddlewareConfig, buildMiddleware, handler }
-// {% endif %}
+void `{% endif %}`;
 
 interface Handler {
   (context: Context): Promise<any> | any,

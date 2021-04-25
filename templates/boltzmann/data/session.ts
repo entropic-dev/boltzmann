@@ -1,15 +1,18 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 export const REISSUE = Symbol.for('reissue')
 export { Session }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="02-handlers.md", section="session") -}}*/
 class Session extends Map<string, any> {
-  [REISSUE]: boolean = false
+  // {# CD: don't use default values on computed symbol props. #}
+  // {# typescript transpiles them poorly. #}
+  [REISSUE]: boolean
   public dirty = false
 
   constructor(public id: string | null, ...args: any) {
     super(...args)
+    this[REISSUE] = false
   }
 
   reissue() {

@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import isDev from 'are-we-dev'
 
 import { BodyParser, BodyInput } from '../core/body'
@@ -6,7 +6,7 @@ import { _collect } from '../core/utils'
 import {STATUS} from '../core/prelude'
 
 export { json }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="04-body-parsers.md", section="json") -}}*/
 function json (next: BodyParser) {
@@ -36,7 +36,7 @@ function json (next: BodyParser) {
   }
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {Context} from '../data/context'
 import {runserver} from '../bin/runserver'
@@ -203,4 +203,4 @@ if (require.main === module) {
     assert.equal(response.statusCode, 415)
   })
 }
-// {% endif %}
+void `{% endif %}`;

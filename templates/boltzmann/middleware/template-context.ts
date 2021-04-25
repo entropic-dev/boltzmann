@@ -1,9 +1,9 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 
 export { templateContext }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="templatecontext") -}}*/
 function templateContext(extraContext: Record<string, unknown> = {}) {

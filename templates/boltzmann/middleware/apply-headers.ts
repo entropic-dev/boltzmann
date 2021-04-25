@@ -1,7 +1,7 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="applyheaders") -}}*/
 function applyHeaders (headers: Record<string, string | string[]> = {}) {
@@ -22,7 +22,7 @@ const applyXFO = (mode: XFOMode) => {
   return applyHeaders({ 'x-frame-options': mode })
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 export {
   XFOMode,
   applyHeaders,
@@ -101,4 +101,4 @@ if (require.main === module) {
     assert.equal(response.headers['x-frame-options'], 'DENY')
   })
 }
-// {% endif %}
+void `{% endif %}`;

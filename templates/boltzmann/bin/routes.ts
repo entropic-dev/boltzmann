@@ -1,8 +1,8 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { _requireOr } from '../core/utils'
 import { routes } from '../core/routes'
 export { printRoutes }
-// {% endif %}
+void `{% endif %}`;
 
 async function printRoutes () {
   const metadata = await routes(await _requireOr('./handlers', {}))

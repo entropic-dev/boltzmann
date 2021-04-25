@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
@@ -6,7 +6,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 
 export { handleCORS }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="handlecors") -}}*/
 function handleCORS ({

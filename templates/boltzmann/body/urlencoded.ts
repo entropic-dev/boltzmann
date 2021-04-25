@@ -1,10 +1,10 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import querystring from 'querystring'
 
 import { BodyParser, BodyInput } from '../core/body'
 import { _collect } from '../core/utils'
 export { urlEncoded }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="04-body-parsers.md", section="urlencoded") -}}*/
 function urlEncoded (next: BodyParser) {
@@ -24,7 +24,7 @@ function urlEncoded (next: BodyParser) {
   }
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {Context} from '../data/context'
 import {runserver} from '../bin/runserver'
@@ -84,4 +84,4 @@ if (require.main === module) {
   })
 
 }
-// {% endif %}
+void `{% endif %}`;

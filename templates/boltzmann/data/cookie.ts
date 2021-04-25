@@ -1,9 +1,9 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import isDev from 'are-we-dev'
 import * as cookie from 'cookie'
 
 export { Cookie }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="02-handlers.md", section="cookie") -}}*/
 class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}> {
@@ -65,7 +65,7 @@ class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}
   }
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {Context} from './context'
 import {runserver} from '../bin/runserver'
@@ -149,4 +149,4 @@ if (require.main === module) {
     assert.match(parsed[2], /zu=bat; HttpOnly; Secure; SameSite=Strict/)
   })
 }
-// {% endif %}
+void `{% endif %}`;

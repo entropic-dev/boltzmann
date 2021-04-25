@@ -1,11 +1,11 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
 import { Handler } from './middleware'
 
 export { routes }
-// {% endif %}
+void `{% endif %}`;
 
 async function routes (handlers: Record<string, Handler>) {
   const routes = []

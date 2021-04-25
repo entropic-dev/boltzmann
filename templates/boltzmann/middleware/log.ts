@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
@@ -7,7 +7,7 @@ import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
 
 export { log }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="log") -}}*/
 function log ({
@@ -51,7 +51,7 @@ function log ({
   }
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {enforceInvariants} from './enforce-invariants'
 /* istanbul ignore next */
@@ -128,4 +128,4 @@ if (require.main === module) {
     assert.equal(logged[1][1].message, '500 GET /bloo')
   })
 }
-// {% endif %}
+void `{% endif %}`;

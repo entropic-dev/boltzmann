@@ -1,11 +1,11 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import CsrfTokens from 'csrf'
 import crypto from 'crypto'
 
 export { applyCSRF }
-// {% endif %}
+void `{% endif %}`;
 
 // csrf protection middleware
 function signCookie(value: string, secret: string) {
@@ -110,7 +110,7 @@ function applyCSRF ({
 }
 
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -353,4 +353,4 @@ if (require.main === module) {
     assert.equal(called, 0)
   })
 }
-// {% endif %}
+void `{% endif %}`;

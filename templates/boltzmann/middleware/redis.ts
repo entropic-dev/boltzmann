@@ -1,9 +1,9 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import redis from 'handy-redis'
 export { attachRedis }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="attachredis") -}}*/
 function attachRedis ({ url = process.env.REDIS_URL } = {}) {

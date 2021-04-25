@@ -1,8 +1,8 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 export { dev }
-// {% endif %}
+void `{% endif %}`;
 
 const hangWarning: unique symbol = Symbol('hang-stall')
 const hangError: unique symbol  = Symbol('hang-error')

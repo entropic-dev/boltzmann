@@ -1,7 +1,7 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { IncomingMessage } from 'http'
 export { ContentType, BodyInput, BodyParser, BodyParserDefinition, buildBodyParser }
-// {% endif %}
+void `{% endif %}`;
 
 interface ContentType {
   contentType: {

@@ -5,6 +5,7 @@ bin/zola
 docs/output
 docs/public
 docs/static/processed_images
+templates/boltzmann-js
 node_modules
 .nyc_output
 .vs

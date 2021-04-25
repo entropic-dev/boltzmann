@@ -1,10 +1,10 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { HEADERS } from '../core/prelude'
 
 export { vary }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="vary") -}}*/
 function vary (on: string[] | string = []) {
@@ -19,7 +19,7 @@ function vary (on: string[] | string = []) {
   }
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -114,4 +114,4 @@ if (require.main === module) {
     assert.same(response.headers.vary, ['sprockets'])
   })
 }
-// {% endif %}
+void `{% endif %}`;

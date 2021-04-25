@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { promises as fs } from 'fs'
 import { build } from 'esbuild'
 import isDev from 'are-we-dev'
@@ -12,7 +12,7 @@ import { Context } from '../data/context'
 import { routes } from '../core/routes'
 
 export { _findESBuildEntries, buildAssets }
-// {% endif %}
+void `{% endif %}`;
 
 const routing = route
 async function _findESBuildEntries (source: string) {

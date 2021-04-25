@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import { Readable } from 'stream'
 
@@ -6,7 +6,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 
 export { livereload }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="livereload") -}}*/
 function livereload({

@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import os from 'os'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 
@@ -12,7 +12,7 @@ export {
   ReachabilityCheck,
   handleStatus
 }
-// {% endif %}
+void `{% endif %}`;
 
 interface ReachabilityResult {
   status: 'failed' | 'healthy' | string,
@@ -24,17 +24,18 @@ interface ReachabilityCheck {
   (context: Context, meta: ReachabilityResult): Promise<void> | void
 }
 
+const defaultReachability: Record<string, ReachabilityCheck> = {}
+// {% if postgres %}
+defaultReachability.postgresReachability = postgresReachability
+// {% endif %}
+// {% if redis %}
+defaultReachability.redisReachability = redisReachability
+// {% endif %}
+
 /**{{- tsdoc(page="03-middleware.md", section="handlestatus") -}}*/
 function handleStatus ({
   git = process.env.GIT_COMMIT,
-  reachability = {
-    // {% if postgres %}
-    postgresReachability,
-    // {% endif %}
-    // {% if redis %}
-    redisReachability,
-    // {% endif %}
-  },
+  reachability = defaultReachability,
   extraReachability = _requireOr('./reachability', {})
 }: {
   git?: string,

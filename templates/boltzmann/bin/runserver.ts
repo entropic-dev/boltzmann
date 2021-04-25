@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import {inject} from '@hapi/shot'
 import isDev from 'are-we-dev'
@@ -16,7 +16,7 @@ import {Context} from '../data/context'
 import {json} from '../body/json'
 
 export { runserver }
-// {% endif %}
+void `{% endif %}`;
 
 interface DebugLocationInfo {
   name: string,
@@ -127,7 +127,7 @@ async function runserver ({
   return server
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import {Test} from '../middleware/test'
 /* istanbul ignore next */
 if (require.main === module) {
@@ -471,4 +471,4 @@ if (require.main === module) {
     assert.same(String(response.payload), 'three ducks') // in THIS ECONOMY?!
   })
 }
-// {% endif %}
+void `{% endif %}`;

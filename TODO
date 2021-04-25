@@ -19,6 +19,19 @@ work.
       typescript project along with tsconfig & typings and put them in cwd
     - then `npm i`
 - [ ] post-process typescript to get to javascript mode
+    - suggestion from ceej: move exports up to selftest blocks so we can transpile templates
+    - transpiling templates:
+        - ts is terrible at preserving comments, so "// {% if selftest %}" is now "void `{% if selftest %}`"
+        - also it really wants to control import syntax
+            - target module: ES2020, not CommonJS, then we'll rewrite the result (!!)
+            - also "grep -v 'void ``'"
+            - and turn off source maps
+        - drops endifs from:
+            - entrypoint
+            - prelude
+                - solution: break out export { } block
+            - status
+
 - [ ] note missing defs from boltzmann.d.ts
     - "Next" is now "Handler"
     - "Response" does not exist / needs defined + exported I think

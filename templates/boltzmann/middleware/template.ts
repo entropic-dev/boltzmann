@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 import {ConfigureOptions, Extension} from 'nunjucks'
@@ -9,7 +9,7 @@ import {Handler} from '../core/middleware'
 import {Context} from '../data/context'
 
 export { BoltzmannNunjucksFilter, template }
-// {% endif %}
+void `{% endif %}`;
 
 interface BoltzmannNunjucksFilter {
   (...args: any[]): Promise<string> | string 
@@ -637,7 +637,7 @@ function template ({
 }
 
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import { promises as fs } from 'fs'
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
@@ -910,4 +910,4 @@ if (require.main === module) {
 
 // {% endraw %}
 }
-// {% endif %}
+void `{% endif %}`;

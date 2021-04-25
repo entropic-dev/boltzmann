@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import { RouteOptions } from 'find-my-way'
 import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
@@ -12,7 +12,7 @@ import { Context } from '../data/context'
 import { vary } from '../middleware/vary'
 
 export { route }
-// {% endif %}
+void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="route") -}}*/
 function route (handlers: Record<string, Handler> = {}) {

@@ -1,4 +1,4 @@
-// {% if selftest %}
+void `{% if selftest %}`;
 import isDev from 'are-we-dev'
 import Ajv from 'ajv'
 
@@ -7,7 +7,7 @@ import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
 
 export { validate }
-// {% endif %}
+void `{% endif %}`;
 
 const addAJVFormats = (validator: Ajv): Ajv => (require('ajv-formats')(validator), validator)
 const addAJVKeywords = (validator: Ajv): Ajv => (require('ajv-keywords')(validator), validator)
@@ -85,7 +85,7 @@ const validate = {
   params: validateParams
 }
 
-// {% if selftest %}
+void `{% if selftest %}`;
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
@@ -305,4 +305,4 @@ if (require.main === module) {
     assert.same(response.payload, 'aw heck')
   })
 }
-// {% endif %}
+void `{% endif %}`;
