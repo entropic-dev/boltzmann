@@ -39,6 +39,10 @@ A complete project is provided for you, with useful package run scripts and lint
 
 Boltzmann is a joint venture of [@ceejbot](https://github.com/ceejbot) and [@chrisdickinson](https://github.com/chrisdickinson).
 
+### Hacking
+
+See [HACKING.md](./HACKING.md).
+
 ## LICENCE
 
 Apache-2.0.

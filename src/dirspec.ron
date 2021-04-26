@@ -118,39 +118,42 @@ r#"declare module 'are-we-dev' {
     (): boolean
   }
 
-  declare const isDev: IsDev;
-  export = isDev;
-}"#
+  declare const isDev: IsDev
+  export = isDev
+}
+"#
             )), None),
 
             ("culture-ships.d.ts", 0o644, File(FileSpec(
                 contents:
 r#"declare module 'culture-ships' {
   interface Ships {
-    ships: string[],
+    ships: string[]
     random(): string
   }
 
-  declare const ships: Ships;
-  export = ships;
-}"#
+  declare const ships: Ships
+  export = ships
+}
+"#
             )), None),
 
             ("entropic__bole.d.ts", 0o644, File(FileSpec(
                 contents:
 r#"declare module '@entropic/bole' {
   interface Bole {
-    (name: string): Bole;
-    output(...config: any[]): void;
-    info(...args: any[]): void;
-    debug(...args: any[]): void;
-    error(...args: any[]): void;
-    warn(...args: any[]): void;
+    (name: string): Bole
+    output(...config: any[]): void
+    info(...args: any[]): void
+    debug(...args: any[]): void
+    error(...args: any[]): void
+    warn(...args: any[]): void
   }
 
-  declare const bole: Bole;
-  export = bole;
-}"#
+  declare const bole: Bole
+  export = bole
+}
+"#
             )), None),
 
             ("honeycomb-beeline.d.ts", 0o644, File(FileSpec(
@@ -173,7 +176,8 @@ r#"declare module 'honeycomb-beeline' {
 
   declare const beeline: Beeline;
   export = beeline;
-}"#
+}
+"#
             )), Some(When(all_of: ["honeycomb"]))),
         ]
     )), Some(When(all_of: ["typescript"]))),

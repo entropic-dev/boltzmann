@@ -4,11 +4,8 @@ set -e
 set -m
 
 function run_selftest() {
-  rm -rf tmp
-  cargo run -- --selftest --force  --silent tmp
-  cd tmp
-  node_modules/.bin/tap test.js
-  cd ..
+  npm ci
+  npm t
 }
 
 function run_startup() {
