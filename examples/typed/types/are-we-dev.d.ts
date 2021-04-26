@@ -3,6 +3,6 @@ declare module 'are-we-dev' {
     (): boolean
   }
 
-  declare const isDev: IsDev;
-  export = isDev;
+  declare const isDev: IsDev
+  export = isDev
 }

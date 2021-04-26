@@ -49,7 +49,7 @@
     "lint": "eslint .",
     "posttest": "npm run lint",
     "start": "nodemon ./boltzmann.js",
-    "test": "tap tests"
+    "test": "c8 tap --no-cov tests"
   },
   "boltzmann": {
     "version": "0.4.3",

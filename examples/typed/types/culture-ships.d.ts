@@ -1,9 +1,9 @@
 declare module 'culture-ships' {
   interface Ships {
-    ships: string[],
+    ships: string[]
     random(): string
   }
 
-  declare const ships: Ships;
-  export = ships;
+  declare const ships: Ships
+  export = ships
 }
