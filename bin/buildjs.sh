@@ -18,7 +18,7 @@ function get_platform() {
 }
 plat=$(get_platform)
 
-if [ -e node_modules ]; then
+if [ ! -e node_modules ]; then
   npm ci
 fi
 
