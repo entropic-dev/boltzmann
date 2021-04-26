@@ -38,7 +38,7 @@
     "lint": "eslint .",
     "posttest": "npm run lint",
     "start": "./boltzmann.js",
-    "test": "tap test",
+    "test": "c8 tap --no-cov test",
     "boltzmann:upgrade": "npx boltzmann-cli",
     "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
     "boltzmann:esbuild": null,
