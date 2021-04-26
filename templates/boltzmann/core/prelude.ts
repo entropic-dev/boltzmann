@@ -1,6 +1,6 @@
 'use strict'
 // Boltzmann v{{ version }}
-/*{% comment %}
+/*{#
 Hi, dear reader! You're probably here because you want to add some
 imports. That's great! Here's an admonition:
 
@@ -16,7 +16,7 @@ Here's what you need to know:
 - Anytime you use typescript-specific syntax, you may wish to use "void `<template directive>;`"
   instead of comment-based template directives. Typescript is very finicky about
   eliminating comments around syntax it actively edits!
-{% endcomment %}*/
+#}*/
 
 const serviceName = _getServiceName()
 
@@ -28,7 +28,7 @@ function _getServiceName() {
   }
 }
 
-// {% if honeycomb %}
+void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
 
 beeline({
@@ -39,12 +39,12 @@ beeline({
 })
 
 import onHeaders from 'on-headers'
-// {% endif %}
+void `{% endif %}`;
 
 import ships from 'culture-ships'
-// {% if ping %}
+void `{% if ping %}`;
 const ship = ships.random()
-// {% endif %}
+void `{% endif %}`;
 
 import { IncomingMessage, ServerResponse } from 'http'
 import { URL } from 'url'
@@ -55,31 +55,40 @@ import { RouteOptions, Handler as FMWHandler, HTTPVersion, HTTPMethod } from 'fi
 import Ajv from 'ajv'
 import assert from 'assert'
 import * as cookie from 'cookie'
-/* {% if redis %} */ import { IHandyRedis } from 'handy-redis' /* {% endif %} */
-/* {% if postgres %} */ import {
+void `{% if redis %}`;
+import { IHandyRedis } from 'handy-redis' 
+void `{% endif %}`;
+
+void `{% if postgres %}`;
+import {
   Client as PGClient,
   PoolClient as PGPoolClient,
   Pool as PGPool,
-} from 'pg' /* {% endif %} */
-/* {% if templates %} */ import { ConfigureOptions, Extension } from 'nunjucks' /* {% endif %} */
-// {% if jwt or oauth %}
+} from 'pg'
+void `{% endif %}`;
+
+void `{% if templates %}`;
+import { ConfigureOptions, Extension } from 'nunjucks'
+void `{% endif %}`;
+
+void `{% if jwt or oauth %}`;
 import { Algorithm, verify as verifyJWT, decode as decodeJWT } from 'jsonwebtoken'
-// {% endif %}
+void `{% endif %}`;
 
-// {% if csrf %}
+void `{% if csrf %}`;
 import CsrfTokens from 'csrf'
-// {% endif %}
+void `{% endif %}`;
 
-// {% if esbuild %}
+void `{% if esbuild %}`;
 import { build } from 'esbuild'
-// {% endif %}
+void `{% endif %}`;
 
-// {% if esbuild or staticfiles %}
+void `{% if esbuild or staticfiles %}`;
 import mime from 'mime'
-// {% endif %}
-// {% if oauth %}
+void `{% endif %}`;
+void `{% if oauth %}`;
 import { OAuth2 } from 'oauth'
-// {% endif %}
+void `{% endif %}`;
 
 import { Readable } from 'stream'
 
@@ -97,12 +106,12 @@ import http from 'http'
 import bole from '@entropic/bole'
 import path from 'path'
 import os from 'os'
-// {% if redis %}
+void `{% if redis %}`;
 import * as redis from 'handy-redis'
-// {% endif %}
-// {% if postgres %}
+void `{% endif %}`;
+void `{% if postgres %}`;
 import pg from 'pg'
-// {% endif %}
+void `{% endif %}`;
 
 const THREW = Symbol.for('threw')
 const STATUS = Symbol.for('status')
@@ -112,36 +121,36 @@ const TEMPLATE = Symbol.for('template')
 
 void `{% if selftest %}`
 
-// {% if postgres %}
-export { pg }
-// {% endif %}
+void `{% if postgres %}`;
+export { pg, PGPool, PGPoolClient, PGClient }
+void `{% endif %}`;
 
-// {% if redis %}
+void `{% if redis %}`;
 export { redis }
-// {% endif %}
+void `{% endif %}`;
 
-// {% if honeycomb %}
+void `{% if honeycomb %}`;
 export { onHeaders, beeline }
-// {% endif %}
+void `{% endif %}`;
 
-// {% if jwt or oauth %}
+void `{% if jwt or oauth %}`;
 export { verifyJWT, decodeJWT }
-// {% endif %}
+void `{% endif %}`;
 
-// {% if csrf %}
+void `{% if csrf %}`;
 export { CsrfTokens }
-// {% endif %}
+void `{% endif %}`;
 
-// {% if esbuild %}
+void `{% if esbuild %}`;
 export { build }
-// {% endif %}
+void `{% endif %}`;
 
-// {% if esbuild or staticfiles %}
+void `{% if esbuild or staticfiles %}`;
 export { mime }
-// {% endif %}
-// {% if oauth %}
+void `{% endif %}`;
+void `{% if oauth %}`;
 export { OAuth2 }
-// {% endif %}
+void `{% endif %}`;
 export { Readable }
 
 export {
