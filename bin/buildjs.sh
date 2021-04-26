@@ -38,11 +38,12 @@ for file in $(find templates/boltzmann-js -name '*.js'); do
   echo "$data" > "$file"
 
   if [ "$plat" = "darwin" ]; then
-    sed -i'' -e 's/^import {\(.*\)} from '"'"'\(.*\)'"'"'/const {\1} = require("\2")/g' "$file"
-    sed -i'' -e 's/^import \* as \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"
-    sed -i'' -e 's/^import \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"
-    sed -i'' -e 's/^export {/module.exports = {...module.exports, /g' "$file"
-    sed -i'' -e 's/^export const \(.*\) = \(.*\)/const \1 = \2; module.exports.\1 = \1;/g' "$file"
+    echo WOWOWOOW $file
+    sed -i '' -e 's/^import {\(.*\)} from '"'"'\(.*\)'"'"'/const {\1} = require("\2")/g' "$file"
+    sed -i '' -e 's/^import \* as \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"
+    sed -i '' -e 's/^import \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"
+    sed -i '' -e 's/^export {/module.exports = {...module.exports, /g' "$file"
+    sed -i '' -e 's/^export const \(.*\) = \(.*\)/const \1 = \2; module.exports.\1 = \1;/g' "$file"
   else
     sed -i -e 's/^import {\(.*\)} from '"'"'\(.*\)'"'"'/const {\1} = require("\2")/g' "$file"
     sed -i -e 's/^import \* as \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"
