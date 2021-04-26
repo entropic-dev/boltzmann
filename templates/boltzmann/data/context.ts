@@ -205,7 +205,7 @@ import { Test } from '../middleware/test'
 import { runserver } from '../bin/runserver'
 import tap from 'tap'
 import {inject} from '@hapi/shot'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
 

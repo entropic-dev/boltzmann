@@ -41,7 +41,7 @@ import tap from 'tap'
 import {Context} from '../data/context'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
   process.env.NODE_ENV = 'production'

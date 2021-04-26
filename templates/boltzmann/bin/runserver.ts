@@ -129,7 +129,7 @@ async function runserver ({
 
 void `{% if selftest %}`;
 import {Test} from '../middleware/test'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
 

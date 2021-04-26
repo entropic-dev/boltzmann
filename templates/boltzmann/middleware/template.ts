@@ -642,7 +642,7 @@ import { promises as fs } from 'fs'
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
-/* istanbul ignore next */
+/* c8 ignore next */
 // {% raw %}
 if (require.main === module) {
   const { test } = tap

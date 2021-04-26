@@ -91,7 +91,7 @@ void `{% if selftest %}`;
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   process.env.NODE_ENV = 'production'
 

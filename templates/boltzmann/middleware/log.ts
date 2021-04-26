@@ -54,7 +54,7 @@ function log ({
 void `{% if selftest %}`;
 import tap from 'tap'
 import {enforceInvariants} from './enforce-invariants'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
 

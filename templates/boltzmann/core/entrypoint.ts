@@ -15,7 +15,7 @@ import { Context } from '../data/context'
 import { log } from '../middleware/log'
 void `{% endif %}`;
 
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
   function passthrough() {
     return (next: Handler) => (context: Context) => next(context)

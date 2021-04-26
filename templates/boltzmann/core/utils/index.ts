@@ -51,7 +51,7 @@ async function _requireOr(target: string, value: any) {
 void `{% if selftest %}`;
 import { Test } from '../../middleware/test'
 import tap from 'tap'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
 

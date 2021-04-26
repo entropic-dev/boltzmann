@@ -85,7 +85,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
 
 void `{% if selftest %}`;
 import tap from 'tap'
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
 
