@@ -1,17 +1,11 @@
 void `{% if selftest %}`;
 import { IncomingMessage, ServerResponse } from 'http'
-import { default as accepts, Accepts } from 'accepts'
+import { Accepts } from 'accepts'
+import accepts from 'accepts'
 import * as uuid from 'uuid'
 import { URL } from 'url'
 
-import { Handler } from '../core/middleware'
-import { BodyParser } from '../core/body'
-import {NoMatchError} from './errors'
-import { Session } from './session'
-import { Cookie } from './cookie'
-/* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
-/* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
-export { GetSession, Context }
+// More imports below. (Rule is: local imports must follow exports.)
 void `{% endif %}`;
 
 interface GetSession {
@@ -81,10 +75,15 @@ class Context {
   // {% if postgres %}
   /**{{- tsdoc(page="02-handlers.md", section="postgresclient") -}}*/
   get postgresClient (): Promise<PGPoolClient | PGClient> {
+    if (this._postgresConnection) {
+      return this._postgresConnection
+    }
+
     if (!this._postgresPool) {
       throw new Error('Cannot fetch postgresClient before a pool is assigned (middleware should do this.)')
     }
-    this._postgresConnection = this._postgresConnection || this._postgresPool.connect()
+
+    this._postgresConnection = this._postgresPool.connect()
     return this._postgresConnection
   }
   // {% endif %}
@@ -188,6 +187,17 @@ class Context {
 
   static _bodyParser?: BodyParser
 }
+
+void `{% if selftest %}`;
+export { GetSession, Context }
+import { Handler } from '../core/middleware'
+import { BodyParser } from '../core/body'
+import {NoMatchError} from './errors'
+import { Session } from './session'
+import { Cookie } from './cookie'
+/* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
+/* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
+void `{% endif %}`;
 
 
 void `{% if selftest %}`;

@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { _findESBuildEntries, buildAssets }
+
 import { promises as fs } from 'fs'
 import { build } from 'esbuild'
 import isDev from 'are-we-dev'
@@ -10,8 +12,6 @@ import { esbuild } from '../middleware/esbuild'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { routes } from '../core/routes'
-
-export { _findESBuildEntries, buildAssets }
 void `{% endif %}`;
 
 const routing = route

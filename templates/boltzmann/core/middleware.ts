@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { Handler, Adaptor, Middleware, MiddlewareConfig, buildMiddleware, handler }
+
 import beeline from 'honeycomb-beeline'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
@@ -9,8 +11,6 @@ import { BodyParserDefinition } from '../core/body'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
-
-export { Handler, Adaptor, Middleware, MiddlewareConfig, buildMiddleware, handler }
 void `{% endif %}`;
 
 interface Handler {

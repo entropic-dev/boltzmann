@@ -1,9 +1,10 @@
 void `{% if selftest %}`;
+export { attachPostgres }
+
 import { serviceName, THREW } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import pg from 'pg'
-export { attachPostgres }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="attachpostgres") -}}*/

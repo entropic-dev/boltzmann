@@ -1,4 +1,10 @@
 void `{% if selftest %}`;
+export {
+  XFOMode,
+  applyHeaders,
+  applyXFO
+}
+
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 void `{% endif %}`;
@@ -15,7 +21,7 @@ function applyHeaders (headers: Record<string, string | string[]> = {}) {
 }
 
 type XFOMode = 'DENY' | 'SAMEORIGIN'
-const applyXFO = (mode: XFOMode) => {
+function applyXFO (mode: XFOMode) {
   if (!['DENY', 'SAMEORIGIN'].includes(mode)) {
     throw new Error('applyXFO(): Allowed x-frame-options directives are DENY and SAMEORIGIN.')
   }
@@ -23,12 +29,6 @@ const applyXFO = (mode: XFOMode) => {
 }
 
 void `{% if selftest %}`;
-export {
-  XFOMode,
-  applyHeaders,
-  applyXFO
-}
-
 import tap from 'tap'
 import {runserver} from '../bin/runserver'
 import {inject} from '@hapi/shot'

@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { route }
+
 import { RouteOptions } from 'find-my-way'
 import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
@@ -10,8 +12,6 @@ import { buildMiddleware } from '../core/middleware'
 import { buildBodyParser } from '../core/body'
 import { Context } from '../data/context'
 import { vary } from '../middleware/vary'
-
-export { route }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="route") -}}*/

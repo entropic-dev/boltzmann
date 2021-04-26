@@ -1,10 +1,10 @@
 void `{% if selftest %}`;
+export { routes }
+
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
 import { Handler } from './middleware'
-
-export { routes }
 void `{% endif %}`;
 
 async function routes (handlers: Record<string, Handler>) {

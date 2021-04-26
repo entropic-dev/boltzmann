@@ -1,7 +1,7 @@
 void `{% if selftest %}`;
+export { printRoutes }
 import { _requireOr } from '../core/utils'
 import { routes } from '../core/routes'
-export { printRoutes }
 void `{% endif %}`;
 
 async function printRoutes () {

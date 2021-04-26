@@ -1,8 +1,9 @@
 void `{% if selftest %}`;
+export { handlePing }
+
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { ship } from '../core/prelude'
-export { handlePing }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="handleping") -}}*/

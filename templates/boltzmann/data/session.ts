@@ -1,6 +1,5 @@
 void `{% if selftest %}`;
 export const REISSUE = Symbol.for('reissue')
-export { Session }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="02-handlers.md", section="session") -}}*/
@@ -36,3 +35,7 @@ class Session extends Map<string, any> {
     return super.delete(key)
   }
 }
+
+void `{% if selftest %}`;
+export { Session }
+void `{% endif %}`;

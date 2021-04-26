@@ -1,11 +1,11 @@
 void `{% if selftest %}`;
+export { json }
+
 import isDev from 'are-we-dev'
 
 import { BodyParser, BodyInput } from '../core/body'
 import { _collect } from '../core/utils'
 import {STATUS} from '../core/prelude'
-
-export { json }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="04-body-parsers.md", section="json") -}}*/

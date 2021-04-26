@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { handleOAuthLogout, handleOAuthCallback, handleOAuthLogin, oauth }
+
 import { decode as decodeJWT } from 'jsonwebtoken'
 import bole from '@entropic/bole'
 import { OAuth2 } from 'oauth'
@@ -9,8 +11,6 @@ import uuid from 'uuid'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-export { handleOAuthLogout, handleOAuthCallback, handleOAuthLogin, oauth }
 void `{% endif %}`;
 
 function handleOAuthLogin ({

@@ -1,12 +1,7 @@
 void `{% if selftest %}`;
 import isDev from 'are-we-dev'
 import Ajv from 'ajv'
-
-import { Handler } from '../core/middleware'
-import { Context } from '../data/context'
-import { STATUS, THREW } from '../core/prelude'
-
-export { validate }
+// More local imports below (rule is, export must come before local imports)
 void `{% endif %}`;
 
 const addAJVFormats = (validator: Ajv): Ajv => (require('ajv-formats')(validator), validator)
@@ -84,6 +79,13 @@ const validate = {
   query: validateQuery,
   params: validateParams
 }
+
+void `{% if selftest %}`;
+export { validate }
+import { Handler } from '../core/middleware'
+import { Context } from '../data/context'
+import { STATUS, THREW } from '../core/prelude'
+void `{% endif %}`;
 
 void `{% if selftest %}`;
 import tap from 'tap'

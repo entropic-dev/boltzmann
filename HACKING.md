@@ -56,9 +56,19 @@ When writing a module in `templates/boltzmann`, keep the following in mind:
   variables (`_a`, `_b`, etc) that _will collide_ when the file is concatenated.
 - We provide one custom template tag, `tsdoc`, which pulls reference documentation
   from `docs/content/reference/*.md` by section.
-- Double check your changes by scaffolding a test project. Check type
-  completion in the project and make sure reference docs appear in the editor
-  on hover, where appropriate.
+    - Double check your changes by scaffolding a test project. Check type
+      completion in the project and make sure reference docs appear in the editor
+      on hover, where appropriate.
+- Exports **must come before** local imports. Function hoisting makes this
+  unobtrusive generally, but in some cases (like classes and values) this means
+  we have to break our initial import block in two. See
+  `templates/boltzmann/data/context.ts` for an example.
+
+Each file in `templates/boltzmann` must:
+
+- Pass tests running as TypeScript,
+- Pass tests when transpiled using `bin/buildjs.sh`,
+- and to pass integration tests when concatenated into a complete project.
 
 See `src/dirspec.ron` for how the scaffolding is laid out.
 

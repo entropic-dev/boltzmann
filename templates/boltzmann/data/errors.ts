@@ -1,7 +1,5 @@
 void `{% if selftest %}`;
 import {STATUS} from '../core/prelude'
-
-export { BadSessionError, NoMatchError }
 void `{% endif %}`;
 
 class BadSessionError extends Error {
@@ -26,3 +24,9 @@ class NoMatchError extends Error {
     Error.captureStackTrace(this, NoMatchError)
   }
 }
+
+void `{% if selftest %}`;
+// moving the exports down here so the JS compilation doesn't complain
+// about referencing the classes before their definition.
+export { BadSessionError, NoMatchError }
+void `{% endif %}`;

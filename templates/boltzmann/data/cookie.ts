@@ -1,8 +1,6 @@
 void `{% if selftest %}`;
 import isDev from 'are-we-dev'
 import * as cookie from 'cookie'
-
-export { Cookie }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="02-handlers.md", section="cookie") -}}*/
@@ -64,6 +62,10 @@ class Cookie extends Map<string, cookie.CookieSerializeOptions & {value: string}
     return new Cookie(Object.entries(cookie.parse(string)))
   }
 }
+
+void `{% if selftest %}`;
+export { Cookie }
+void `{% endif %}`;
 
 void `{% if selftest %}`;
 import tap from 'tap'

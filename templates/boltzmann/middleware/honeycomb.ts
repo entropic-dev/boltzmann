@@ -1,12 +1,12 @@
 void `{% if selftest %}`;
+export { trace, honeycombMiddlewareSpans }
+
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { ServerResponse } from 'http'
 import onHeaders from 'on-headers'
 import beeline from 'honeycomb-beeline'
 import isDev from 'are-we-dev'
-
-export { trace, honeycombMiddlewareSpans }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="trace") -}}*/

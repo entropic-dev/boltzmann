@@ -38,7 +38,6 @@ for file in $(find templates/boltzmann-js -name '*.js'); do
   echo "$data" > "$file"
 
   if [ "$plat" = "darwin" ]; then
-    echo WOWOWOOW $file
     sed -i '' -e 's/^import {\(.*\)} from '"'"'\(.*\)'"'"'/const {\1} = require("\2")/g' "$file"
     sed -i '' -e 's/^import \* as \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"
     sed -i '' -e 's/^import \(.*\) from '"'"'\(.*\)'"'"'/const \1 = require("\2")/g' "$file"

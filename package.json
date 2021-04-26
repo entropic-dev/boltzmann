@@ -73,7 +73,10 @@
     "typescript": "^4.2.3"
   },
   "scripts": {
-    "test": "TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov  templates/boltzmann/"
+    "test": "TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov  templates/boltzmann/",
+    "prejstest": "./bin/buildjs.sh",
+    "jstest": "c8 tap --no-cov templates/boltzmann-js",
+    "posttest": "npm run jstest"
   },
   "repository": {
     "type": "git",

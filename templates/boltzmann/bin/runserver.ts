@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { runserver }
+
 import bole from '@entropic/bole'
 import {inject} from '@hapi/shot'
 import isDev from 'are-we-dev'
@@ -14,8 +16,6 @@ import {urlEncoded} from '../body/urlencoded'
 import {route} from '../middleware/route'
 import {Context} from '../data/context'
 import {json} from '../body/json'
-
-export { runserver }
 void `{% endif %}`;
 
 interface DebugLocationInfo {

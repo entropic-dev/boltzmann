@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { LoadSession, SaveSession, session }
+
 import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
 import bole from '@entropic/bole'
 import crypto from 'crypto'
@@ -8,8 +10,6 @@ import { Session, REISSUE } from '../data/session'
 import { BadSessionError } from '../data/errors'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-export { LoadSession, SaveSession, session }
 void `{% endif %}`;
 
 let IN_MEMORY = new Map()

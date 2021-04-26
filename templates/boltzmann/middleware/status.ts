@@ -1,4 +1,10 @@
 void `{% if selftest %}`;
+export {
+  ReachabilityResult,
+  ReachabilityCheck,
+  handleStatus
+}
+
 import os from 'os'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
 
@@ -6,12 +12,6 @@ import { serviceName, STATUS } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { _requireOr } from '../core/utils'
-
-export {
-  ReachabilityResult,
-  ReachabilityCheck,
-  handleStatus
-}
 void `{% endif %}`;
 
 interface ReachabilityResult {

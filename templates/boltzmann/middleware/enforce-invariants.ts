@@ -1,8 +1,9 @@
 void `{% if selftest %}`;
+export { enforceInvariants }
+
 import { STATUS, HEADERS, TEMPLATE, THREW } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-export { enforceInvariants }
 void `{% endif %}`;
 
 function enforceInvariants () {

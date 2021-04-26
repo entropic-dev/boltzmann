@@ -1,9 +1,10 @@
 void `{% if selftest %}`;
+export { urlEncoded }
+
 import querystring from 'querystring'
 
 import { BodyParser, BodyInput } from '../core/body'
 import { _collect } from '../core/utils'
-export { urlEncoded }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="04-body-parsers.md", section="urlencoded") -}}*/

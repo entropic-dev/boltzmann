@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { BoltzmannNunjucksFilter, template }
+
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 import {ConfigureOptions, Extension} from 'nunjucks'
@@ -7,8 +9,6 @@ import path from 'path'
 import {STATUS, HEADERS, TEMPLATE, THREW} from '../core/prelude'
 import {Handler} from '../core/middleware'
 import {Context} from '../data/context'
-
-export { BoltzmannNunjucksFilter, template }
 void `{% endif %}`;
 
 interface BoltzmannNunjucksFilter {

@@ -1,12 +1,12 @@
 void `{% if selftest %}`;
+export { log }
+
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
-
-export { log }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="log") -}}*/

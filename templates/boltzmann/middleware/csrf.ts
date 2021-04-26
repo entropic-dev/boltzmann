@@ -1,10 +1,10 @@
 void `{% if selftest %}`;
+export { applyCSRF }
+
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import CsrfTokens from 'csrf'
 import crypto from 'crypto'
-
-export { applyCSRF }
 void `{% endif %}`;
 
 // csrf protection middleware

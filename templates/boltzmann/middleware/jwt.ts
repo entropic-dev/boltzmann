@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { authenticateJWT }
+
 import { Algorithm, verify as verifyJWT } from 'jsonwebtoken'
 import bole from '@entropic/bole'
 import { promises as fs } from 'fs'
@@ -6,8 +8,6 @@ import assert from 'assert'
 
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-export { authenticateJWT }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="authenticatejwt") -}}*/

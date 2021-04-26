@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+export { BoltzmannShotRequestOptions, test }
+
 import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
 import type tap from 'tap'
 import redis, { IHandyRedis } from 'handy-redis'
@@ -15,8 +17,6 @@ import { runserver } from '../bin/runserver'
 import { _requireOr } from '../core/utils'
 import { THREW } from '../core/prelude'
 import { json } from '../body/json'
-
-export { BoltzmannShotRequestOptions, test }
 void `{% endif %}`;
 
 type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string | Buffer };

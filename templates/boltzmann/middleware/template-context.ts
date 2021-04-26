@@ -1,8 +1,8 @@
 void `{% if selftest %}`;
+export { templateContext }
+
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
-
-export { templateContext }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="templatecontext") -}}*/

@@ -1,8 +1,9 @@
 void `{% if selftest %}`;
+export { attachRedis }
+
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import redis from 'handy-redis'
-export { attachRedis }
 void `{% endif %}`;
 
 /**{{- tsdoc(page="03-middleware.md", section="attachredis") -}}*/

@@ -1,12 +1,12 @@
 void `{% if selftest %}`;
+export { _collect, _processMiddleware, _processBodyParsers, _requireOr }
+
 import { promises as fs, createReadStream } from 'fs'
 import { IncomingMessage } from 'http'
 import path from 'path'
 
 import { MiddlewareConfig } from '../../core/middleware'
 import { BodyParserDefinition } from '../../core/body'
-
-export { _collect, _processMiddleware, _processBodyParsers, _requireOr }
 void `{% endif %}`;
 
 async function _collect(request: IncomingMessage) {
