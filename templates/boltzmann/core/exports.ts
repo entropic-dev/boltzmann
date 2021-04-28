@@ -97,6 +97,7 @@ export {
   SaveSession,
   Adaptor,
   Handler,
+  Handler as Next,
   BoltzmannTest,
   Test,
 

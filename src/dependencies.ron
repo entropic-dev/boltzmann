@@ -16,7 +16,7 @@
   DependencySpec(
     name: "@types/uuid",
     version: "^8.3.0",
-    kind: Development,
+    kind: Normal,
     preconditions: None
   ),
 
@@ -30,7 +30,7 @@
   DependencySpec(
     name: "@types/hapi__iron",
     version: "^6.0.1",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["typescript"]))
   ),
 
@@ -46,7 +46,7 @@
   DependencySpec(
     name: "@types/nunjucks",
     version: "^3.1.4",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript", "templates"],
     ))
@@ -64,7 +64,7 @@
   DependencySpec(
     name: "@types/oauth",
     version: "^0.9.1",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript", "oauth"],
     ))
@@ -82,7 +82,7 @@
   DependencySpec(
     name: "@types/mime",
     version: "^2.0.3",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"],
       any_of: ["esbuild", "staticfiles"],
@@ -124,13 +124,13 @@
   DependencySpec(
     name: "@types/jsonwebtoken",
     version: "^8.5.1",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["jwt", "typescript"]))
   ),
   DependencySpec(
     name: "@types/jsonwebtoken",
     version: "^8.5.1",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["oauth", "typescript"]))
   ),
 
@@ -144,7 +144,7 @@
   DependencySpec(
     name: "@types/ajv",
     version: "^1.0.0",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"]
     ))
@@ -178,7 +178,7 @@
   DependencySpec(
     name: "@types/accepts",
     version: "^1.3.5",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"]
     ))
@@ -194,7 +194,7 @@
   DependencySpec(
     name: "@types/csrf",
     version: "^3.1.0",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["csrf", "typescript"]))
   ),
 
@@ -215,7 +215,7 @@
   DependencySpec(
     name: "@types/on-headers",
     version: "^1.0.0",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["typescript", "honeycomb"]))
   ),
 
@@ -229,7 +229,7 @@
   DependencySpec(
     name: "@types/pg",
     version: "^7.14.11",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["typescript", "postgres"]))
   ),
 
@@ -256,7 +256,7 @@
   DependencySpec(
     name: "@types/cookie",
     version: "^0.4.0",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"]
     ))
@@ -265,7 +265,7 @@
   DependencySpec(
     name: "esbuild",
     version: "^0.11.9",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["esbuild"]))
   ),
 
@@ -279,7 +279,7 @@
   DependencySpec(
     name: "@types/tap",
     version: "^15.0.0",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["typescript"]))
   ),
 
@@ -320,7 +320,7 @@
   DependencySpec(
     name: "@types/hapi__shot",
     version: "^4.1.1",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(all_of: ["typescript"]))
   ),
 
@@ -408,7 +408,7 @@
   DependencySpec(
     name: "@tsconfig/node14",
     version: "^1.0.0",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"]
     ))
@@ -417,7 +417,7 @@
   DependencySpec(
     name: "@types/hapi__shot",
     version: "^4.1.1",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"]
     ))

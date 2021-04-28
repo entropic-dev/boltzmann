@@ -8,12 +8,14 @@ function run_selftest() {
   npm t
 }
 
-function run_startup() {
-  rm -rf tmp
-  cargo run -- tmp --force --silent
+function run_prod_only_startup_js() {
+  tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+  cargo run -- "$tmp" --force --silent
 
   echo 'running the server'
-  PORT=8080 tmp/boltzmann.js --startup &
+  cd "$tmp"
+  npm ci --only=production
+  NODE_ENV=production PORT=8080 ./boltzmann.js --startup &
 
   sleep 2 # ha ha ha ha ha
   echo 'attempting to curl'
@@ -27,7 +29,75 @@ function run_startup() {
     echo -e "expected \"hello world\", got \"$result\""
     exit 1
   fi
-  rm -rf tmp
+  cd -
+  rm -rf "$tmp"
+}
+
+function run_prod_only_startup_ts() {
+  tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+  cargo run -- "$tmp" --typescript --force --silent
+
+  echo 'running the server'
+  cd "$tmp"
+  npm ci --only=production
+  cd target/release
+  NODE_ENV=production PORT=8080 ./boltzmann.js --startup &
+
+  sleep 2 # ha ha ha ha ha
+  echo 'attempting to curl'
+  result=$(curl -sL http://127.0.0.1:8080/hello/world)
+
+  echo 'stopping the server'
+  kill %1
+  wait
+
+  if [ "$result" != "hello world" ]; then
+    echo -e "expected \"hello world\", got \"$result\""
+    exit 1
+  fi
+  cd -
+  rm -rf "$tmp"
+}
+
+function run_prod_only_build_ts() {
+  tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+
+  echo "$tmp"
+  cargo run -- "$tmp" --all --typescript --force --silent
+
+  echo 'running the server'
+  cd "$tmp"
+  npm ci --only=production
+
+  npm build
+  cd -
+
+  rm -rf "$tmp"
+}
+
+function run_startup() {
+  tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+  cargo run -- "$tmp" --force --silent
+
+  echo 'running the server'
+  cd "$tmp"
+  PORT=8080 ./boltzmann.js --startup &
+
+  sleep 2 # ha ha ha ha ha
+  echo 'attempting to curl'
+  result=$(curl -sL http://127.0.0.1:8080/hello/world)
+
+  echo 'stopping the server'
+  kill %1
+  wait
+
+  if [ "$result" != "hello world" ]; then
+    echo -e "expected \"hello world\", got \"$result\""
+    exit 1
+  fi
+  cd -
+
+  rm -rf "$tmp"
 }
 
 function run_examples() {
@@ -74,6 +144,15 @@ function run_all() {
 }
 
 case $1 in
+  "prod_only_build_ts")
+    run_prod_only_build_ts
+  ;;
+  "prod_only_startup_ts")
+    run_prod_only_build_ts
+  ;;
+  "prod_only_startup_js")
+    run_prod_only_build_ts
+  ;;
   "selftest")
     run_selftest
   ;;
