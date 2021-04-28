@@ -53,3 +53,85 @@ function dev(
     }
   }
 }
+
+void `{% if selftest %}`;
+import tap from 'tap'
+/* c8 ignore next */
+if (require.main === module) {
+  const { test } = tap
+
+  test('dev: warns after DEV_LATENCY_WARNING_MS', async (assert) => {
+    process.env.DEV_LATENCY_WARNING_MS = '1'
+    const { error } = console
+    const acc: string[] = []
+    console.error = acc.push.bind(acc)
+
+    const adaptor = dev('example name')
+    const handler = adaptor(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+    })
+
+    const response = await handler(<any>{ request: {} })
+    assert.equal(response, undefined)
+    assert.equal(acc.length, 2)
+    assert.match(acc[0], /Response from example name > 1ms fetching/)
+    assert.match(acc[1], /Tune timeout using DEV_LATENCY_WARNING_MS env variable/)
+  })
+
+  test('dev: only warns once', async (assert) => {
+    process.env.DEV_LATENCY_WARNING_MS = '1'
+    const { error } = console
+    const acc: string[] = []
+    console.error = acc.push.bind(acc)
+
+    const adaptor = dev('example name')
+    const handler = adaptor(dev('another')(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+    }))
+
+    const response = await handler(<any>{ request: {} })
+    assert.equal(response, undefined)
+    assert.equal(acc.length, 2)
+    assert.match(acc[0], /Response from another > 1ms fetching/)
+    assert.match(acc[1], /Tune timeout using DEV_LATENCY_WARNING_MS env variable/)
+  })
+
+  test('dev: warns after DEV_LATENCY_ERROR_MS', async (assert) => {
+    process.env.DEV_LATENCY_WARNING_MS = '1000'
+    process.env.DEV_LATENCY_ERROR_MS = '1'
+    const { error } = console
+    const acc: string[] = []
+    console.error = acc.push.bind(acc)
+
+    const adaptor = dev('example name')
+    const handler = adaptor(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+    })
+
+    const response = await handler(<any>{ request: {} })
+    assert.equal(response, undefined)
+    assert.equal(acc.length, 2)
+    assert.match(acc[0], /STALL: Response from example name > 1ms/)
+    assert.match(acc[1], /Tune timeout using DEV_LATENCY_ERROR_MS env variable/)
+  })
+
+  test('dev: only warns once', async (assert) => {
+    process.env.DEV_LATENCY_WARNING_MS = '1000'
+    process.env.DEV_LATENCY_ERROR_MS = '1'
+    const { error } = console
+    const acc: string[] = []
+    console.error = acc.push.bind(acc)
+
+    const adaptor = dev('example name')
+    const handler = adaptor(dev('another')(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+    }))
+
+    const response = await handler(<any>{ request: {} })
+    assert.equal(response, undefined)
+    assert.equal(acc.length, 2)
+    assert.match(acc[0], /STALL: Response from another > 1ms/)
+    assert.match(acc[1], /Tune timeout using DEV_LATENCY_ERROR_MS env variable/)
+  })
+}
+void `{% endif %}`;
