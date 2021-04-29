@@ -14,15 +14,15 @@ work.
       typescript project along with tsconfig & typings and put them in cwd
     - then `npm i`
 - [ ] note missing defs from boltzmann.d.ts
-    - "Next" is now "Handler"
-    - "Response" does not exist / needs defined + exported I think
+    - [x] "Next" is now "Handler"
+    - [ ] "Response" does not exist / needs defined + exported I think
 - [ ] implement hayes' middleware validation typedefs
 - [ ] add tests to ALL FILES / make sure all features are working as expected (again, write tests!)
 - [ ] render {% changelog %} correctly in docstrings
 - [ ] fixup docstrings -- they currently don't show in editor!
 - [ ] merge project files (no more ts and js variants; just treat it as one variant)
-- [ ] fill in `HACKING.md`
-- [ ] add test for "only production deps are installed" and make sure boltzmann still runs!
+- [x] fill in `HACKING.md`
+- [x] add test for "only production deps are installed" and make sure boltzmann still runs!
 - [x] ensure devdeps are only required in dev mode
 - [x] change "selftest" setup
     - "selftest" is kind of a misnomer now: there's "test in situ" – i.e., before

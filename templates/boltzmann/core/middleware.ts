@@ -1,5 +1,5 @@
 void `{% if selftest %}`;
-export { Handler, Adaptor, Middleware, MiddlewareConfig, buildMiddleware, handler }
+export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
 
 import beeline from 'honeycomb-beeline'
 import { HTTPMethod } from 'find-my-way'
@@ -8,10 +8,13 @@ import isDev from 'are-we-dev'
 import { enforceInvariants } from '../middleware/enforce-invariants'
 import { honeycombMiddlewareSpans } from '../middleware/honeycomb'
 import { BodyParserDefinition } from '../core/body'
+import { HttpMetadata } from '../core/prelude'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
 void `{% endif %}`;
+
+type Response = (void | string | AsyncIterable<Buffer | string> | Buffer | { [key: string]: any }) & HttpMetadata
 
 interface Handler {
   (context: Context): Promise<any> | any,

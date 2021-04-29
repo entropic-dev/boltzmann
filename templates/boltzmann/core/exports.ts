@@ -1,5 +1,5 @@
 void `{% if selftest %}`;
-import { MiddlewareConfig, Middleware, Adaptor, Handler } from '../core/middleware'
+import { MiddlewareConfig, Middleware, Adaptor, Handler, Response } from '../core/middleware'
 import { BodyParserDefinition, BodyParser, BodyInput } from '../core/body'
 import { Context } from '../data/context'
 import { routes } from '../core/routes'
@@ -98,6 +98,7 @@ export {
   Adaptor,
   Handler,
   Handler as Next,
+  Response,
   BoltzmannTest,
   Test,
 

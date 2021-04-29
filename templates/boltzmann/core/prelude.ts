@@ -119,6 +119,13 @@ const REISSUE = Symbol.for('reissue')
 const HEADERS = Symbol.for('headers')
 const TEMPLATE = Symbol.for('template')
 
+type HttpMetadata = (
+  { [HEADERS]: { [key: string]: string } } |
+  { [STATUS]: number } |
+  { [THREW]: boolean } |
+  { [TEMPLATE]: string }
+)
+
 void `{% if selftest %}`
 
 void `{% if postgres %}`;
@@ -162,6 +169,7 @@ export {
   REISSUE,
   HEADERS,
   TEMPLATE,
+  HttpMetadata,
   IncomingMessage,
   ServerResponse,
   URL,
