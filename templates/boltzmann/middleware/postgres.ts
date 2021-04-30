@@ -36,7 +36,7 @@ function attachPostgres ({
         if (isTransaction) {
           await client.query(result[THREW] ? 'ROLLBACK' : 'COMMIT')
         }
-        await <Promise<void>><unknown>(<pg.PoolClient>client).release()
+        await <Promise<void>><unknown>(<pg.PoolClient><unknown>client).release()
       }
       return result
     }

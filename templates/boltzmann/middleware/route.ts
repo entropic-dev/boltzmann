@@ -37,7 +37,7 @@ function route (handlers: Record<string, Handler> = {}) {
 
         let location = null
         // {% if templates %}
-        if (isDev()) {
+        if (isDev() && !process.env.TAP) {
           const getFunctionLocation = require('get-function-location')
           const loc = await getFunctionLocation(handler)
           location = `${loc.source.replace('file://', 'vscode://file')}:${loc.line}:${loc.column}`

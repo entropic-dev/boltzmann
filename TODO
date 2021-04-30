@@ -13,14 +13,14 @@ work.
     - to do this, we want to grab the package.json that would be generated for a new
       typescript project along with tsconfig & typings and put them in cwd
     - then `npm i`
-- [ ] note missing defs from boltzmann.d.ts
-    - [x] "Next" is now "Handler"
-    - [ ] "Response" does not exist / needs defined + exported I think
 - [ ] implement hayes' middleware validation typedefs
 - [ ] add tests to ALL FILES / make sure all features are working as expected (again, write tests!)
 - [ ] render {% changelog %} correctly in docstrings
-- [ ] fixup docstrings -- they currently don't show in editor!
 - [ ] merge project files (no more ts and js variants; just treat it as one variant)
+- [x] note missing defs from boltzmann.d.ts
+    - [x] "Next" is now "Handler"
+    - [x] "Response" does not exist / needs defined + exported I think
+- [x] fixup docstrings -- they currently don't show in editor!
 - [x] fill in `HACKING.md`
 - [x] add test for "only production deps are installed" and make sure boltzmann still runs!
 - [x] ensure devdeps are only required in dev mode

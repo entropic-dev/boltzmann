@@ -20,7 +20,7 @@ async function routes (handlers: Record<string, Handler>) {
       let location = null
       let link = null
 
-      if (isDev()) {
+      if (isDev() && !process.env.TAP) {
         const getFunctionLocation = require('get-function-location')
         location = await getFunctionLocation(handler)
         link = `${location.source.replace('file://', 'vscode://file')}:${location.line}:${location.column}`

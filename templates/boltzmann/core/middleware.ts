@@ -14,7 +14,16 @@ import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
 void `{% endif %}`;
 
-type Response = (void | string | AsyncIterable<Buffer | string> | Buffer | { [key: string]: any }) & HttpMetadata
+type Response = (
+  void |
+  string |
+  AsyncIterable<Buffer> |
+  Buffer |
+  { [key: string]: any } |
+  (AsyncIterable<Buffer> & HttpMetadata) |
+  (Buffer & HttpMetadata) |
+  ({ [key: string]: any } & HttpMetadata)
+)
 
 interface Handler {
   (context: Context): Promise<any> | any,

@@ -42,7 +42,7 @@ import { LoadSession, SaveSession, session } from '../middleware/session'
 // {% if csrf %}
 import { applyCSRF } from '../middleware/csrf'
 // {% endif %}
-import { BoltzmannTest, Test, test } from '../middleware/test'
+import { BoltzmannTest, Test, TestHandler, TestResponse, BoltzmannTestHandler, test } from '../middleware/test'
 
 import { route } from '../middleware/route'
 void `{% endif %}`
@@ -128,7 +128,11 @@ export {
   Handler as Next,
   Response,
   BoltzmannTest,
+  TestResponse,
   Test,
+  TestHandler,
+  BoltzmannTestHandler,
+  BoltzmannTestHandler as AugmentedTestHandler,
   Context,
   runserver as main,
   middleware,

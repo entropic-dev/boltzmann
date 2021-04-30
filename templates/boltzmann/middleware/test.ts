@@ -1,5 +1,5 @@
 void `{% if selftest %}`;
-export { BoltzmannShotRequestOptions, test }
+export { BoltzmannShotRequestOptions, TestResponse, Test, BoltzmannTest, TestHandler, BoltzmannTestHandler, test }
 
 import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
 import type tap from 'tap'
@@ -20,16 +20,19 @@ import { json } from '../body/json'
 void `{% endif %}`;
 
 type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string | Buffer };
-/* {% if selftest %} */ export /* {% endif %} */type Test = (typeof tap.Test)["prototype"]
-/* {% if selftest %} */ export /* {% endif %} */type BoltzmannTest = Test & {
+type Test = (typeof tap.Test)["prototype"]
+type TestResponse = ResponseObject & { json?: ReturnType<JSON['parse']> }
+type BoltzmannTest = Test & {
   // {% if postgres %}
   postgresClient: PGClient
   // {% endif %}
   // {% if redis %}
   redisClient: IHandyRedis
   // {% endif %}
-  request(opts: BoltzmannShotRequestOptions): Promise<ResponseObject & { json?: ReturnType<JSON['parse']> }>
+  request(opts: BoltzmannShotRequestOptions): Promise<TestResponse>
 }
+type TestHandler = (t: Test) => Promise<void> | void
+type BoltzmannTestHandler = (t: BoltzmannTest) => Promise<void> | void
 
 let savepointId = 0
 

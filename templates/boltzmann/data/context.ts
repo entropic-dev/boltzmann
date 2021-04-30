@@ -43,7 +43,7 @@ class Context {
   // {% endif %}
   // {% if postgres %}
   public _postgresPool?: PGPool
-  public _postgresConnection?: Promise<PGClient | PGPoolClient>
+  public _postgresConnection?: Promise<PGClient>
   // {% endif %}
 
   ;[extensions: string]: any
@@ -74,7 +74,7 @@ class Context {
 
   // {% if postgres %}
   /**{{- tsdoc(page="02-handlers.md", section="postgresclient") -}}*/
-  get postgresClient (): Promise<PGPoolClient | PGClient> {
+  get postgresClient (): Promise<PGClient> {
     if (this._postgresConnection) {
       return this._postgresConnection
     }
@@ -83,7 +83,7 @@ class Context {
       throw new Error('Cannot fetch postgresClient before a pool is assigned (middleware should do this.)')
     }
 
-    this._postgresConnection = this._postgresPool.connect()
+    this._postgresConnection = <Promise<PGClient>><unknown>this._postgresPool.connect()
     return this._postgresConnection
   }
   // {% endif %}
@@ -114,12 +114,12 @@ class Context {
   // {% endif %}
 
   /**{{- tsdoc(page="02-handlers.md", section="method") -}}*/
-  get method() {
-    return this.request.method
+  get method(): string {
+    return <string>this.request.method
   }
 
   /**{{- tsdoc(page="02-handlers.md", section="headers") -}}*/
-  get headers() {
+  get headers(): Record<string, any> {
     return this.request.headers
   }
 
@@ -196,7 +196,7 @@ import {NoMatchError} from './errors'
 import { Session } from './session'
 import { Cookie } from './cookie'
 /* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
-/* {% if postgres %} */import { Client as PGClient, PoolClient as PGPoolClient, Pool as PGPool } from 'pg'/* {% endif %} */
+/* {% if postgres %} */import { Client as PGClient, Pool as PGPool } from 'pg'/* {% endif %} */
 void `{% endif %}`;
 
 
