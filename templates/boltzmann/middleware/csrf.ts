@@ -26,7 +26,6 @@ function checkCookieSignature(input: string, secret: string) {
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
-/**{{- tsdoc(page="03-middleware.md", section="applycsrf") -}}*/
 function applyCSRF ({
   cookieSecret = process.env.COOKIE_SECRET,
   csrfCookie = '_csrf',

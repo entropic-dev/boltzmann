@@ -17,7 +17,6 @@ import { Context } from '../data/context'
 import { routes } from '../core/routes'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="esbuild") -}}*/
 function esbuild({
   source = 'client',
   prefix = '_assets',

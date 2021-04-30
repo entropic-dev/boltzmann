@@ -43,7 +43,6 @@ let defaultSessionSave = inMemorySessionSave
 defaultSessionSave = redisSessionSave
 // {% endif %}
 
-/**{{- tsdoc(page="03-middleware.md", section="session") -}}*/
 function session ({
   cookie = process.env.SESSION_ID || 'sid',
   secret = process.env.SESSION_SECRET,

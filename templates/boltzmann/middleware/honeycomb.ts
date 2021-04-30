@@ -9,7 +9,6 @@ import beeline from 'honeycomb-beeline'
 import isDev from 'are-we-dev'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="trace") -}}*/
 function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
 } = {}) {

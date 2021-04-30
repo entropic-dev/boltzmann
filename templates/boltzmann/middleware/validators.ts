@@ -7,7 +7,6 @@ void `{% endif %}`;
 const addAJVFormats = (validator: Ajv): Ajv => (require('ajv-formats')(validator), validator)
 const addAJVKeywords = (validator: Ajv): Ajv => (require('ajv-keywords')(validator), validator)
 
-/**{{- tsdoc(page="03-middleware.md", section="validate-body") -}}*/
 function validateBody(schema: object, {
   ajv: validator = addAJVFormats(addAJVKeywords(new Ajv(<any>{
     useDefaults: true,
@@ -68,15 +67,15 @@ function validateBlock(what: (c: Context) => object) {
   }
 }
 
-/**{{- tsdoc(page="03-middleware.md", section="validate-query") -}}*/
 const validateQuery = validateBlock(ctx => ctx.query)
-
-/**{{- tsdoc(page="03-middleware.md", section="validate-params") -}}*/
 const validateParams = validateBlock(ctx => ctx.params)
 
 const validate = {
+  /**{{- tsdoc(page="03-middleware.md", section="validate-body") -}}*/
   body: validateBody,
+  /**{{- tsdoc(page="03-middleware.md", section="validate-query") -}}*/
   query: validateQuery,
+  /**{{- tsdoc(page="03-middleware.md", section="validate-params") -}}*/
   params: validateParams
 }
 

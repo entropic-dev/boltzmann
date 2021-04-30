@@ -5,7 +5,6 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="templatecontext") -}}*/
 function templateContext(extraContext: Record<string, unknown> = {}) {
   return (next: Handler) => {
     return async (context: Context) => {

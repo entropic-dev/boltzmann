@@ -8,7 +8,6 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="livereload") -}}*/
 function livereload({
   reloadPath = '/__livereload',
 }: { reloadPath?: string } = {}) {

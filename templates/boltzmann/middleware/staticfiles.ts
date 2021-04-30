@@ -11,7 +11,6 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="staticfiles") -}}*/
 function staticfiles({
   prefix = 'static',
   dir = 'static',

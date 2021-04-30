@@ -322,7 +322,6 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
   }
 }
 
-/**{{- tsdoc(page="03-middleware.md", section="oauth") -}}*/
 function oauth (options = {}) {
   const callback = handleOAuthCallback(options)
   const logout = handleOAuthLogout(options)

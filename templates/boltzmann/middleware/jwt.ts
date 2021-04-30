@@ -10,7 +10,6 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="authenticatejwt") -}}*/
 function authenticateJWT ({
   scheme = 'Bearer',
   publicKey = process.env.AUTHENTICATION_KEY,

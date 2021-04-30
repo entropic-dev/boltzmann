@@ -6,7 +6,6 @@ import { Context } from '../data/context'
 import { HEADERS } from '../core/prelude'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="vary") -}}*/
 function vary (on: string[] | string = []) {
   const headers = [].concat(<any>on) as string[]
 

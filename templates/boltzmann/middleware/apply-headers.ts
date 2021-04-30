@@ -9,7 +9,6 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="applyheaders") -}}*/
 function applyHeaders (headers: Record<string, string | string[]> = {}) {
   return (next: Handler) => {
     return async function xfo (context: Context) {

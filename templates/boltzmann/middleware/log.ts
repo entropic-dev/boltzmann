@@ -9,7 +9,6 @@ import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="log") -}}*/
 function log ({
   logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
   level = process.env.LOG_LEVEL || 'debug',

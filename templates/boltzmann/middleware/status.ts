@@ -32,7 +32,6 @@ defaultReachability.postgresReachability = postgresReachability
 defaultReachability.redisReachability = redisReachability
 // {% endif %}
 
-/**{{- tsdoc(page="03-middleware.md", section="handlestatus") -}}*/
 function handleStatus ({
   git = process.env.GIT_COMMIT,
   reachability = defaultReachability,

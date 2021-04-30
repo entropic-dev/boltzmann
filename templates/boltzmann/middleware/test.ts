@@ -33,7 +33,6 @@ type BoltzmannShotRequestOptions = Partial<ShotRequestOptions> & { body?: string
 
 let savepointId = 0
 
-/**{{- tsdoc(page="03-middleware.md", section="test") -}}*/
 function test({
   middleware = Promise.resolve([] as MiddlewareConfig[]),
   handlers = _requireOr('./handlers', {}),

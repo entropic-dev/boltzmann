@@ -454,7 +454,6 @@ const devErrorTemplateSource = `
 `
 // {% endraw %}
 
-/**{{- tsdoc(page="03-middleware.md", section="template") -}}*/
 function template ({
   paths = ['templates'],
   filters = {},

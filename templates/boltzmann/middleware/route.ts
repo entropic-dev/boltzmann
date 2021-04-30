@@ -14,7 +14,6 @@ import { Context } from '../data/context'
 import { vary } from '../middleware/vary'
 void `{% endif %}`;
 
-/**{{- tsdoc(page="03-middleware.md", section="route") -}}*/
 function route (handlers: Record<string, Handler> = {}) {
   const wayfinder = fmw({})
 
