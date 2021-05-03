@@ -75,7 +75,7 @@
   },
   "scripts": {
     "test": "cross-env TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov  templates/boltzmann/",
-    "prejstest": "./bin/buildjs.sh",
+    "prejstest": "bash ./bin/buildjs.sh",
     "jstest": "c8 tap --no-cov templates/boltzmann-js",
     "posttest": "npm run jstest"
   },
