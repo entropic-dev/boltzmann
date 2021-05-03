@@ -48,6 +48,7 @@ jobs:
 
       - name: run cargo build --release for caching
         run: |
+          bin/buildjs.sh
           cargo build --release
 
       - name: run selftest tests

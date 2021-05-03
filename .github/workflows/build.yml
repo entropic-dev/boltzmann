@@ -40,7 +40,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - run: cargo build --release
+      - run: |
+          bin/buildjs.sh
+          cargo build --release
       - run: tar cfz boltzmann_x64_linux.tar.gz -C target/release boltzmann
       - name: upload x64 linux gnu release
         id: release
@@ -71,7 +73,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - run: cargo build --release
+      - run: |
+          bin/buildjs.sh
+          cargo build --release
       - run: tar cfz boltzmann_x64_darwin.tar.gz -C target/release boltzmann
       - name: upload darwin release
         id: release
@@ -102,7 +106,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - run: cargo build --release
+      - run: |
+          bin/buildjs.sh
+          cargo build --release
       - name: tar it up
         shell: bash
         run: |
