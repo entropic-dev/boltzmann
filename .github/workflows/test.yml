@@ -13,8 +13,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        # eventually: add node 14 + lts
-        node_version: ["12.x"]
+        # eventually: add lts
+        node_version: ["12.x", "14.x"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
