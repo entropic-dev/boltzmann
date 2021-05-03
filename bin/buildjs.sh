@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 function get_platform() {
   if [ "$OSTYPE" == "linux-gnu" ]; then
     echo linux
@@ -23,7 +25,7 @@ if [ ! -e node_modules ]; then
 fi
 
 rm -rf templates/boltzmann-js
-tsc --project ./tsconfig-build-js.json
+node_modules/.bin/tsc --project ./tsconfig-build-js.json
 cat ./templates/boltzmann/index.tera | \
   sed -e 's/void `{%/\/\/ /g' | \
   sed -e 's/\.ts/.js/g' | \
