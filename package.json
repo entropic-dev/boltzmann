@@ -59,6 +59,7 @@
     "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
     "c8": "^7.7.1",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.11.9",
     "eslint": "^7.1.0",
     "eslint-config-prettier": "^6.11.0",
@@ -73,7 +74,7 @@
     "typescript": "^4.2.3"
   },
   "scripts": {
-    "test": "TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov  templates/boltzmann/",
+    "test": "cross-env TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov  templates/boltzmann/",
     "prejstest": "./bin/buildjs.sh",
     "jstest": "c8 tap --no-cov templates/boltzmann-js",
     "posttest": "npm run jstest"
