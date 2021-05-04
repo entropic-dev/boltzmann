@@ -151,7 +151,7 @@ case $1 in
     run_prod_only_build_ts
   ;;
   "prod_only_startup_js")
-    run_prod_only_build_js
+    run_prod_only_startup_js
   ;;
   "selftest")
     run_selftest
