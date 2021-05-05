@@ -41,7 +41,7 @@ function run_prod_only_startup_ts() {
   cd "$tmp"
   npm ci --only=production
   cd target/release
-  NODE_ENV=production PORT=8080 ./boltzmann.js --startup &
+  NODE_ENV=production PORT=8080 node ./boltzmann.js --startup &
 
   sleep 2 # ha ha ha ha ha
   echo 'attempting to curl'
