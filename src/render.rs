@@ -167,6 +167,7 @@ lazy_static::lazy_static! {
 
         tera.register_function("tsdoc", tsdoc);
 
+        eprintln!("TEMPLATES_DIR={:?}", TEMPLATES_DIR);
         let items: Vec<_> = TEMPLATES_DIR.find("**/*").unwrap().filter_map(|xs| {
             if let include_dir::DirEntry::File(fd) = xs {
                 Some((fd.path().to_str()?, fd.contents_utf8()?))
