@@ -35,7 +35,7 @@ function run_prod_only_startup_js() {
 
 function run_prod_only_startup_ts() {
   tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
-  cargo run -- "$tmp" --typescript --force --silent
+  cargo run -- "$tmp" -vv --typescript --force --silent
 
   echo 'running the server'
   cd "$tmp"
