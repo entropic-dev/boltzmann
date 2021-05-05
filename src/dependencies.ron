@@ -399,7 +399,7 @@
   DependencySpec(
     name: "typescript",
     version: "^4.2.3",
-    kind: Development,
+    kind: Normal,
     preconditions: Some(When(
       all_of: ["typescript"]
     ))
