@@ -51,14 +51,11 @@ jobs:
           bin/buildjs.sh
           cargo build --release
 
-      - name: run selftest
-        shell: bash
-        run: |
-          bin/test selftest
-
       - name: run prod-only startup js
         shell: bash
         run: |
+          ls -alh templates/
+          bin/buildjs.sh
           bin/test prod_only_startup_js
 
       - name: run prod-only startup ts
@@ -75,6 +72,11 @@ jobs:
         shell: bash
         run: |
           bin/test startup
+
+      - name: run selftest
+        shell: bash
+        run: |
+          bin/test selftest
 
       - name: run examples tests
         shell: bash
