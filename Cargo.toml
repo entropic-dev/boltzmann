@@ -32,6 +32,7 @@ tera = "1.6"
 pulldown-cmark = "0.8.0"
 slug = "0.1.4"
 pulldown-cmark-to-cmark = "6.0.0"
+path-slash = "0.1.4"
 
 [dependencies.serde]
 features = ["derive"]

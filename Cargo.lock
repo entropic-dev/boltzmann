@@ -123,6 +123,7 @@ dependencies = [
  "log",
  "loggerv",
  "owo-colors",
+ "path-slash",
  "prettytable-rs",
  "pulldown-cmark",
  "pulldown-cmark-to-cmark",
@@ -527,6 +528,12 @@ checksum = "c705f256449c60da65e11ff6626e0c16a0a0b96aaa348de61376b249bc340f41"
 dependencies = [
  "regex",
 ]
+
+[[package]]
+name = "path-slash"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cacbb3c4ff353b534a67fb8d7524d00229da4cb1dc8c79f4db96e375ab5b619"
 
 [[package]]
 name = "percent-encoding"
