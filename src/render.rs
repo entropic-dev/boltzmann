@@ -8,10 +8,10 @@ use std::collections::HashSet;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 #[cfg(target_os = "windows")]
 use std::os::windows::fs::OpenOptionsExt;
-
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use path_slash::PathExt;
 use anyhow::{Context as ErrorContext, Result};
 use serde::Deserialize;
 use serde_json::Value;
@@ -169,7 +169,7 @@ lazy_static::lazy_static! {
 
         let items: Vec<_> = TEMPLATES_DIR.find("**/*").unwrap().filter_map(|xs| {
             if let include_dir::DirEntry::File(fd) = xs {
-                Some((fd.path().to_str()?, fd.contents_utf8()?))
+                Some((fd.path().to_slash_lossy(), fd.contents_utf8()?))
             } else {
                 None
             }

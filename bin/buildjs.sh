@@ -53,3 +53,5 @@ for file in $(find templates/boltzmann-js -name '*.js'); do
     sed -i -e 's/^export const \(.*\) = \(.*\)/const \1 = \2; module.exports.\1 = \1;/g' "$file"
   fi
 done
+
+ls templates/boltzmann*

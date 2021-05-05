@@ -35,13 +35,13 @@ function run_prod_only_startup_js() {
 
 function run_prod_only_startup_ts() {
   tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
-  cargo run -- "$tmp" --typescript --force --silent
+  cargo run -- "$tmp" -vv --typescript --force
 
   echo 'running the server'
   cd "$tmp"
   npm ci --only=production
   cd target/release
-  NODE_ENV=production PORT=8080 ./boltzmann.js --startup &
+  NODE_ENV=production PORT=8080 node ./boltzmann.js --startup &
 
   sleep 2 # ha ha ha ha ha
   echo 'attempting to curl'
@@ -148,10 +148,10 @@ case $1 in
     run_prod_only_build_ts
   ;;
   "prod_only_startup_ts")
-    run_prod_only_build_ts
+    run_prod_only_startup_ts
   ;;
   "prod_only_startup_js")
-    run_prod_only_build_ts
+    run_prod_only_startup_js
   ;;
   "selftest")
     run_selftest
