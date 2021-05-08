@@ -235,7 +235,7 @@
 
   DependencySpec(
     name: "handy-redis",
-    version: "^1.8.1",
+    version: "^2.2.1",
     kind: Normal,
     preconditions: Some(When( all_of: ["redis"]))
   ),

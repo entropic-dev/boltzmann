@@ -12,7 +12,7 @@ import { ResponseObject } from '@hapi/shot'
 import { Client as PostgresClient } from 'pg'
 {% endif -%}
 {% if redis -%}
-import { IHandyRedis } from 'handy-redis'
+import { WrappedNodeRedisClient } from 'handy-redis'
 {% endif -%}
 
 declare const HEADER: unique symbol
@@ -62,7 +62,7 @@ export declare class Context {
   get postgresClient(): Promise<PostgresClient>
   {% endif -%}
   {% if redis -%}
-  get redisClient(): IHandyRedis
+  get redisClient(): WrappedNodeRedisClient
   {% endif -%}
   {% if honeycomb -%}
   get traceURL(): string

@@ -15,7 +15,7 @@
     "cookie": "^0.4.1",
     "culture-ships": "^1.0.0",
     "find-my-way": "^4.1.0",
-    "handy-redis": "^1.8.1",
+    "handy-redis": "^2.2.1",
     "honeycomb-beeline": "^2.1.1",
     "klaw": "^3.0.0",
     "micromatch": "^4.0.2",

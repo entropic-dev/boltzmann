@@ -56,7 +56,7 @@ import Ajv from 'ajv'
 import assert from 'assert'
 import * as cookie from 'cookie'
 void `{% if redis %}`;
-import { IHandyRedis } from 'handy-redis' 
+import { WrappedNodeRedisClient } from 'handy-redis'
 void `{% endif %}`;
 
 void `{% if postgres %}`;

@@ -39,7 +39,7 @@ class Context {
   public handler: Handler = Context.baseHandler
 
   // {% if redis %}
-  public _redisClient?: IHandyRedis
+  public _redisClient?: WrappedNodeRedisClient
   // {% endif %}
   // {% if postgres %}
   public _postgresPool?: PGPool
@@ -105,7 +105,7 @@ class Context {
 
   // {% if redis %}
   /**{{- tsdoc(page="02-handlers.md", section="redisClient") -}}*/
-  get redisClient (): IHandyRedis {
+  get redisClient (): WrappedNodeRedisClient {
     if (!this._redisClient) {
       throw new Error('No redis client available')
     }
@@ -195,7 +195,7 @@ import { BodyParser } from '../core/body'
 import {NoMatchError} from './errors'
 import { Session } from './session'
 import { Cookie } from './cookie'
-/* {% if redis %} */import { IHandyRedis } from 'handy-redis'/* {% endif %} */
+/* {% if redis %} */import { WrappedNodeRedisClient } from 'handy-redis'/* {% endif %} */
 /* {% if postgres %} */import { Client as PGClient, Pool as PGPool } from 'pg'/* {% endif %} */
 void `{% endif %}`;
 

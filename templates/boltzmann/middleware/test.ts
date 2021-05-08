@@ -3,7 +3,7 @@ export { BoltzmannShotRequestOptions, TestResponse, Test, BoltzmannTest, TestHan
 
 import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
 import type tap from 'tap'
-import redis, { IHandyRedis } from 'handy-redis'
+import redis, { WrappedNodeRedisClient } from 'handy-redis'
 import { Client as PGClient } from 'pg'
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
@@ -27,7 +27,7 @@ type BoltzmannTest = Test & {
   postgresClient: PGClient
   // {% endif %}
   // {% if redis %}
-  redisClient: IHandyRedis
+  redisClient: WrappedNodeRedisClient
   // {% endif %}
   request(opts: BoltzmannShotRequestOptions): Promise<TestResponse>
 }
@@ -56,7 +56,7 @@ function test({
   // {% endif %}
 
   // {% if redis %}
-  const redisClient = redis.createHandyClient(`redis://localhost:6379/7`)
+  const redisClient = redis.createNodeRedisClient(`redis://localhost:6379/7`)
   middleware = Promise.resolve(middleware).then((mw) => {
     mw.push(() => (next: Handler) => async (context: Context) => {
       context._redisClient = redisClient
