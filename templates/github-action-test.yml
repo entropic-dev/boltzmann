@@ -5,6 +5,7 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
+{% if postgres or redis %}
     services:
 {% if postgres %}
       postgres:
@@ -21,7 +22,7 @@ jobs:
         - 6379:6379
         options: --entrypoint redis-server
 {% endif %}
-
+{% endif %}
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js 12.x

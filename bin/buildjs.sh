@@ -22,6 +22,8 @@ plat=$(get_platform)
 
 if [ ! -e node_modules ]; then
   npm ci
+else
+  npm i
 fi
 
 rm -rf templates/boltzmann-js

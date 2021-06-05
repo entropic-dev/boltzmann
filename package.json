@@ -24,7 +24,6 @@
     "oblique-strategies": "^1.0.1",
     "on-headers": "^1.0.2",
     "pg": "^8.3.3",
-    "pino": "^5.13.6",
     "uuid": "^8.3.0",
     "@hapi/iron": "^6.0.0",
     "ajv": "^8.0.5",

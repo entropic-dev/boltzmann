@@ -85,7 +85,7 @@ function route (handlers: Record<string, Handler> = {}) {
       const match = wayfinder.find(method as HTTPMethod, pathname, ...(
         context.request.headers['accept-version']
         ? [{version: context.request.headers['accept-version']}]
-        : []
+        : [{version: ''}]
       ))
 
       if (!match) {
