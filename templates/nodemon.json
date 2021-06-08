@@ -3,7 +3,11 @@
   "ext": "js,mjs,ts,json,cjs,jsx,tsx",
   "ignore": [".git", "node_modules/", "dist/", "coverage/"],
   "execMap": {
+    {% if typescript -%}
     "ts": "TS_NODE_FILES=true node -r ts-node/register -r dotenv/config",
     "js": "TS_NODE_FILES=true node -r ts-node/register -r dotenv/config"
+    {% else -%}
+    "js": "node -r dotenv/config"
+    {% endif -%}
   }
 }
