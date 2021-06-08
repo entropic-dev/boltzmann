@@ -126,7 +126,7 @@ class Context {
   // {% if honeycomb %}
   /**{{- tsdoc(page="02-handlers.md", section="traceURL") -}}*/
   get traceURL () {
-    const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace`)
+    const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`)
     url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
     url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
     return String(url)

@@ -12,7 +12,7 @@ void `{% endif %}`;
 function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
 } = {}) {
-  if (!process.env.HONEYCOMBIO_WRITE_KEY) {
+  if (!process.env.HONEYCOMB_WRITEKEY) {
     return (next: Handler) => (context: Context) => next(context)
   }
 
@@ -104,7 +104,7 @@ function trace ({
 }
 
 function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
-  if (!process.env.HONEYCOMBIO_WRITE_KEY) {
+  if (!process.env.HONEYCOMB_WRITEKEY) {
     return (next: Handler) => (context: Context) => next(context)
   }
 

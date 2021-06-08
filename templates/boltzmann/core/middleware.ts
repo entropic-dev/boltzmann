@@ -86,7 +86,7 @@ async function handler (context: Context) {
   const handler = context.handler as Handler
   // {% if honeycomb %}
   let span = null
-  if (process.env.HONEYCOMBIO_WRITE_KEY) {
+  if (process.env.HONEYCOMB_WRITEKEY) {
     span = beeline.startSpan({
       name: `handler: ${handler.name}`,
       'handler.name': handler.name,
@@ -102,7 +102,7 @@ async function handler (context: Context) {
     return await handler(context)
     // {% if honeycomb %}
   } finally {
-    if (process.env.HONEYCOMBIO_WRITE_KEY && span !== null) {
+    if (process.env.HONEYCOMB_WRITEKEY && span !== null) {
       beeline.finishSpan(span)
     }
   }
