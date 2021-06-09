@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* eslint-disable */
-/* istanbul ignore file */
+/* c8 ignore file */
 'use strict';
-// Boltzmann v0.4.3
+// Boltzmann v0.5.2
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -129,7 +129,7 @@ async function routes(handlers) {
             const { version, middleware, decorators, ...rest } = handler;
             let location = null;
             let link = null;
-            if (isDev()) {
+            if (isDev() && !process.env.TAP) {
                 const getFunctionLocation = require('get-function-location');
                 location = await getFunctionLocation(handler);
                 link = `${location.source.replace('file://', 'vscode://file')}:${location.line}:${location.column}`;
@@ -942,9 +942,6 @@ void ``;
 
 
 void ``;
-/**[To be documented.]( "https://github.com/entropic-dev/boltzmann/issues/68")
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#applyheaders")*/
 function applyHeaders(headers = {}) {
     return (next) => {
         return async function xfo(context) {
@@ -954,12 +951,12 @@ function applyHeaders(headers = {}) {
         };
     };
 }
-const applyXFO = (mode) => {
+function applyXFO(mode) {
     if (!['DENY', 'SAMEORIGIN'].includes(mode)) {
         throw new Error('applyXFO(): Allowed x-frame-options directives are DENY and SAMEORIGIN.');
     }
     return applyHeaders({ 'x-frame-options': mode });
-};
+}
 void ``;
 
 void ``;
@@ -992,42 +989,11 @@ function dev(nextName, warnAt = Number(process.env.DEV_LATENCY_WARNING_MS) || 50
         };
     };
 }
+void ``;
 
 
 void ``;
-/**The `handleCORS` middleware is always available to be attached. It configures headers to
- * control [Cross-Origin Resource Sharing]( "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"), or CORS.
- * 
- * **Arguments:**
- * 
- * * `origins`: the origins that are permitted to request resources; sent in responses inn the
- *   `Access-Control-Allow-Origin` header value
- * * `methods`: the allowed HTTP verbs; sent in responses in the `Access-Control-Allow-Methods` header
- *   value
- * * `headers`: the custom headers the server will allow; sent in in responses in the
- *   `Access-Control-Allow-Headers` header value
- * 
- * **Example Usage:**
- * 
- * ````javascript
- * const boltzmann = require('./boltzmann')
- * const isDev = require('are-we-dev')
- * 
- * module.exports = {
- *   APP_MIDDLEWARE: [
- *     [ boltzmann.middleware.handleCORS, {
- *       origins: isDev() ? '*' : [ 'www.example.com', 'another.example.com' ],
- *       methods: [ 'GET', 'POST', 'PATCH', 'PUT', 'DELETE' ],
- *       headers: [ 'Origin', 'Content-Type', 'Accept', 'Accept-Version', 'x-my-custom-header' ],
- *     } ],
- *   ],
- * }
- * ````
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#handlecors")*/
-function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_ORIGINS).split(','), methods = String(process.env.CORS_ALLOW_METHODS).split(','), headers = String(process.env.CORS_ALLOW_HEADERS).split(',') }) {
+function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_ORIGINS || '').split(','), methods = String(process.env.CORS_ALLOW_METHODS || '').split(','), headers = String(process.env.CORS_ALLOW_HEADERS || '').split(',') }) {
     const originsArray = Array.isArray(origins) ? origins : [origins];
     const includesStar = originsArray.includes('*');
     return (next) => {
@@ -1051,6 +1017,7 @@ function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_OR
         };
     };
 }
+void ``;
 
 void ``;
 function enforceInvariants() {
@@ -1108,44 +1075,6 @@ function enforceInvariants() {
 
 
 void ``;
-/**This middleware is always attached to Boltzmann apps.
- * 
- * This middleware configures the [bole]( "https://github.com/rvagg/bole") logger and enables per-request
- * logging. In development mode, the logger is configured using
- * [bistre]( "https://github.com/hughsk/bistre") pretty-printing. In production mode, the output is
- * newline-delimited json.
- * 
- * To configure the log level, set the environment variable `LOG_LEVEL` to a level that bole supports.
- * The default level is `debug`. To tag your logs with a specific name, set the environment variable
- * `SERVICE_NAME`. The default name is `boltzmann`.
- * 
- * Here is an example of the request logging:
- * 
- * ````shell
- * > env SERVICE_NAME=hello NODE_ENV=production ./boltzmann.js
- * {"time":"2020-11-16T23:28:58.104Z","hostname":"catnip.local","pid":19186,"level":"info","name":"server","message":"now listening on port 5000"}
- * {"time":"2020-11-16T23:29:02.375Z","hostname":"catnip.local","pid":19186,"level":"info","name":"hello","message":"200 GET /hello/world","id":"GSV Total Internal Reflection","ip":"::1","host":"localhost","method":"GET","url":"/hello/world","elapsed":1,"status":200,"userAgent":"HTTPie/2.3.0"}
- * ````
- * 
- * The `id` fields in logs is the value of the request-id, available on the context object as the `id`
- * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
- * and `x-request-id` before falling back to generating a request id using a short randomly-selected
- * string.
- * 
- * To log from your handlers, you might write code like this:
- * 
- * ````js
- * const logger = require('bole')('handlers')
- * 
- * async function greeting(/** @type {Context} *\/ context) {
- *     logger.info(`extending a hearty welcome to ${context.params.name}`)
- *     return `hello ${context.params.name}`
- * }
- * ````
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#log")*/
 function log({ logger = bole(process.env.SERVICE_NAME || 'boltzmann'), level = process.env.LOG_LEVEL || 'debug', stream = process.stdout } = {}) {
     if (isDev()) {
         const pretty = require('bistre')({ time: true });
@@ -1180,14 +1109,6 @@ void ``;
 
 
 void ``;
-/**This middleware adds a handler at `GET /monitor/ping`. It responds with a short text string that is
- * selected randomly at process start. This endpoint is intended to be called often by load balancers
- * or other automated processes that check if the process is listening. No other middleware is invoked
- * for this endpoint. In particular, it is *not* logged.
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#handleping")*/
 function handlePing() {
     return (next) => (context) => {
         if (context.url.pathname === '/monitor/ping') {
@@ -1200,13 +1121,6 @@ function handlePing() {
 
 
 void ``;
-/**{{ changelog(version = "0.5.0") }}
- * 
- * [To be documented.]( "#TKTKTK")
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#route")*/
 function route(handlers = {}) {
     const wayfinder = fmw({});
     return async (next) => {
@@ -1259,7 +1173,7 @@ function route(handlers = {}) {
             const method = context.request.method || 'GET';
             const match = wayfinder.find(method, pathname, ...(context.request.headers['accept-version']
                 ? [{ version: context.request.headers['accept-version'] }]
-                : []));
+                : [{ version: '' }]));
             if (!match) {
                 return next(context);
             }
@@ -1286,80 +1200,6 @@ let defaultSessionLoad = inMemorySessionLoad;
 // 
 let defaultSessionSave = inMemorySessionSave;
 // 
-/**{{ changelog(version = "0.1.4") }}
- * 
- * You can import session middleware with `require('./boltzmann').middleware.session`. The session
- * middleware provides [HTTP session support]( "https://en.wikipedia.org/wiki/Session_(computer_science)#HTTP_session_token") using sealed http-only [cookies]( "https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies"). You can read more about
- * Boltzmann's session support in the ["storage" chapter]( "#TKTKTK").
- * 
- * **Arguments:**
- * 
- * * `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
- *   from `process.env.SESSION_SECRET`.
- * * `salt`: **Required**. A string or buffer used to salt the client session id before hashing it for lookup.
- *   Read from `process.env.SESSION_SALT`.
- * * `load`: An async function taking `context` and an encoded `id` and returning a plain JavaScript object.
- *   Automatically provided if the [`--redis`]( "@/reference/01-cli.md#redis") feature is enabled, otherwise **required**. Examples below.
- * * `save`: An async function taking `context`, an encoded `id`, and a plain JavaScript object for storage.
- *   Automatically provided if the [`--redis`]( "@/reference/01-cli.md#redis") feature is enabled, otherwise **required**. Examples below.
- * * `cookie`: The name of the cookie to read the client session id from. Read from `process.env.SESSION_ID`.
- * * `iron`: Extra options for [`@hapi/iron`]( "https://github.com/hapijs/iron"), which is used to seal the client session id for transport in
- *   a cookie.
- * * `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
- * * `cookieOptions`: An object containing options passed to the [`cookie`]( "https://www.npmjs.com/package/cookie#options-1") package when serializing a session id.
- * 
- * **Example Usage:**
- * 
- * ````javascript
- * const { middleware } = require('./boltzmann')
- * 
- * // The most basic configuration. Relies on environment variables being set for required values.
- * // Consider using this!
- * module.exports = {
- *   APP_MIDDLEWARE: [
- *     middleware.session
- *   ]
- * };
- * 
- * // A simple configuration, hard-coding the values. Don't actually do this.
- * module.exports = {
- *   APP_MIDDLEWARE: [
- *     [middleware.session, { secret: 'wow a great secret, just amazing'.repeat(2), salt: 'salty' }],
- *   ]
- * };
- * 
- * // A complicated example, where you store sessions on the filesystem, because
- * // the filesystem is a database.
- * const fs = require('fs').promise
- * module.exports = {
- *   APP_MIDDLEWARE: [
- *     [middleware.session, {
- *       async save (_context, id, data) {
- *         // We receive "_context" in case there are any clients we wish to use
- *         // to save or load our data. In this case, we're using the filesystem,
- *         // so we can ignore the context.
- *         return await fs.writeFile(id, 'utf8', JSON.stringify(id))
- *       },
- *       async load (_context, id) {
- *         return JSON.parse(await fs.readFile(id, 'utf8'))
- *       }
- *     }]
- *   ]
- * }
- * 
- * module.exports = {
- *   // A configuration that sets "same-site" to "lax", suitable for sites that require cookies
- *   // to be sent when redirecting from an external site. E.g., sites that use OAuth-style login
- *   // flows.
- *   APP_MIDDLEWARE: [
- *     [middleware.session, { cookieOptions: { sameSite: 'lax' } }],
- *   ]
- * };
- * ````
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#session")*/
 function session({ cookie = process.env.SESSION_ID || 'sid', secret = process.env.SESSION_SECRET, salt = process.env.SESSION_SALT, logger = bole('boltzmann:session'), load = defaultSessionLoad, save = defaultSessionSave, iron = {}, cookieOptions = {}, expirySeconds = 60 * 60 * 24 * 365 } = {}) {
     expirySeconds = Number(expirySeconds) || 0;
     if (typeof load !== 'function') {
@@ -1442,47 +1282,6 @@ void ``;
 const defaultReachability = {};
 // 
 // 
-/**This middleware is attached when the [status feature]( "@/reference/01-cli.md#status") is enabled. It
- * mounts a handler at `GET /monitor/status` that includes helpful information about the process status
- * and the results of the reachability checks added by the redis and postgres features, if those are
- * also enabled. The response is a single json object, like this one:
- * 
- * ````json
- * {
- *     "downstream": {
- *         "redisReachability": {
- *             "error": null,
- *             "latency": 1,
- *             "status": "healthy"
- *         }
- *     },
- *     "hostname": "catnip.local",
- *     "memory": {
- *         "arrayBuffers": 58703,
- *         "external": 1522825,
- *         "heapTotal": 7008256,
- *         "heapUsed": 5384288,
- *         "rss": 29138944
- *     },
- *     "service": "hello",
- *     "stats": {
- *         "requestCount": 3,
- *         "statuses": {
- *             "200": 2,
- *             "404": 1
- *         }
- *     },
- *     "uptime": 196.845680345
- * }
- * ````
- * 
- * This endpoint uses the value of the environment variable `GIT_COMMIT`, if set, to populate the `git` field of this response structure. Set this if you find it useful to identify which commit identifies the build a specific process is running.
- * 
- * If you have enabled this endpoint, you might wish to make sure it is not externally accessible. A common way of doing this is to block routes that match `/monitor/` in external-facing proxies or load balancers.
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#handlestatus")*/
 function handleStatus({ git = process.env.GIT_COMMIT, reachability = defaultReachability, extraReachability = _requireOr('./reachability', {}) } = {}) {
     return async (next) => {
         reachability = { ...reachability, ...await extraReachability };
@@ -1539,11 +1338,6 @@ function handleStatus({ git = process.env.GIT_COMMIT, reachability = defaultReac
 
 void ``;
 let savepointId = 0;
-/**[To be documented]( "#TKTKTK")
- * 
- * ---
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#test")*/
 function test({ middleware = Promise.resolve([]), handlers = _requireOr('./handlers', {}), bodyParsers = _requireOr('./body', [urlEncoded, json]), after = require('tap').teardown, }) {
     // 
     // 
@@ -1598,47 +1392,6 @@ function test({ middleware = Promise.resolve([]), handlers = _requireOr('./handl
 }
 
 void ``;
-/**{{ changelog(version="0.5.0") }}
- * 
- * The `vary` middleware unconditionally updates responses to include a [`Vary`]( "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary")
- * header with the configured values. This is useful for handlers that change
- * behavior based on `context.cookie`. It is automatically installed for handlers
- * that use the [`.version` attribute]( "@/reference/02-handlers.md#version").
- * 
- * **Arguments:**
- * 
- * * `on`: A string or list of strings, representing `Vary` values.
- * 
- * **Example Usage:**
- * 
- * ````js
- * // handlers.js
- * const { middleware } = require('./boltzmann.js')
- * cookies.middleware = [
- *   [middleware.vary, 'cookie']
- * ]
- * cookies.route = 'GET /'
- * export function cookies(context) {
- *   return context.cookie.get('wow') ? 'great' : 'not great'
- * }
- * 
- * // multiple values may be set at once.
- * multi.middleware = [
- *   [middleware.vary, ['cookie', 'accept-encoding']]
- * ]
- * multi.route = 'GET /multi'
- * export function multi(context) {
- *   return context.cookie.get('wow') ? 'great' : 'not great'
- * }
- * ````
- * 
- * ---
- * 
- * ## Automatically attached middlewareAutomatically-attached middleware is middleware you can configure but do *not* need to attach to
- * the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
- * them are enabled. You can often configure this middleware, however, using environment variables.
- * 
- * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#vary")*/
 function vary(on = []) {
     const headers = [].concat(on);
     return (next) => {
@@ -1654,7 +1407,56 @@ void ``;
 void ``;
 const addAJVFormats = (validator) => (require('ajv-formats')(validator), validator);
 const addAJVKeywords = (validator) => (require('ajv-keywords')(validator), validator);
-/**{% changelog(version="0.0.0") %}
+function validateBody(schema, { ajv: validator = addAJVFormats(addAJVKeywords(new Ajv({
+    useDefaults: true,
+    allErrors: true,
+    strictTypes: isDev() ? true : "log",
+}))), } = {}) {
+    const compiled = validator.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema);
+    return function validate(next) {
+        return async (context) => {
+            const subject = await context.body;
+            const valid = compiled(subject);
+            if (!valid) {
+                const newBody = Promise.reject(Object.assign(new Error('Bad request'), { errors: compiled.errors, [STATUS]: 400 }));
+                newBody.catch(() => { });
+                context.body = newBody;
+            }
+            else {
+                context.body = Promise.resolve(subject);
+            }
+            return next(context);
+        };
+    };
+}
+function validateBlock(what) {
+    return function validate(schema, { ajv: validator = addAJVFormats(addAJVKeywords(new Ajv({
+        useDefaults: true,
+        allErrors: true,
+        coerceTypes: 'array',
+        strictTypes: isDev() ? true : "log",
+    }))), } = {}) {
+        const compiled = validator.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema);
+        return function validate(next) {
+            return async (context) => {
+                const subject = what(context);
+                const valid = compiled(subject);
+                if (!valid) {
+                    return Object.assign(new Error('Bad request'), {
+                        [THREW]: true,
+                        [STATUS]: 400,
+                        errors: compiled.errors
+                    });
+                }
+                return next(context);
+            };
+        };
+    };
+}
+const validateQuery = validateBlock(ctx => ctx.query);
+const validateParams = validateBlock(ctx => ctx.params);
+const validate = {
+    /**{% changelog(version="0.0.0") %}
  * 
  * * **Changed in 0.1.7:** Bugfix to support validator use as middleware.
  * * **Changed in 0.2.0:** Added support for schemas defined via [`fluent-json-schema`]( "https://www.npmjs.com/package/fluent-json-schema").
@@ -1727,53 +1529,8 @@ const addAJVKeywords = (validator) => (require('ajv-keywords')(validator), valid
  * ---
  * 
  * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#validate-body")*/
-function validateBody(schema, { ajv: validator = addAJVFormats(addAJVKeywords(new Ajv({
-    useDefaults: true,
-    allErrors: true,
-    strictTypes: isDev() ? true : "log",
-}))), } = {}) {
-    const compiled = validator.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema);
-    return function validate(next) {
-        return async (context) => {
-            const subject = await context.body;
-            const valid = compiled(subject);
-            if (!valid) {
-                const newBody = Promise.reject(Object.assign(new Error('Bad request'), { errors: compiled.errors, [STATUS]: 400 }));
-                newBody.catch(() => { });
-                context.body = newBody;
-            }
-            else {
-                context.body = Promise.resolve(subject);
-            }
-            return next(context);
-        };
-    };
-}
-function validateBlock(what) {
-    return function validate(schema, { ajv: validator = addAJVFormats(addAJVKeywords(new Ajv({
-        useDefaults: true,
-        allErrors: true,
-        coerceTypes: 'array',
-        strictTypes: isDev() ? true : "log",
-    }))), } = {}) {
-        const compiled = validator.compile(schema && schema.isFluentSchema ? schema.valueOf() : schema);
-        return function validate(next) {
-            return async (context) => {
-                const subject = what(context);
-                const valid = compiled(subject);
-                if (!valid) {
-                    return Object.assign(new Error('Bad request'), {
-                        [THREW]: true,
-                        [STATUS]: 400,
-                        errors: compiled.errors
-                    });
-                }
-                return next(context);
-            };
-        };
-    };
-}
-/**{% changelog(version="0.0.0") %}
+    body: validateBody,
+    /**{% changelog(version="0.0.0") %}
  * 
  * * **Changed in 0.1.7:** Bugfix to support validator use as middleware.
  * * **Changed in 0.2.0:** Added support for schemas defined via [`fluent-json-schema`]( "https://www.npmjs.com/package/fluent-json-schema").
@@ -1842,8 +1599,8 @@ function validateBlock(what) {
  * ---
  * 
  * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#validate-query")*/
-const validateQuery = validateBlock(ctx => ctx.query);
-/**{% changelog(version="0.0.0") %}
+    query: validateQuery,
+    /**{% changelog(version="0.0.0") %}
  * 
  * * **Changed in 0.1.7:** Bugfix to support validator use as middleware.
  * * **Changed in 0.2.0:** Added support for schemas defined via [`fluent-json-schema`]( "https://www.npmjs.com/package/fluent-json-schema").
@@ -1912,12 +1669,9 @@ const validateQuery = validateBlock(ctx => ctx.query);
  * ---
  * 
  * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#validate-params")*/
-const validateParams = validateBlock(ctx => ctx.params);
-const validate = {
-    body: validateBody,
-    query: validateQuery,
     params: validateParams
 };
+void ``;
 void ``;
 
 
@@ -1963,35 +1717,238 @@ void ``;
 const body = {
     json,
     urlEncoded,
-    urlencoded: urlEncoded
+    urlencoded: urlEncoded,
 };
 const decorators = {
     validate,
-    test
+    test,
 };
 const middleware = {
+    /**This middleware is always attached to Boltzmann apps.
+ * 
+ * This middleware configures the [bole]( "https://github.com/rvagg/bole") logger and enables per-request
+ * logging. In development mode, the logger is configured using
+ * [bistre]( "https://github.com/hughsk/bistre") pretty-printing. In production mode, the output is
+ * newline-delimited json.
+ * 
+ * To configure the log level, set the environment variable `LOG_LEVEL` to a level that bole supports.
+ * The default level is `debug`. To tag your logs with a specific name, set the environment variable
+ * `SERVICE_NAME`. The default name is `boltzmann`.
+ * 
+ * Here is an example of the request logging:
+ * 
+ * ````shell
+ * > env SERVICE_NAME=hello NODE_ENV=production ./boltzmann.js
+ * {"time":"2020-11-16T23:28:58.104Z","hostname":"catnip.local","pid":19186,"level":"info","name":"server","message":"now listening on port 5000"}
+ * {"time":"2020-11-16T23:29:02.375Z","hostname":"catnip.local","pid":19186,"level":"info","name":"hello","message":"200 GET /hello/world","id":"GSV Total Internal Reflection","ip":"::1","host":"localhost","method":"GET","url":"/hello/world","elapsed":1,"status":200,"userAgent":"HTTPie/2.3.0"}
+ * ````
+ * 
+ * The `id` fields in logs is the value of the request-id, available on the context object as the `id`
+ * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
+ * and `x-request-id` before falling back to generating a request id using a short randomly-selected
+ * string.
+ * 
+ * To log from your handlers, you might write code like this:
+ * 
+ * ````js
+ * const logger = require('bole')('handlers')
+ * 
+ * async function greeting(/** @type {Context} *\/ context) {
+ *     logger.info(`extending a hearty welcome to ${context.params.name}`)
+ *     return `hello ${context.params.name}`
+ * }
+ * ````
+ * 
+ * ---
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#log")*/
     log,
+    /**{{ changelog(version="0.5.0") }}
+ * 
+ * The `vary` middleware unconditionally updates responses to include a [`Vary`]( "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Vary")
+ * header with the configured values. This is useful for handlers that change
+ * behavior based on `context.cookie`. It is automatically installed for handlers
+ * that use the [`.version` attribute]( "@/reference/02-handlers.md#version").
+ * 
+ * **Arguments:**
+ * 
+ * * `on`: A string or list of strings, representing `Vary` values.
+ * 
+ * **Example Usage:**
+ * 
+ * ````js
+ * // handlers.js
+ * const { middleware } = require('./boltzmann.js')
+ * cookies.middleware = [
+ *   [middleware.vary, 'cookie']
+ * ]
+ * cookies.route = 'GET /'
+ * export function cookies(context) {
+ *   return context.cookie.get('wow') ? 'great' : 'not great'
+ * }
+ * 
+ * // multiple values may be set at once.
+ * multi.middleware = [
+ *   [middleware.vary, ['cookie', 'accept-encoding']]
+ * ]
+ * multi.route = 'GET /multi'
+ * export function multi(context) {
+ *   return context.cookie.get('wow') ? 'great' : 'not great'
+ * }
+ * ````
+ * 
+ * ---
+ * 
+ * ## Automatically attached middlewareAutomatically-attached middleware is middleware you can configure but do *not* need to attach to
+ * the app yourself. Boltzmann automatically attaches these middlewares if the features that provide
+ * them are enabled. You can often configure this middleware, however, using environment variables.
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#vary")*/
     vary,
     // 
+    /**{{ changelog(version = "0.5.0") }}
+ * 
+ * [To be documented.]( "#TKTKTK")
+ * 
+ * ---
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#route")*/
+    route,
     // 
     // 
     // 
     // 
+    // 
+    /**[To be documented.]( "https://github.com/entropic-dev/boltzmann/issues/68")
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#applyheaders")*/
+    applyHeaders,
     applyXFO,
+    /**The `handleCORS` middleware is always available to be attached. It configures headers to
+ * control [Cross-Origin Resource Sharing]( "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"), or CORS.
+ * 
+ * **Arguments:**
+ * 
+ * * `origins`: the origins that are permitted to request resources; sent in responses inn the
+ *   `Access-Control-Allow-Origin` header value
+ * * `methods`: the allowed HTTP verbs; sent in responses in the `Access-Control-Allow-Methods` header
+ *   value
+ * * `headers`: the custom headers the server will allow; sent in in responses in the
+ *   `Access-Control-Allow-Headers` header value
+ * 
+ * **Example Usage:**
+ * 
+ * ````javascript
+ * const boltzmann = require('./boltzmann')
+ * const isDev = require('are-we-dev')
+ * 
+ * module.exports = {
+ *   APP_MIDDLEWARE: [
+ *     [ boltzmann.middleware.handleCORS, {
+ *       origins: isDev() ? '*' : [ 'www.example.com', 'another.example.com' ],
+ *       methods: [ 'GET', 'POST', 'PATCH', 'PUT', 'DELETE' ],
+ *       headers: [ 'Origin', 'Content-Type', 'Accept', 'Accept-Version', 'x-my-custom-header' ],
+ *     } ],
+ *   ],
+ * }
+ * ````
+ * 
+ * ---
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#handlecors")*/
     handleCORS,
+    /**{{ changelog(version = "0.1.4") }}
+ * 
+ * You can import session middleware with `require('./boltzmann').middleware.session`. The session
+ * middleware provides [HTTP session support]( "https://en.wikipedia.org/wiki/Session_(computer_science)#HTTP_session_token") using sealed http-only [cookies]( "https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies"). You can read more about
+ * Boltzmann's session support in the ["storage" chapter]( "#TKTKTK").
+ * 
+ * **Arguments:**
+ * 
+ * * `secret`: **Required**. A 32-character string (or buffer) used to seal the client session id. Read
+ *   from `process.env.SESSION_SECRET`.
+ * * `salt`: **Required**. A string or buffer used to salt the client session id before hashing it for lookup.
+ *   Read from `process.env.SESSION_SALT`.
+ * * `load`: An async function taking `context` and an encoded `id` and returning a plain JavaScript object.
+ *   Automatically provided if the [`--redis`]( "@/reference/01-cli.md#redis") feature is enabled, otherwise **required**. Examples below.
+ * * `save`: An async function taking `context`, an encoded `id`, and a plain JavaScript object for storage.
+ *   Automatically provided if the [`--redis`]( "@/reference/01-cli.md#redis") feature is enabled, otherwise **required**. Examples below.
+ * * `cookie`: The name of the cookie to read the client session id from. Read from `process.env.SESSION_ID`.
+ * * `iron`: Extra options for [`@hapi/iron`]( "https://github.com/hapijs/iron"), which is used to seal the client session id for transport in
+ *   a cookie.
+ * * `expirySeconds`: The number of seconds until the cookie expires. Defaults to one year.
+ * * `cookieOptions`: An object containing options passed to the [`cookie`]( "https://www.npmjs.com/package/cookie#options-1") package when serializing a session id.
+ * 
+ * **Example Usage:**
+ * 
+ * ````javascript
+ * const { middleware } = require('./boltzmann')
+ * 
+ * // The most basic configuration. Relies on environment variables being set for required values.
+ * // Consider using this!
+ * module.exports = {
+ *   APP_MIDDLEWARE: [
+ *     middleware.session
+ *   ]
+ * };
+ * 
+ * // A simple configuration, hard-coding the values. Don't actually do this.
+ * module.exports = {
+ *   APP_MIDDLEWARE: [
+ *     [middleware.session, { secret: 'wow a great secret, just amazing'.repeat(2), salt: 'salty' }],
+ *   ]
+ * };
+ * 
+ * // A complicated example, where you store sessions on the filesystem, because
+ * // the filesystem is a database.
+ * const fs = require('fs').promise
+ * module.exports = {
+ *   APP_MIDDLEWARE: [
+ *     [middleware.session, {
+ *       async save (_context, id, data) {
+ *         // We receive "_context" in case there are any clients we wish to use
+ *         // to save or load our data. In this case, we're using the filesystem,
+ *         // so we can ignore the context.
+ *         return await fs.writeFile(id, 'utf8', JSON.stringify(id))
+ *       },
+ *       async load (_context, id) {
+ *         return JSON.parse(await fs.readFile(id, 'utf8'))
+ *       }
+ *     }]
+ *   ]
+ * }
+ * 
+ * module.exports = {
+ *   // A configuration that sets "same-site" to "lax", suitable for sites that require cookies
+ *   // to be sent when redirecting from an external site. E.g., sites that use OAuth-style login
+ *   // flows.
+ *   APP_MIDDLEWARE: [
+ *     [middleware.session, { cookieOptions: { sameSite: 'lax' } }],
+ *   ]
+ * };
+ * ````
+ * 
+ * ---
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#session")*/
     session,
     // 
-    ...decorators // forwarding these here.
+    /**[To be documented]( "#TKTKTK")
+ * 
+ * ---
+ * 
+ * [Docs]("https://www.boltzmann.dev/en/latest/docs/reference/03-middleware#test")*/
+    test,
+    validate,
 };
-module.exports = {...module.exports,  Context, main: runserver, middleware, body, decorators, routes, printRoutes, 
+module.exports = {...module.exports,  Context, main: runserver, middleware, body, decorators, routes, printRoutes, };
 // 
- };
 
 
 
 
   void ``;
-/* istanbul ignore next */
+/* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
     function passthrough() {
         return (next) => (context) => next(context);
