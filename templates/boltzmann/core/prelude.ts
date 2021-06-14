@@ -31,6 +31,22 @@ function _getServiceName() {
 void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
 
+if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
+  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
+}
+
+if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
+  process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY
+}
+
+if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
+  process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE
+}
+
+if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
+  process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
+}
+
 beeline({
   writeKey: process.env.HONEYCOMB_WRITEKEY,
   dataset: process.env.HONEYCOMB_DATASET,
