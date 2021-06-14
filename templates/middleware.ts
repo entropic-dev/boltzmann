@@ -1,4 +1,4 @@
-import { {%- if templates or staticfiles or esbuild or oauth %} middleware,{% endif %} Context, Handler, MiddlewareConfig } from './boltzmann'
+import { {%- if templates or staticfiles or esbuild or oauth %} middleware,{% endif %} Context, Handler } from './boltzmann'
 
 // All Boltzmann middleware looks like this.
 // Middleware can be attached to either the app or individual routes.
