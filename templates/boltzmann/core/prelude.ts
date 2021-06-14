@@ -32,9 +32,9 @@ void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
 
 beeline({
-  writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
-  dataset: process.env.HONEYCOMBIO_DATASET,
-  sampleRate: Number(process.env.HONEYCOMBIO_SAMPLE_RATE) || Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
+  writeKey: process.env.HONEYCOMB_WRITEKEY,
+  dataset: process.env.HONEYCOMB_DATASET,
+  sampleRate: Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
   serviceName,
 })
 

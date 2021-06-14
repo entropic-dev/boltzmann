@@ -779,11 +779,10 @@ deep observability of the performance of your handlers.
 
 To configure this middleware, set the following environment variables:
 
--   `HONEYCOMBIO_WRITE_KEY`: the honeycomb API key to use; required to enable tracing
--   `HONEYCOMBIO_DATASET`: the name of the dataset to send trace data to; required to enable tracing
--   `HONEYCOMBIO_TEAM`: optional; set this to enable links to traces from error reporting
--   `HONEYCOMBIO_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
--   `HONEYCOMB_SAMPLE_RATE`: optional; consulted if `HONEYCOMBIO_SAMPLE_RATE` is not present
+-   `HONEYCOMB_WRITEKEY`: the honeycomb API key to use; required to enable tracing
+-   `HONEYCOMB_DATASET`: the name of the dataset to send trace data to; required to enable tracing
+-   `HONEYCOMB_TEAM`: optional; set this to enable links to traces from error reporting
+-   `HONEYCOMB_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
 
 The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is
 disabled if a write key and dataset are not provided; the middleware is still

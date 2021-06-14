@@ -127,9 +127,9 @@ const devErrorTemplateSource = `
               {% else %}
               <details>
                 <summary>Not available.</summary>
-                Make sure the <code>HONEYCOMBIO_DATASET</code>,
-                <code>HONEYCOMBIO_WRITE_KEY</code>, and
-                <code>HONEYCOMBIO_TEAM</code> environment variables are set,
+                Make sure the <code>HONEYCOMB_DATASET</code>,
+                <code>HONEYCOMB_WRITEKEY</code>, and
+                <code>HONEYCOMB_TEAM</code> environment variables are set,
                 then restart boltzmann.
               </details>
               {% endif %}
