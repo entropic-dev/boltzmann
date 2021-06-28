@@ -44,7 +44,7 @@ function handleOAuthLogin ({
     throw new Error(
       `You must provide a domain field to the handleOAuthLogin() middleware config
 or set the env var OAUTH_DOMAIN to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
@@ -52,7 +52,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     throw new Error(
       `You must provide a clientID field to the handleOAuthLogin() middleware config
 or set the env var OAUTH_CLIENT_ID to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
@@ -142,7 +142,7 @@ function handleOAuthCallback ({
     throw new Error(
       `You must provide a domain field to the handleOAuthCallback() config
 or set the env var OAUTH_DOMAIN to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
@@ -150,7 +150,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     throw new Error(
       `You must provide a clientID field to the handleOAuthCallback() config
 or set the env var OAUTH_CLIENT_ID to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
@@ -158,7 +158,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     throw new Error(
       `You must provide a secret field to the handleOAuthCallback() config
 or set the env var OAUTH_CLIENT_SECRET to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
@@ -282,7 +282,7 @@ function handleOAuthLogout ({
     throw new Error(
       `You must provide a domain to the handleOAuthLogout() middleware
 or set the env var OAUTH_DOMAIN to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
@@ -290,7 +290,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
     throw new Error(
       `You must provide a clientID to the handleOAuthLogout() middleware
 or set the env var OAUTH_CLIENT_ID to use OAuth
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#oauth
 `.trim().split('\n').join(' '))
   }
 
