@@ -8,6 +8,7 @@
     "sourceMap": true,
     "downlevelIteration": true,
     "moduleResolution": "node",
+    "useUnknownInCatchVariables": false,
     "typeRoots": [ "types", "node_modules/@types"]
   },
   "extends": "@tsconfig/node14/tsconfig.json",
