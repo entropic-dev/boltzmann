@@ -245,7 +245,7 @@ $ npx boltzmann-cli . --githubci=off # turn it off
 Enable [Honeycomb] tracing integration for observability (o11y). The middleware
 enabling this feature is automatically attached to your app when present. To learn
 how to configure it, consult
-[the tracing middleware documentation](@reference/03-middleware.md#trace).
+[the tracing middleware documentation](@/reference/03-middleware.md#trace).
 
 **Example use:**
 

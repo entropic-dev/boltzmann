@@ -26,5 +26,5 @@ node -r dotenv/config ./boltzmann.js
 
 Optional Boltzmann features are also configurable with either environment variables 
 or config passed in when you attach their middleware to your app or handlers. 
-Consult [the documentation for specific features](@reference/03-middleware.md) 
+Consult [the documentation for specific features](@/reference/03-middleware.md)
 for details on how to configure them.
