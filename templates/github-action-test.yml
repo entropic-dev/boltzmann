@@ -53,7 +53,7 @@ jobs:
 {% endif %}
 
     - name: npm test
-      run: PATH=node_modules/.bin:$PATH $(jq -r '.scripts.test' < package.json)
+      run: PATH=node_modules/.bin:$PATH eval "$(jq -r '.scripts.test' < package.json)"
       env:
         {% if postgres %}
         PGURL: postgres://postgres:postgres@localhost:5432/database
