@@ -271,7 +271,7 @@
 
   DependencySpec(
     name: "tap",
-    version: "^15.0.2",
+    version: "^15.1.5",
     kind: Development,
     preconditions: None
   ),

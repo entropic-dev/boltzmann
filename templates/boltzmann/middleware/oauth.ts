@@ -224,7 +224,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
       })
     }
 
-    if (!([] as string[]).concat(decoded.aud).includes(clientId)) {
+    if (!([] as string[]).concat(decoded.aud || '').includes(clientId)) {
       const correlation = uuid.v4()
       logger.error(`err=${correlation}: Audience mismatched. Got "${decoded.aud}", expected value of "clientId" (default: process.env.OAUTH_CLIENT_ID)`)
       throw Object.assign(new Error(`Encountered error id=${correlation}`), {
@@ -306,7 +306,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#oauth
 
     returnTo = (
       returnTo ||
-      `http://${context.host}${![80, 443].includes(context.request.connection.localPort) ? ':' + context.request.connection.localPort : ''}/`
+      `http://${context.host}${![80, 443].includes(<number>context.request.connection.localPort) ? ':' + context.request.connection.localPort : ''}/`
     )
 
     const logout = new URL(resolvedLogoutUrl)

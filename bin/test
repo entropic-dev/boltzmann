@@ -1,4 +1,5 @@
 #!/bin/bash
+TEST="$(stat -f "${BASH_SOURCE[0]}")"
 
 set -e
 set -m
@@ -15,6 +16,16 @@ function run_prod_only_startup_js() {
   echo 'running the server'
   cd "$tmp"
   npm ci --only=production
+
+  cat >> handlers.js <<EOF
+
+exit.route = 'GET /exit'
+function exit() {
+  setTimeout(() => process.exit(), 100)
+}
+module.exports.exit = exit
+EOF
+
   NODE_ENV=production PORT=8080 ./boltzmann.js --startup &
 
   sleep 2 # ha ha ha ha ha
@@ -22,8 +33,7 @@ function run_prod_only_startup_js() {
   result=$(curl -sL http://127.0.0.1:8080/hello/world)
 
   echo 'stopping the server'
-  kill %1
-  wait
+  curl -sL http://127.0.0.1:8080/exit &>/dev/null
 
   if [ "$result" != "hello world" ]; then
     echo -e "expected \"hello world\", got \"$result\""
@@ -41,15 +51,23 @@ function run_prod_only_startup_ts() {
   cd "$tmp"
   npm ci --only=production
   cd target/release
+
+  cat >> handlers.js <<EOF
+
+exit.route = 'GET /exit'
+function exit() {
+  setTimeout(() => process.exit(), 100)
+}
+module.exports.exit = exit
+EOF
   NODE_ENV=production PORT=8080 node ./boltzmann.js --startup &
 
-  sleep 2 # ha ha ha ha ha
+  sleep 4 # ha ha ha ha ha
   echo 'attempting to curl'
   result=$(curl -sL http://127.0.0.1:8080/hello/world)
 
   echo 'stopping the server'
-  kill %1
-  wait
+  curl -sL http://127.0.0.1:8080/exit &>/dev/null
 
   if [ "$result" != "hello world" ]; then
     echo -e "expected \"hello world\", got \"$result\""
@@ -63,13 +81,13 @@ function run_prod_only_build_ts() {
   tmp=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
 
   echo "$tmp"
-  cargo run -- "$tmp" --all --typescript --force --silent
+  cargo run -- "$tmp" --all --typescript --force -vvv
 
   echo 'running the server'
   cd "$tmp"
   npm ci --only=production
 
-  npm build
+  npm run boltzmann:tsbuild
   cd -
 
   rm -rf "$tmp"
@@ -106,6 +124,7 @@ function run_examples() {
       continue
     fi
 
+    echo "--------------------- example $example start"
     pushd $example
     cargo run -- . --force --silent --githubci=off
 
@@ -139,7 +158,13 @@ function list_tests() {
 
 function run_all() {
   for test in $(list_tests); do
-    run_$test
+    echo "======================== $test start"
+    result=0
+    $TEST $test || result=1
+    if [ $result -eq 1 ]; then
+      echo "======================== $test failed!"
+      exit 1
+    fi
   done
 }
 
@@ -165,7 +190,9 @@ case $1 in
   "list")
     list_tests
   ;;
-  *)
+  "")
     run_all
+  ;;
+  *)
   ;;
 esac
