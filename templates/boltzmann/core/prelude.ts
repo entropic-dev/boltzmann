@@ -30,6 +30,12 @@ function _getServiceName() {
 
 void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
+import { CollectorTraceExporter } from '@opentelemetry/exporter-collector-grpc'
+import { Metadata, credentials } from '@grpc/grpc-js'
+import { NodeSDK } from '@opentelemetry/sdk-node'
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
+import { Resource } from '@opentelemetry/resources'
+import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -47,12 +53,52 @@ if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
   process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
 }
 
-beeline({
-  writeKey: process.env.HONEYCOMB_WRITEKEY,
-  dataset: process.env.HONEYCOMB_DATASET,
-  sampleRate: Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
-  serviceName,
-})
+if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
+  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
+}
+
+let sdk: NodeSDK | null = null
+
+if (
+  process.env.HONEYCOMB_WRITE_KEY &&
+  process.env.HONEYCOMB_DATASET &&
+  process.env.HONEYCOMB_API_HOST
+) {
+  const metadata = new Metadata()
+  metadata.set('x-honeycomb-team', process.env.HONEYCOMB_WRITE_KEY)
+  metadata.set('x-honeycomb-dataset', process.env.HONEYCOMB_DATASET)
+
+  const traceExporter = new CollectorTraceExporter({
+    url: process.env.HONEYCOMB_API_HOST,
+    credentials: credentials.createSsl(),
+    metadata
+  })
+
+  sdk = new NodeSDK({
+    resource: new Resource({
+      [SemanticResourceAttributes.SERVICE_NAME]: serviceName
+    }),
+    traceExporter,
+    instrumentations: [getNodeAutoInstrumentations()],
+    metricInterval: Math.floor(
+      1 / (Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1)
+    )
+  })
+} else {
+  beeline({
+    writeKey: process.env.HONEYCOMB_WRITEKEY,
+    dataset: process.env.HONEYCOMB_DATASET,
+    sampleRate: Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
+    serviceName,
+  })
+}
+
+function initOtelSDK(): Promise<void> {
+  if (sdk) {
+    return sdk.start()
+  }
+  return Promise.resolve()
+}
 
 import onHeaders from 'on-headers'
 void `{% endif %}`;
@@ -153,7 +199,7 @@ export { redis }
 void `{% endif %}`;
 
 void `{% if honeycomb %}`;
-export { onHeaders, beeline }
+export { onHeaders, beeline, initOtelSDK }
 void `{% endif %}`;
 
 void `{% if jwt or oauth %}`;
