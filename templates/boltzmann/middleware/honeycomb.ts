@@ -1,7 +1,7 @@
 void `{% if selftest %}`;
 export { trace, honeycombMiddlewareSpans }
 
-import { context as otelContext, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import { context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { ServerResponse } from 'http'
@@ -29,8 +29,15 @@ function trace ({
   if (process.env.HONEYCOMB_API_HOST) {
     return function honeycombOtelTrace (next: Handler) {
       return (context: Context) => {
-        const activeContext = otelContext.active()
+        let activeContext = otelContext.active()
         const tracer = getOtelTracer()
+
+        if (context.headers.traceparent && context.headers.tracestate) {
+          activeContext = otelPropagation.extract(activeContext, {
+            traceparent: context.headers.traceparent,
+            tracestate: context.headers.tracestate
+          })
+        }
 
         const rootSpan = tracer.startSpan(`${context.method} ${context.url.pathname}${context.url.search}`, {
           attributes: {
