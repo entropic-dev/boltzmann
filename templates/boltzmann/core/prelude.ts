@@ -95,7 +95,29 @@ if (
 
 function initOtelSDK(): Promise<void> {
   if (sdk) {
+    let exitCode = 0
+    process.once('SIGTERM', shutdown)
+    process.once('beforeExit', shutdown)
+    process.once('uncaughtException', die)
+    process.once('unhandledRejection', die)
     return sdk.start()
+
+    async function die(err: Error) {
+      console.error(err.stack)
+      exitCode = 1
+      await shutdown()
+    }
+
+    async function shutdown() {
+      if (sdk) {
+        try {
+          await sdk.shutdown()
+        } catch (err) {
+          console.error(err.stack)
+        }
+      }
+      process.exit(exitCode)
+    }
   }
   return Promise.resolve()
 }
