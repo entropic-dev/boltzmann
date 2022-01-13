@@ -12,6 +12,17 @@ void `{% endif %}`;
 
 let otelTracer: OtelTracer | null = null;
 
+function isHoneycomb (env: typeof process.env): boolean {
+  return !!env.HONEYCOMB_WRITEKEY
+}
+
+function isOtel (env: typeof process.env): boolean {
+  if (isHoneycomb(env) && env.HONEYCOMB_API_HOST) {
+    return /^grpc:\/\//.test(env.HONEYCOMB_API_HOST)
+  }
+  return false
+}
+
 function getOtelTracer() {
   if (!otelTracer) {
     otelTracer = otelTrace.getTracer('boltzmann', '1.0.0')
@@ -22,11 +33,11 @@ function getOtelTracer() {
 function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
 } = {}) {
-  if (!process.env.HONEYCOMB_WRITEKEY) {
+  if (!isHoneycomb(process.env)) {
     return (next: Handler) => (context: Context) => next(context)
   }
 
-  if (process.env.HONEYCOMB_API_HOST) {
+  if (isOtel(process.env)) {
     return function honeycombOtelTrace (next: Handler) {
       return (context: Context) => {
         let activeContext = otelContext.active()
@@ -206,4 +217,39 @@ function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
   }
 }
 
+
+void `{% if selftest %}`;
+
+import tap from 'tap'
+import { Test } from './test'
+
+/* c8 ignore next */
+if (require.main === module) {
+  const { test } = tap
+
+  test('isHoneycomb detects if Honeycomb is enabled', async (assert: Test) => {
+    assert.equal(isHoneycomb({}), false)
+    assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: ''}), false)
+    assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: 'some write key'}), true)
+  })
+
+  test('isOtel detects if OpenTelemetry is enabled', async (assert: Test) => {
+    assert.equal(isOtel({}), false)
+    assert.equal(isOtel({HONEYCOMB_WRITEKEY: ''}), false)
+    assert.equal(isOtel({HONEYCOMB_WRITEKEY: 'some write key'}), false)
+    assert.equal(isOtel({
+      HONEYCOMB_WRITEKEY: 'some write key',
+      HONEYCOMB_API_HOST: 'https://refinery.website'
+    }), false)
+    assert.equal(isOtel({
+      HONEYCOMB_WRITEKEY: 'some write key',
+      HONEYCOMB_API_HOST: 'grpc://otel.website'
+    }), true)
+    assert.equal(isOtel({
+      HONEYCOMB_WRITEKEY: '',
+      HONEYCOMB_API_HOST: 'grpc://otel.website'
+    }), false)
+  })
+}
+void `{% endif %}`;
 
