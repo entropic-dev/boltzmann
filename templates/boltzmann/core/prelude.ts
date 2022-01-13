@@ -36,6 +36,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { Resource } from '@opentelemetry/resources'
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
+import { context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -283,5 +284,9 @@ export {
   promisify,
   querystring,
   ships,
+  otelContext,
+  otelPropagation,
+  otelTrace,
+  OtelTracer
 }
 void `{% endif %}`
