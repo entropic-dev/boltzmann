@@ -57,19 +57,13 @@ function trace ({
 
         // do not do as I do,
         onHeaders(context._response, function () {
+          const handler: Handler = <Handler>context.handler
+
           rootSpan.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, String(context._response.statusCode))
-          if (context.handler) {
-            const handler = context.handler;
-            if (handler.route) {
-              rootSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, handler.route)
-            }
-            if (handler.method) {
-              rootSpan.setAttribute(SemanticAttributes.HTTP_METHOD, handler.method)
-            }
-            if (handler.version) {
-              rootSpan.setAttribute(SemanticResourceAttributes.SERVICE_VERSION, handler.version)
-            }
-          }
+          rootSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, <string>handler.route)
+          rootSpan.setAttribute(SemanticAttributes.HTTP_METHOD, <string>handler.method)
+          rootSpan.setAttribute(SemanticResourceAttributes.SERVICE_VERSION, <string>handler.version)
+
           Object.entries(context.params).map(([key, value]) => {
             rootSpan.setAttribute(`boltzmann.request.param.${key}`, value)
           })
