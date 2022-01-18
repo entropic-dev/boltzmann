@@ -2,6 +2,7 @@ void `{% if selftest %}`;
 export { trace, honeycombMiddlewareSpans }
 
 import { context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { isHoneycomb, isOtel } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
@@ -42,13 +43,13 @@ function trace ({
 
         const rootSpan = tracer.startSpan(`${context.method} ${context.url.pathname}${context.url.search}`, {
           attributes: {
-            'request.host': context.host,
-            'request.original_url': context.url.href,
-            'request.remote_addr': context.remote,
-            'request.method': context.method,
-            'request.scheme': context.url.protocol,
-            'request.path': context.url.pathname,
-            'request.query': context.url.search
+            [SemanticAttributes.HTTP_HOST]: context.host,
+            [SemanticAttributes.HTTP_URL]: context.url.href,
+            [SemanticAttributes.NET_PEER_IP]: context.remote,
+            [SemanticAttributes.HTTP_METHOD]: context.method,
+            [SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
+            [SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
+            'boltzmann.request.query': context.url.search
           }
         }, activeContext)
 
@@ -56,21 +57,21 @@ function trace ({
 
         // do not do as I do,
         onHeaders(context._response, function () {
-          rootSpan.setAttribute('response.status_code', String(context._response.statusCode))
+          rootSpan.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, String(context._response.statusCode))
           if (context.handler) {
             const handler = context.handler;
             if (handler.route) {
-              rootSpan.setAttribute('request.route', handler.route)
+              rootSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, handler.route)
             }
             if (handler.method) {
-              rootSpan.setAttribute('request.method', handler.method)
+              rootSpan.setAttribute(SemanticAttributes.HTTP_METHOD, handler.method)
             }
             if (handler.version) {
-              rootSpan.setAttribute('request.version', handler.version)
+              rootSpan.setAttribute(SemanticResourceAttributes.SERVICE_VERSION, handler.version)
             }
           }
           Object.entries(context.params).map(([key, value]) => {
-            rootSpan.setAttribute(`request.param.${key}`, value)
+            rootSpan.setAttribute(`boltzmann.request.param.${key}`, value)
           })
 
           rootSpan.end()
