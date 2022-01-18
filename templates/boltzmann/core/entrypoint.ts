@@ -1,12 +1,6 @@
 void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
-import { CollectorTraceExporter } from '@opentelemetry/exporter-collector-grpc'
-import { Metadata, credentials } from '@grpc/grpc-js'
-import { NodeSDK } from '@opentelemetry/sdk-node'
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
-import { Resource } from '@opentelemetry/resources'
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 
 import { serviceName, initOtelSDK } from '../core/prelude'
 import { Handler, MiddlewareConfig } from '../core/middleware'
