@@ -31,10 +31,9 @@ function _getServiceName() {
 void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { NodeTracerProvider } from '@opentelemetry/node'
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
 import { AlwaysOnSampler, AlwaysOffSampler, ParentBasedSampler, TraceIdRatioBasedSampler } from '@opentelemetry/core'
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { SpanProcessor } from '@opentelemetry/tracing'
+import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Metadata, credentials } from '@grpc/grpc-js'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
