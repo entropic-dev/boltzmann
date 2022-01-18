@@ -30,13 +30,17 @@ function _getServiceName() {
 
 void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
-import { CollectorTraceExporter } from '@opentelemetry/exporter-collector-grpc'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
+import { NodeTracerProvider } from '@opentelemetry/node'
+import { AlwaysOnSampler, AlwaysOffSampler, ParentBasedSampler, TraceIdRatioBasedSampler } from '@opentelemetry/core'
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { SpanProcessor } from '@opentelemetry/tracing'
 import { Metadata, credentials } from '@grpc/grpc-js'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { Resource } from '@opentelemetry/resources'
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
-import { context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import { Sampler, context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -71,16 +75,38 @@ function isOtel (env: typeof process.env): boolean {
   return false
 }
 
-if (isOtel(process.env) && process.env.HONEYCOMB_WRITE_KEY && process.env.HONEYCOMB_DATASET) {
+if (isOtel(process.env)) {
   const metadata = new Metadata()
-  metadata.set('x-honeycomb-team', process.env.HONEYCOMB_WRITE_KEY)
-  metadata.set('x-honeycomb-dataset', process.env.HONEYCOMB_DATASET)
+  metadata.set('x-honeycomb-team', <string>process.env.HONEYCOMB_WRITE_KEY)
+  metadata.set('x-honeycomb-dataset', <string>process.env.HONEYCOMB_DATASET)
 
-  const traceExporter = new CollectorTraceExporter({
+  const sampleRate: number = Number(process.env.HONEYCOMB_SAMPLE_RATE || 1)
+
+  let sampler: Sampler = new AlwaysOnSampler()
+
+  if (sampleRate === 0) {
+    sampler = new AlwaysOffSampler()
+  } else if (sampleRate !== 1) {
+    sampler = new ParentBasedSampler({
+      root: new TraceIdRatioBasedSampler(sampleRate)
+    })
+  }
+
+  const tracerProvider = new NodeTracerProvider({ sampler })
+
+  const traceExporter = new OTLPTraceExporter({
     url: process.env.HONEYCOMB_API_HOST,
     credentials: credentials.createSsl(),
     metadata
   })
+
+  // There's a bug in the types here - SimpleSpanProcessor doesn't
+  // take the optional Context argument in its signature and
+  // typescript is understandably cranky about that.
+  const spanProcessor: SpanProcessor = <SpanProcessor>(
+    new SimpleSpanProcessor(traceExporter) as unknown
+  )
+  tracerProvider.addSpanProcessor(spanProcessor)
 
   sdk = new NodeSDK({
     resource: new Resource({
