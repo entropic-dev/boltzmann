@@ -60,11 +60,18 @@ if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
 
 let sdk: NodeSDK | null = null
 
-if (
-  process.env.HONEYCOMB_WRITE_KEY &&
-  process.env.HONEYCOMB_DATASET &&
-  process.env.HONEYCOMB_API_HOST
-) {
+function isHoneycomb (env: typeof process.env): boolean {
+  return !!env.HONEYCOMB_WRITEKEY
+}
+
+function isOtel (env: typeof process.env): boolean {
+  if (isHoneycomb(env) && env.HONEYCOMB_API_HOST) {
+    return /^grpc:\/\//.test(env.HONEYCOMB_API_HOST)
+  }
+  return false
+}
+
+if (isOtel(process.env) && process.env.HONEYCOMB_WRITE_KEY && process.env.HONEYCOMB_DATASET) {
   const metadata = new Metadata()
   metadata.set('x-honeycomb-team', process.env.HONEYCOMB_WRITE_KEY)
   metadata.set('x-honeycomb-dataset', process.env.HONEYCOMB_DATASET)
@@ -80,12 +87,9 @@ if (
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName
     }),
     traceExporter,
-    instrumentations: [getNodeAutoInstrumentations()],
-    metricInterval: Math.floor(
-      1 / (Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1)
-    )
+    instrumentations: [getNodeAutoInstrumentations()]
   })
-} else {
+} else if (isHoneycomb(process.env)) {
   beeline({
     writeKey: process.env.HONEYCOMB_WRITEKEY,
     dataset: process.env.HONEYCOMB_DATASET,
@@ -284,9 +288,11 @@ export {
   promisify,
   querystring,
   ships,
+  isHoneycomb,
+  isOtel,
   otelContext,
   otelPropagation,
   otelTrace,
-  OtelTracer
+  OtelTracer,
 }
 void `{% endif %}`
