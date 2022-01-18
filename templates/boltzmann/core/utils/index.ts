@@ -62,7 +62,7 @@ if (require.main === module) {
       await _requireOr('./require-or-test', [])
       assert.fail('expected to fail with MODULE_NOT_FOUND')
     } catch (err) {
-      assert.equals(err.code, 'MODULE_NOT_FOUND')
+      assert.equal(err.code, 'MODULE_NOT_FOUND')
     }
   })
 
