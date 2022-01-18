@@ -40,6 +40,14 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { Resource } from '@opentelemetry/resources'
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { Sampler, context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns'
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
+import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc'
+import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis'
+import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis'
+import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
+import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb'
+import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql'
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -106,13 +114,23 @@ if (isOtel(process.env)) {
     new SimpleSpanProcessor(traceExporter) as unknown
   )
   tracerProvider.addSpanProcessor(spanProcessor)
+  tracerProvider.register()
 
   sdk = new NodeSDK({
     resource: new Resource({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName
     }),
     traceExporter,
-    instrumentations: [getNodeAutoInstrumentations()]
+    instrumentations: [
+      new DnsInstrumentation({}),
+      new HttpInstrumentation({}),
+      new GrpcInstrumentation({}),
+      new IORedisInstrumentation({}),
+      new RedisInstrumentation({}),
+      new PgInstrumentation({}),
+      new MongoDBInstrumentation({}),
+      new MySQLInstrumentation({})
+    ]
   })
 } else if (isHoneycomb(process.env)) {
   beeline({
