@@ -2,6 +2,7 @@ void `{% if selftest %}`;
 export { trace, honeycombMiddlewareSpans }
 
 import { context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import { isHoneycomb, isOtel } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { ServerResponse } from 'http'
@@ -11,17 +12,6 @@ import isDev from 'are-we-dev'
 void `{% endif %}`;
 
 let otelTracer: OtelTracer | null = null;
-
-function isHoneycomb (env: typeof process.env): boolean {
-  return !!env.HONEYCOMB_WRITEKEY
-}
-
-function isOtel (env: typeof process.env): boolean {
-  if (isHoneycomb(env) && env.HONEYCOMB_API_HOST) {
-    return /^grpc:\/\//.test(env.HONEYCOMB_API_HOST)
-  }
-  return false
-}
 
 function getOtelTracer() {
   if (!otelTracer) {
@@ -179,11 +169,11 @@ function trace ({
 }
 
 function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
-  if (!process.env.HONEYCOMB_WRITEKEY) {
+  if (!isHoneycomb(process.env)) {
     return (next: Handler) => (context: Context) => next(context)
   }
 
-  if (process.env.HONEYCOMB_API_HOST) {
+  if (isOtel(process.env)) {
     return honeycombOtelSpan
   } else {
     return honeycombBeelineSpan
