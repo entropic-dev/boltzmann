@@ -226,7 +226,7 @@ export { redis }
 void `{% endif %}`;
 
 void `{% if honeycomb %}`;
-export { onHeaders, beeline, initOtelSDK }
+export { onHeaders, initOtelSDK }
 void `{% endif %}`;
 
 void `{% if jwt or oauth %}`;
@@ -288,6 +288,7 @@ export {
   promisify,
   querystring,
   ships,
+  beeline,
   isHoneycomb,
   isOtel,
   otelContext,
