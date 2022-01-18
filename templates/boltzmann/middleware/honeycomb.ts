@@ -211,36 +211,14 @@ function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
 
 void `{% if selftest %}`;
 
-import tap from 'tap'
-import { Test } from './test'
+// import tap from 'tap'
+// import { Test } from './test'
 
 /* c8 ignore next */
+/*
 if (require.main === module) {
-  const { test } = tap
-
-  test('isHoneycomb detects if Honeycomb is enabled', async (assert: Test) => {
-    assert.equal(isHoneycomb({}), false)
-    assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: ''}), false)
-    assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: 'some write key'}), true)
-  })
-
-  test('isOtel detects if OpenTelemetry is enabled', async (assert: Test) => {
-    assert.equal(isOtel({}), false)
-    assert.equal(isOtel({HONEYCOMB_WRITEKEY: ''}), false)
-    assert.equal(isOtel({HONEYCOMB_WRITEKEY: 'some write key'}), false)
-    assert.equal(isOtel({
-      HONEYCOMB_WRITEKEY: 'some write key',
-      HONEYCOMB_API_HOST: 'https://refinery.website'
-    }), false)
-    assert.equal(isOtel({
-      HONEYCOMB_WRITEKEY: 'some write key',
-      HONEYCOMB_API_HOST: 'grpc://otel.website'
-    }), true)
-    assert.equal(isOtel({
-      HONEYCOMB_WRITEKEY: '',
-      HONEYCOMB_API_HOST: 'grpc://otel.website'
-    }), false)
-  })
+  // TODO: Tests
 }
+*/
 void `{% endif %}`;
 

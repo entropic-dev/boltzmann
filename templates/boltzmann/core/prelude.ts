@@ -182,7 +182,12 @@ void `{% endif %}`;
 import { Readable } from 'stream'
 
 import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
-import type tap from 'tap'
+
+// void `{% if selftest %}`
+import tap from 'tap'
+// void `{% else %}`
+// import type tap from 'tap'
+// void `{% endif %}`
 
 import querystring from 'querystring'
 import { promisify } from 'util'
@@ -215,7 +220,37 @@ type HttpMetadata = (
   { [TEMPLATE]: string }
 )
 
-void `{% if selftest %}`
+void `{% if selftest %}`;
+import { Test } from '../middleware/test'
+
+/* c8 ignore next */
+if (require.main === module) {
+  const { test } = tap
+
+  test('isHoneycomb detects if Honeycomb is enabled', async (assert: Test) => {
+    assert.equal(isHoneycomb({}), false)
+    assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: ''}), false)
+    assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: 'some write key'}), true)
+  })
+
+  test('isOtel detects if OpenTelemetry is enabled', async (assert: Test) => {
+    assert.equal(isOtel({}), false)
+    assert.equal(isOtel({HONEYCOMB_WRITEKEY: ''}), false)
+    assert.equal(isOtel({HONEYCOMB_WRITEKEY: 'some write key'}), false)
+    assert.equal(isOtel({
+      HONEYCOMB_WRITEKEY: 'some write key',
+      HONEYCOMB_API_HOST: 'https://refinery.website'
+    }), false)
+    assert.equal(isOtel({
+      HONEYCOMB_WRITEKEY: 'some write key',
+      HONEYCOMB_API_HOST: 'grpc://otel.website'
+    }), true)
+    assert.equal(isOtel({
+      HONEYCOMB_WRITEKEY: '',
+      HONEYCOMB_API_HOST: 'grpc://otel.website'
+    }), false)
+  })
+}
 
 void `{% if postgres %}`;
 export { pg, PGPool, PGPoolClient, PGClient }
