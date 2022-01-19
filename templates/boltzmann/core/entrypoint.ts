@@ -69,7 +69,7 @@ if (require.main === module && !process.env.TAP) {
       }),
   })
     .then((server) => {
-      server.listen(Number(process.env.PORT) || 5000, () => {
+      server.listen(Number(process.env.PORT) || 8000, () => {
         const addrinfo = server.address()
         if (!addrinfo) {
           return
