@@ -33,7 +33,7 @@ For example, to scaffold with the defaults:
 projects|⇒ npx boltzmann-cli hello
 ```
 
-A complete project is provided for you, with useful package run scripts and linting. To run: `./boltzmann.js`. And to view the response: `curl http://localhost:5000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/latest/)
+A complete project is provided for you, with useful package run scripts and linting. To run: `./boltzmann.js`. And to view the response: `curl http://localhost:8000/hello/world`. Want to know more? [Check the docs!](https://www.boltzmann.dev/en/docs/latest/)
 
 ## Team
 
