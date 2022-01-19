@@ -57,17 +57,28 @@ import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-bas
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 
-// OpenTelementry instrumentation hooks
-// TODO: find or write instrumentation for undici
-// TODO: how configurable should this be?
+// TODO: right now we install only instrumentation which
+// covers node core, redis and postgres. there's both a
+// question here of a) which instrumentations get loaded; and
+// b) whether this should be more configurable than boltzmann's
+// feature flags currently allow.
+//
+// some relevant instrumentations to consider:
+//
+// * @opentelemetry/instrumentation-grpc
+// * @opentelemetry/instrumentation-graphql
+// * some third-party instrumentation for undici
+import { Instrumentation } from '@opentelemetry/instrumentation'
 import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns'
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
-import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc'
-import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis'
+
+void `{% if redis %}`;
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis'
+void `{% endif %}`
+
+void `{% if postgres %}`
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
-import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb'
-import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql'
+void `{% endif % }`
 
 function normalizeHoneycombEnvVars (env: typeof process.env): void {
   if (!env.HONEYCOMB_DATASET && env.HONEYCOMBIO_DATASET) {
@@ -163,21 +174,25 @@ function createOtelSpanProcessor (traceExporter: OTLPTraceExporter): SpanProcess
 let otelSdk: NodeSDK | null = null
 
 function initOtelSdk (serviceName: string, traceExporter: OTLPTraceExporter): void {
+  let instrumentations: Instrumentation[] = [
+    new DnsInstrumentation({}),
+    new HttpInstrumentation({}),
+  ]
+
+  void `{% if redis %}`
+  instrumentations.push(new RedisInstrumentation({}))
+  void `{% endif %}`
+
+  void `{% if postgres %}`
+  instrumentations.push(new PgInstrumentation({}))
+  void `{% endif %}`
+
   otelSdk = new NodeSDK({
     resource: new Resource({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName
     }),
     traceExporter,
-    instrumentations: [
-      new DnsInstrumentation({}),
-      new HttpInstrumentation({}),
-      new GrpcInstrumentation({}),
-      new IORedisInstrumentation({}),
-      new RedisInstrumentation({}),
-      new PgInstrumentation({}),
-      new MongoDBInstrumentation({}),
-      new MySQLInstrumentation({})
-    ]
+    instrumentations
   })
 }
 
@@ -381,12 +396,8 @@ export {
   defaultTextMapGetter,
   defaultTextMapSetter,
   DnsInstrumentation,
-  GrpcInstrumentation,
   HttpInstrumentation,
   startOtelSdk,
-  IORedisInstrumentation,
-  MongoDBInstrumentation,
-  MySQLInstrumentation,
   NodeSDK,
   NodeTracerProvider,
   onHeaders,
@@ -396,8 +407,6 @@ export {
   OtelTracer,
   OTLPTraceExporter,
   ParentBasedSampler,
-  PgInstrumentation,
-  RedisInstrumentation,
   Resource,
   ROOT_CONTEXT,
   Sampler,
@@ -408,6 +417,21 @@ export {
   TraceIdRatioBasedSampler,
   W3CTraceContextPropagator
 }
+
+void `{% if postgres %}`
+export {
+  PgInstrumentation
+}
+void `{% endif %}`;
+
+void `{% if redis %}`
+export {
+  RedisInstrumentation
+}
+void `{% endif %}`;
+
+
+
 void `{% endif %}`;
 
 void `{% if jwt or oauth %}`;
