@@ -68,30 +68,27 @@ import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis'
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb'
 import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql'
-import { Resource } from '@opentelemetry/resources'
-import { NodeSDK } from '@opentelemetry/sdk-node'
-import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
-import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 
-if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
-  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
-}
+function normalizeHoneycombEnvVars (env: typeof process.env): void {
+  if (!env.HONEYCOMB_DATASET && env.HONEYCOMBIO_DATASET) {
+    env.HONEYCOMB_DATASET = env.HONEYCOMBIO_DATASET
+  }
 
-if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
-  process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY
-}
+  if (!env.HONEYCOMB_WRITEKEY && env.HONEYCOMBIO_WRITEKEY) {
+    env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY
+  }
 
-if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
-  process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE
-}
+  if (!env.HONEYCOMB_SAMPLE_RATE && env.HONEYCOMBIO_SAMPLE_RATE) {
+    env.HONEYCOMB_SAMPLE_RATE = env.HONEYCOMBIO_SAMPLE_RATE
+  }
 
-if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
-  process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
-}
+  if (!env.HONEYCOMB_TEAM && env.HONEYCOMBIO_TEAM) {
+    env.HONEYCOMB_TEAM = env.HONEYCOMBIO_TEAM
+  }
 
-if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
-  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
+  if (!env.HONEYCOMB_DATASET && env.HONEYCOMBIO_DATASET) {
+    env.HONEYCOMB_DATASET = env.HONEYCOMBIO_DATASET
+  }
 }
 
 function isHoneycomb (env: typeof process.env): boolean {
@@ -240,6 +237,9 @@ function initBeeline () {
     serviceName,
   })
 }
+
+// launch salvos
+normalizeHoneycombEnvVars(process.env)
 
 if (isOtel(process.env)) {
   initOtel()
