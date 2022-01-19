@@ -28,6 +28,20 @@
   ),
 
   DependencySpec(
+    name: "@hapi/iron",
+    version: "^6.0.0",
+    kind: Normal,
+    preconditions: None
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/api",
+    version: "^1.0.4",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
     name: "@opentelemetry/core",
     version: "^1.0.1",
     kind: Normal,
@@ -137,13 +151,6 @@
     version: "^1.0.1",
     kind: Normal,
     preconditions: Some(When(all_of: ["honeycomb"]))
-  ),
-
-  DependencySpec(
-    name: "@hapi/iron",
-    version: "^6.0.0",
-    kind: Normal,
-    preconditions: None
   ),
 
   DependencySpec(
