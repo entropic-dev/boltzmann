@@ -36,7 +36,6 @@ import { AlwaysOnSampler, AlwaysOffSampler, ParentBasedSampler, TraceIdRatioBase
 import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Metadata, credentials } from '@grpc/grpc-js'
 import { NodeSDK } from '@opentelemetry/sdk-node'
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { Resource } from '@opentelemetry/resources'
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { Sampler, context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
