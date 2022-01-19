@@ -2,8 +2,8 @@ void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { serviceName, initOtelSDK } from '../core/prelude'
-import { Handler, MiddlewareConfig } from '../core/middleware'
+import { startOtelSdk } from '../core/prelude'
+import { MiddlewareConfig } from '../core/middleware'
 import { _processMiddleware, _requireOr } from '../core/utils'
 import { attachPostgres } from '../middleware/postgres'
 import { livereload } from '../middleware/livereload'
@@ -12,18 +12,13 @@ import { attachRedis } from '../middleware/redis'
 import { handlePing } from '../middleware/ping'
 import { trace } from '../middleware/honeycomb'
 import { runserver } from '../bin/runserver'
-import { Context } from '../data/context'
 import { log } from '../middleware/log'
 void `{% endif %}`;
 
 /* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
-  function passthrough() {
-    return (next: Handler) => (context: Context) => next(context)
-  }
-
   // {% if honeycomb %}
-  initOtelSDK().then(run)
+  startOtelSdk().then(run)
   function run() {
   // {% endif %}
 

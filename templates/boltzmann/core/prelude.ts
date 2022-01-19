@@ -28,6 +28,8 @@ function _getServiceName() {
   }
 }
 
+import assert from 'assert'
+
 void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
 import { Metadata, credentials } from '@grpc/grpc-js'
@@ -39,7 +41,7 @@ import {
   ROOT_CONTEXT,
   Sampler,
   trace as otelTrace,
-  Tracer as OtelTracer
+  Tracer as OtelTracer,
 } from '@opentelemetry/api'
 import {
   AlwaysOffSampler,
@@ -83,8 +85,6 @@ if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
 }
 
-let sdk: NodeSDK | null = null
-
 function isHoneycomb (env: typeof process.env): boolean {
   return !!env.HONEYCOMB_WRITEKEY
 }
@@ -96,13 +96,26 @@ function isOtel (env: typeof process.env): boolean {
   return false
 }
 
-if (isOtel(process.env)) {
+function getHoneycombSampleRate (env: typeof process.env): number {
+  return Number(env.HONEYCOMB_SAMPLE_RATE || 1)
+}
+
+function getOtelApiHost (env: typeof process.env): string {
+  assert(typeof env.HONEYCOMB_API_HOST === 'string')
+  return env.HONEYCOMB_API_HOST as string
+}
+
+function createOtelMetadata (env: typeof process.env): Metadata {
   const metadata = new Metadata()
-  metadata.set('x-honeycomb-team', <string>process.env.HONEYCOMB_WRITE_KEY)
-  metadata.set('x-honeycomb-dataset', <string>process.env.HONEYCOMB_DATASET)
 
-  const sampleRate: number = Number(process.env.HONEYCOMB_SAMPLE_RATE || 1)
+  assert(typeof env.HONEYCOMB_WRITE_KEY === 'string' && typeof env.HONEYCOMB_DATASET === 'string')
 
+  metadata.set('x-honeycomb-team', <string>env.HONEYCOMB_WRITE_KEY)
+  metadata.set('x-honeycomb-dataset', <string>env.HONEYCOMB_DATASET)
+  return metadata
+}
+
+function createOtelSampler (sampleRate: number): Sampler {
   let sampler: Sampler = new AlwaysOnSampler()
 
   if (sampleRate === 0) {
@@ -113,24 +126,38 @@ if (isOtel(process.env)) {
     })
   }
 
-  const tracerProvider = new NodeTracerProvider({ sampler })
+  return sampler
+}
 
-  const traceExporter = new OTLPTraceExporter({
-    url: process.env.HONEYCOMB_API_HOST,
+function createOtelTracerProvider (sampler: Sampler): NodeTracerProvider {
+  return new NodeTracerProvider({ sampler })
+}
+
+function createOtelTraceExporter (url: string, metadata: Metadata): OTLPTraceExporter {
+  return new OTLPTraceExporter({
+    url,
     credentials: credentials.createSsl(),
     metadata
   })
+}
 
+function registerOtelSpanProcessorWithProvider (processor: SpanProcessor, provider: NodeTracerProvider): void {
+  provider.addSpanProcessor(processor)
+  // TODO: do I need this?
+  // provider.register()
+}
+
+function createOtelSpanProcessor (traceExporter: OTLPTraceExporter): SpanProcessor {
   // There's a bug in the types here - SimpleSpanProcessor doesn't
   // take the optional Context argument in its signature and
   // typescript is understandably cranky about that.
-  const spanProcessor: SpanProcessor = <SpanProcessor>(
-    new SimpleSpanProcessor(traceExporter) as unknown
-  )
-  tracerProvider.addSpanProcessor(spanProcessor)
-  tracerProvider.register()
+  return <SpanProcessor>(new SimpleSpanProcessor(traceExporter) as unknown)
+}
 
-  sdk = new NodeSDK({
+let otelSdk: NodeSDK | null = null
+
+function initOtelSdk (serviceName: string, traceExporter: OTLPTraceExporter): void {
+  otelSdk = new NodeSDK({
     resource: new Resource({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName
     }),
@@ -146,7 +173,57 @@ if (isOtel(process.env)) {
       new MySQLInstrumentation({})
     ]
   })
-} else if (isHoneycomb(process.env)) {
+}
+
+function initOtel (): void {
+  const url: string = getOtelApiHost(process.env)
+  const sampleRate: number = getHoneycombSampleRate(process.env)
+  const metadata: Metadata = createOtelMetadata(process.env)
+
+  const sampler: Sampler = createOtelSampler(sampleRate)
+  const provider: NodeTracerProvider = createOtelTracerProvider(sampler)
+
+  const exporter = createOtelTraceExporter(url, metadata)
+
+  const processor = createOtelSpanProcessor(exporter)
+
+  registerOtelSpanProcessorWithProvider(processor, provider)
+
+  initOtelSdk(serviceName, exporter)
+}
+
+function startOtelSdk(): Promise<void> {
+  let exitCode = 0
+
+  async function die(err: Error) {
+    console.error(err.stack)
+    exitCode = 1
+    await shutdown()
+  }
+
+  async function shutdown() {
+    if (otelSdk) {
+      try {
+        await otelSdk.shutdown()
+      } catch (err) {
+        console.error(err.stack)
+      }
+    }
+    process.exit(exitCode)
+  }
+
+  if (otelSdk) {
+    process.once('SIGTERM', shutdown)
+    process.once('beforeExit', shutdown)
+    process.once('uncaughtException', die)
+    process.once('unhandledRejection', die)
+    return otelSdk.start()
+  }
+
+  return Promise.resolve()
+}
+
+function initBeeline () {
   beeline({
     writeKey: process.env.HONEYCOMB_WRITEKEY,
     dataset: process.env.HONEYCOMB_DATASET,
@@ -155,33 +232,10 @@ if (isOtel(process.env)) {
   })
 }
 
-function initOtelSDK(): Promise<void> {
-  if (sdk) {
-    let exitCode = 0
-    process.once('SIGTERM', shutdown)
-    process.once('beforeExit', shutdown)
-    process.once('uncaughtException', die)
-    process.once('unhandledRejection', die)
-    return sdk.start()
-
-    async function die(err: Error) {
-      console.error(err.stack)
-      exitCode = 1
-      await shutdown()
-    }
-
-    async function shutdown() {
-      if (sdk) {
-        try {
-          await sdk.shutdown()
-        } catch (err) {
-          console.error(err.stack)
-        }
-      }
-      process.exit(exitCode)
-    }
-  }
-  return Promise.resolve()
+if (isOtel(process.env)) {
+  initOtel()
+} else if (isHoneycomb(process.env)) {
+  initBeeline()
 }
 
 import onHeaders from 'on-headers'
@@ -199,7 +253,6 @@ import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
 import { Accepts } from 'accepts'
 import { RouteOptions, Handler as FMWHandler, HTTPVersion, HTTPMethod } from 'find-my-way'
 import Ajv from 'ajv'
-import assert from 'assert'
 import * as cookie from 'cookie'
 void `{% if redis %}`;
 import { WrappedNodeRedisClient } from 'handy-redis'
@@ -326,7 +379,7 @@ export {
   DnsInstrumentation,
   GrpcInstrumentation,
   HttpInstrumentation,
-  initOtelSDK,
+  startOtelSdk,
   IORedisInstrumentation,
   MongoDBInstrumentation,
   MySQLInstrumentation,
