@@ -302,12 +302,6 @@ import { Readable } from 'stream'
 
 import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
 
-// void `{% if selftest %}`
-import tap from 'tap'
-// void `{% else %}`
-// import type tap from 'tap'
-// void `{% endif %}`
-
 import querystring from 'querystring'
 import { promisify } from 'util'
 import isDev from 'are-we-dev'
@@ -340,6 +334,7 @@ type HttpMetadata = (
 )
 
 void `{% if selftest %}`;
+import tap from 'tap'
 import { Test } from '../middleware/test'
 
 /* c8 ignore next */
