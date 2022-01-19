@@ -11,7 +11,6 @@
     "@entropic/bole": "^4.0.1",
     "@grpc/grpc-js": "^1.5.0",
     "@hapi/iron": "^6.0.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.27.1",
     "@opentelemetry/core": "^1.0.1",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.27.0",
     "@opentelemetry/instrumentation-dns": "^0.27.0",

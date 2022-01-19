@@ -21,6 +21,125 @@
   ),
 
   DependencySpec(
+    name: "@grpc/grpc-js",
+    version: "^1.5.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/core",
+    version: "^1.0.1",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/exporter-trace-otlp-grpc",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-dns",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-graphql",
+    version: "^0.27.1",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-grpc",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-http",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-ioredis",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-mongodb",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-mysql",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-pg",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/instrumentation-redis",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/resources",
+    version: "^1.0.1",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/sdk-node",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/sdk-trace-base",
+    version: "^1.0.1",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/sdk-trace-node",
+    version: "^1.0.1",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/semantic-conventions",
+    version: "^1.0.1",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
     name: "@hapi/iron",
     version: "^6.0.0",
     kind: Normal,
