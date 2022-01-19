@@ -30,15 +30,25 @@ function _getServiceName() {
 
 void `{% if honeycomb %}`;
 import beeline from 'honeycomb-beeline'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
-import { AlwaysOnSampler, AlwaysOffSampler, ParentBasedSampler, TraceIdRatioBasedSampler } from '@opentelemetry/core'
-import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Metadata, credentials } from '@grpc/grpc-js'
-import { NodeSDK } from '@opentelemetry/sdk-node'
-import { Resource } from '@opentelemetry/resources'
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
-import { Sampler, context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import {
+  context as otelContext,
+  defaultTextMapGetter,
+  defaultTextMapSetter,
+  propagation as otelPropagation,
+  ROOT_CONTEXT,
+  Sampler,
+  trace as otelTrace,
+  Tracer as OtelTracer
+} from '@opentelemetry/api'
+import {
+  AlwaysOffSampler,
+  AlwaysOnSampler,
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+  W3CTraceContextPropagator
+} from '@opentelemetry/core'
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns'
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
 import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc'
@@ -47,6 +57,11 @@ import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis'
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb'
 import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql'
+import { Resource } from '@opentelemetry/resources'
+import { NodeSDK } from '@opentelemetry/sdk-node'
+import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
+import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -303,7 +318,39 @@ export { redis }
 void `{% endif %}`;
 
 void `{% if honeycomb %}`;
-export { onHeaders, initOtelSDK }
+export {
+  AlwaysOffSampler,
+  AlwaysOnSampler,
+  defaultTextMapGetter,
+  defaultTextMapSetter,
+  DnsInstrumentation,
+  GrpcInstrumentation,
+  HttpInstrumentation,
+  initOtelSDK,
+  IORedisInstrumentation,
+  MongoDBInstrumentation,
+  MySQLInstrumentation,
+  NodeSDK,
+  NodeTracerProvider,
+  onHeaders,
+  otelContext,
+  otelPropagation,
+  otelTrace,
+  OtelTracer,
+  OTLPTraceExporter,
+  ParentBasedSampler,
+  PgInstrumentation,
+  RedisInstrumentation,
+  Resource,
+  ROOT_CONTEXT,
+  Sampler,
+  SemanticAttributes,
+  SemanticResourceAttributes,
+  SimpleSpanProcessor,
+  SpanProcessor,
+  TraceIdRatioBasedSampler,
+  W3CTraceContextPropagator
+}
 void `{% endif %}`;
 
 void `{% if jwt or oauth %}`;
@@ -368,9 +415,5 @@ export {
   beeline,
   isHoneycomb,
   isOtel,
-  otelContext,
-  otelPropagation,
-  otelTrace,
-  OtelTracer,
 }
 void `{% endif %}`
