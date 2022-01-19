@@ -1,7 +1,14 @@
 void `{% if selftest %}`;
 export { trace, honeycombMiddlewareSpans }
-
-import { context as otelContext, propagation as otelPropagation, trace as otelTrace, Tracer as OtelTracer} from '@opentelemetry/api'
+import {
+  context as otelContext,
+  defaultTextMapGetter,
+  defaultTextMapSetter,
+  ROOT_CONTEXT,
+  trace as otelTrace,
+  Tracer as OtelTracer
+} from '@opentelemetry/api'
+import { W3CTraceContextPropagator } from '@opentelemetry/core'
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { isHoneycomb, isOtel } from '../core/prelude'
 import { Handler } from '../core/middleware'
@@ -13,6 +20,11 @@ import isDev from 'are-we-dev'
 void `{% endif %}`;
 
 let otelTracer: OtelTracer | null = null;
+
+const OTEL_NAMESPACE = 'boltzmann'
+const OTEL_REQ_NAMESPACE = `${OTEL_NAMESPACE}.request`
+const OTEL_REQ_QUERY = `${OTEL_REQ_NAMESPACE}.query`
+const OTEL_REQ_PARAM_NAMESPACE = `${OTEL_REQ_NAMESPACE}.param`
 
 function getOtelTracer() {
   if (!otelTracer) {
@@ -30,18 +42,12 @@ function trace ({
 
   if (isOtel(process.env)) {
     return function honeycombOtelTrace (next: Handler) {
-      return (context: Context) => {
-        let activeContext = otelContext.active()
+      return async (context: Context) => {
         const tracer = getOtelTracer()
+        let carrier = {}
 
-        if (context.headers.traceparent && context.headers.tracestate) {
-          activeContext = otelPropagation.extract(activeContext, {
-            traceparent: context.headers.traceparent,
-            tracestate: context.headers.tracestate
-          })
-        }
-
-        const rootSpan = tracer.startSpan(`${context.method} ${context.url.pathname}${context.url.search}`, {
+        // Start a parent span
+        const parentSpan = tracer.startSpan(`${context.method} ${context.url.pathname}${context.url.search}`, {
           attributes: {
             [SemanticAttributes.HTTP_HOST]: context.host,
             [SemanticAttributes.HTTP_URL]: context.url.href,
@@ -49,29 +55,77 @@ function trace ({
             [SemanticAttributes.HTTP_METHOD]: context.method,
             [SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
             [SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-            'boltzmann.request.query': context.url.search
+            [OTEL_REQ_QUERY]: context.url.search
           }
-        }, activeContext)
-
-        otelTrace.setSpan(activeContext, rootSpan)
-
-        // do not do as I do,
-        onHeaders(context._response, function () {
-          const handler: Handler = <Handler>context.handler
-
-          rootSpan.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, String(context._response.statusCode))
-          rootSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, <string>handler.route)
-          rootSpan.setAttribute(SemanticAttributes.HTTP_METHOD, <string>handler.method)
-          rootSpan.setAttribute(SemanticResourceAttributes.SERVICE_VERSION, <string>handler.version)
-
-          Object.entries(context.params).map(([key, value]) => {
-            rootSpan.setAttribute(`boltzmann.request.param.${key}`, value)
-          })
-
-          rootSpan.end()
         })
 
-        return next(context)
+        // this propagator takes care of extracting trace parent
+        // and state from request headers (and so on)
+        const propagator = new W3CTraceContextPropagator()
+
+        propagator.inject(
+          otelTrace.setSpanContext(
+            ROOT_CONTEXT,
+            parentSpan.spanContext()
+          ),
+          carrier,
+          defaultTextMapSetter
+        )
+
+        // create a parent active context
+        const parentContext = propagator.extract(
+          ROOT_CONTEXT,
+          carrier,
+          defaultTextMapGetter
+        )
+
+        // set the active context
+        otelContext.with(parentContext, () => {
+          // keep the context active until we close the span
+          return new Promise((resolve, reject) => {
+            // do not do as I do,
+            onHeaders(context._response, function () {
+              // do our dangest to capture/handle surprise errors
+              try {
+                const handler: Handler = <Handler>context.handler
+
+                parentSpan.setAttribute(
+                  SemanticAttributes.HTTP_STATUS_CODE,
+                  String(context._response.statusCode)
+                )
+                parentSpan.setAttribute(
+                  SemanticAttributes.HTTP_ROUTE,
+                  <string>handler.route
+                )
+                parentSpan.setAttribute(
+                  SemanticAttributes.HTTP_METHOD,
+                  <string>handler.method
+                )
+                parentSpan.setAttribute(
+                  SemanticResourceAttributes.SERVICE_VERSION,
+                  <string>handler.version
+                )
+
+                Object.entries(context.params).map(([key, value]) => {
+                  parentSpan.setAttribute(
+                    `${OTEL_REQ_PARAM_NAMESPACE}.${key}`,
+                    value
+                  )
+                })
+                parentSpan.end()
+              } catch (err) {
+                // we don't want to crash the route just because
+                // otel didn't work...
+                console.warn(err)
+                return
+              }
+              // *now* we can exit the context
+              resolve(null)
+            })
+          })
+        })
+
+        next(context)
       }
     }
   } else {
@@ -129,7 +183,6 @@ function trace ({
           beeline.finishTrace(trace)
         })
 
-        // do not do as I do,
         onHeaders(context._response, function () {
           return boundFinisher(this, tracker.getTracked())
         })
