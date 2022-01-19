@@ -51,6 +51,15 @@ import {
   W3CTraceContextPropagator
 } from '@opentelemetry/core'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
+import { Resource } from '@opentelemetry/resources'
+import { NodeSDK } from '@opentelemetry/sdk-node'
+import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
+import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
+
+// OpenTelementry instrumentation hooks
+// TODO: find or write instrumentation for undici
+// TODO: how configurable should this be?
 import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns'
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
 import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc'
