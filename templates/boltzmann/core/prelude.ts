@@ -365,7 +365,7 @@ type HttpMetadata = (
 
 void `{% if selftest %}`;
 import tap from 'tap'
-import { Test } from '../middleware/test'
+type Test = (typeof tap.Test)["prototype"]
 
 /* c8 ignore next */
 if (require.main === module) {
