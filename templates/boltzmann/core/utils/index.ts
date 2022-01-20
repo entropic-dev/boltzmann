@@ -75,7 +75,7 @@ if (require.main === module) {
     const result = await _collect(<IncomingMessage>(<unknown>createReadStream(__filename)))
     const expect = await fs.readFile(__filename)
 
-    assert.equals(String(result), String(expect))
+    assert.equal(String(result), String(expect))
   })
 }
 void `{% endif %}`;
