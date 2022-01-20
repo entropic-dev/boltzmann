@@ -78,7 +78,7 @@ void `{% endif %}`
 
 void `{% if postgres %}`
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
-void `{% endif % }`
+void `{% endif %}`
 
 function normalizeHoneycombEnvVars (env: typeof process.env): void {
   if (!env.HONEYCOMB_DATASET && env.HONEYCOMBIO_DATASET) {
