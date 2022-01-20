@@ -68,7 +68,7 @@ if (require.main === module) {
 
   test('_requireOr returns default if toplevel require fails', async (assert: Test) => {
     const expect = {}
-    assert.equals(await _requireOr('./d-n-e', expect), expect)
+    assert.equal(await _requireOr('./d-n-e', expect), expect)
   })
 
   test('_collect takes a stream and returns a promise for a buffer of its content', async (assert: Test) => {
