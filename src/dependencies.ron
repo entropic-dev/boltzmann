@@ -59,7 +59,7 @@
     name: "@opentelemetry/instrumentation",
     version: "^0.27.0",
     kind: Normal,
-    preconditions: Some(When(all_of: ["honeycomb"])))
+    preconditions: Some(When(all_of: ["honeycomb"]))
   ),
 
   DependencySpec(
