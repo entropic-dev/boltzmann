@@ -114,10 +114,12 @@ function isOtel (env: typeof process.env): boolean {
 }
 
 function getHoneycombSampleRate (env: typeof process.env): number {
-  return Number(env.HONEYCOMB_SAMPLE_RATE || 1)
+  const rate = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
+  assert(!isNaN(rate))
+  return rate
 }
 
-function getOtelApiHost (env: typeof process.env): string {
+function getHoneycombApiHost (env: typeof process.env): string {
   assert(typeof env.HONEYCOMB_API_HOST === 'string')
   return env.HONEYCOMB_API_HOST as string
 }
@@ -125,7 +127,10 @@ function getOtelApiHost (env: typeof process.env): string {
 function createOtelMetadata (env: typeof process.env): Metadata {
   const metadata = new Metadata()
 
-  assert(typeof env.HONEYCOMB_WRITE_KEY === 'string' && typeof env.HONEYCOMB_DATASET === 'string')
+  assert([
+    env.HONEYCOMB_WRITE_KEY,
+    env.HONEYCOMB_DATASET
+  ].every(v => typeof v === 'string' && v.length))
 
   metadata.set('x-honeycomb-team', <string>env.HONEYCOMB_WRITE_KEY)
   metadata.set('x-honeycomb-dataset', <string>env.HONEYCOMB_DATASET)
@@ -158,12 +163,6 @@ function createOtelTraceExporter (url: string, metadata: Metadata): OTLPTraceExp
   })
 }
 
-function registerOtelSpanProcessorWithProvider (processor: SpanProcessor, provider: NodeTracerProvider): void {
-  provider.addSpanProcessor(processor)
-  // TODO: do I need this?
-  // provider.register()
-}
-
 function createOtelSpanProcessor (traceExporter: OTLPTraceExporter): SpanProcessor {
   // There's a bug in the types here - SimpleSpanProcessor doesn't
   // take the optional Context argument in its signature and
@@ -171,9 +170,13 @@ function createOtelSpanProcessor (traceExporter: OTLPTraceExporter): SpanProcess
   return <SpanProcessor>(new SimpleSpanProcessor(traceExporter) as unknown)
 }
 
-let otelSdk: NodeSDK | null = null
+function registerOtelSpanProcessorWithProvider (processor: SpanProcessor, provider: NodeTracerProvider): void {
+  provider.addSpanProcessor(processor)
+  // TODO: do I need this?
+  // provider.register()
+}
 
-function initOtelSdk (serviceName: string, traceExporter: OTLPTraceExporter): void {
+function createOtelInstrumentations(): Instrumentation[] {
   let instrumentations: Instrumentation[] = [
     new DnsInstrumentation({}),
     new HttpInstrumentation({}),
@@ -187,6 +190,16 @@ function initOtelSdk (serviceName: string, traceExporter: OTLPTraceExporter): vo
   instrumentations.push(new PgInstrumentation({}))
   void `{% endif %}`
 
+  return instrumentations
+}
+
+let otelSdk: NodeSDK | null = null
+
+function initOtelSdk (
+  serviceName: string,
+  instrumentations: Instrumentation[],
+  traceExporter: OTLPTraceExporter
+): void {
   otelSdk = new NodeSDK({
     resource: new Resource({
       [SemanticResourceAttributes.SERVICE_NAME]: serviceName
@@ -197,7 +210,7 @@ function initOtelSdk (serviceName: string, traceExporter: OTLPTraceExporter): vo
 }
 
 function initOtel (): void {
-  const url: string = getOtelApiHost(process.env)
+  const url: string = getHoneycombApiHost(process.env)
   const sampleRate: number = getHoneycombSampleRate(process.env)
   const metadata: Metadata = createOtelMetadata(process.env)
 
@@ -208,9 +221,11 @@ function initOtel (): void {
 
   const processor = createOtelSpanProcessor(exporter)
 
+  const instrumentations = createOtelInstrumentations()
+
   registerOtelSpanProcessorWithProvider(processor, provider)
 
-  initOtelSdk(serviceName, exporter)
+  initOtelSdk(serviceName, instrumentations, exporter)
 }
 
 function startOtelSdk(): Promise<void> {
@@ -360,6 +375,7 @@ if (require.main === module) {
     assert.equal(isHoneycomb({}), false)
     assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: ''}), false)
     assert.equal(isHoneycomb({HONEYCOMB_WRITEKEY: 'some write key'}), true)
+    assert.end()
   })
 
   test('isOtel detects if OpenTelemetry is enabled', async (assert: Test) => {
@@ -378,6 +394,146 @@ if (require.main === module) {
       HONEYCOMB_WRITEKEY: '',
       HONEYCOMB_API_HOST: 'grpc://otel.website'
     }), false)
+    assert.end()
+  })
+
+  test('getHoneycombSampleRate parses the sample rate', (assert: Test) => {
+    assert.equal(getHoneycombSampleRate({}), 1)
+    assert.equal(getHoneycombSampleRate({
+      HONEYCOMB_SAMPLE_RATE: '1'
+    }), 1)
+    assert.equal(getHoneycombSampleRate({
+      HONEYCOMB_SAMPLE_RATE: '0.5'
+    }), 0.5)
+    assert.throws(() => getHoneycombSampleRate({
+      HONEYCOMB_SAMPLE_RATE: 'pony'
+    }))
+    assert.end()
+  })
+
+  test('getHoneycombApiHost parses the API host', (assert: Test) => {
+    assert.throws(() => getHoneycombApiHost({}))
+    assert.equal(getHoneycombApiHost({
+      HONEYCOMB_API_HOST: 'https://example.com'
+    }), 'https://example.com')
+    assert.end()
+  })
+
+  test('createOtelMetadata', (t: Test) => {
+    t.plan(3)
+    t.test('creates metadata when environment variables are defined', (assert: Test) => {
+      const metadata = createOtelMetadata({
+        HONEYCOMB_WRITE_KEY: 'some write key',
+        HONEYCOMB_DATASET: 'some dataset'
+      })
+      assert.same(metadata.get('x-honeycomb-team'), ['some write key'])
+      assert.same(metadata.get('x-honeycomb-dataset'), ['some dataset'])
+      assert.end()
+    })
+
+    t.test('throws when environment variabes are undefined', (assert: Test) => {
+      assert.throws(() => createOtelMetadata({}))
+      assert.end()
+    })
+
+    t.test('throws when environment variables are empty', (assert: Test) => {
+      assert.throws(() => createOtelMetadata({
+        HONEYCOMB_WRITE_KEY: '',
+        HONEYCOMB_DATASET: ''
+      }))
+      assert.end()
+    })
+  })
+
+  test('createOtelSampler', (assert: Test) => {
+    assert.ok(createOtelSampler(1) instanceof AlwaysOnSampler)
+    assert.ok(createOtelSampler(0) instanceof AlwaysOffSampler)
+    assert.ok(createOtelSampler(0.5) instanceof ParentBasedSampler)
+    assert.end()
+  })
+
+  test('createOtelTracerProvider', (assert: Test) => {
+    const sampler = createOtelSampler(1)
+    assert.ok(createOtelTracerProvider(sampler) instanceof NodeTracerProvider)
+    assert.end()
+  })
+
+  test('createOtelTraceExporter', (assert: Test) => {
+    assert.doesNotThrow(() => {
+      const url = 'grpc://example.com'
+      const metadata = createOtelMetadata({
+        HONEYCOMB_WRITE_KEY: 'some write key',
+        HONEYCOMB_DATASET: 'some dataset'
+      })
+
+      createOtelTraceExporter(url, metadata)
+    })
+    assert.end()
+  })
+
+  test('createOtelSpanProcessor', (assert: Test) => {
+    assert.doesNotThrow(() => {
+      const exporter = createOtelTraceExporter(
+        'grpc://example.com',
+        createOtelMetadata({
+          HONEYCOMB_WRITE_KEY: 'some write key',
+          HONEYCOMB_DATASET: 'some dataset'
+        })
+      )
+
+      createOtelSpanProcessor(exporter)
+    })
+    assert.end()
+  })
+
+  test('registerOtelSpanProcessorWithProvider', (assert: Test) => {
+    assert.doesNotThrow(() => {
+      const processor = createOtelSpanProcessor(
+        createOtelTraceExporter(
+          'grpc://example.com',
+          createOtelMetadata({
+            HONEYCOMB_WRITE_KEY: 'some write key',
+            HONEYCOMB_DATASET: 'some dataset'
+          })
+        )
+      )
+      const provider = createOtelTracerProvider(createOtelSampler(1))
+
+      registerOtelSpanProcessorWithProvider(
+        processor, provider
+      )
+    })
+    assert.end()
+  })
+
+  test('createOtelInstrumentations', (assert: Test) => {
+    // expected instrumentations: dns, node core, postgres, redis
+    assert.equal(createOtelInstrumentations().length, 4)
+    assert.end()
+  })
+
+  test('initOtelSdk', (assert: Test) => {
+    assert.tearDown(() => {
+      otelSdk = null
+    })
+
+    // run the init function
+    assert.doesNotThrow(() => {
+      const exporter = createOtelTraceExporter(
+        'grpc://example.com',
+        createOtelMetadata({
+          HONEYCOMB_WRITE_KEY: 'some write key',
+          HONEYCOMB_DATASET: 'some dataset'
+        })
+      )
+      const instrumentations = createOtelInstrumentations()
+      initOtelSdk('boltzmann', instrumentations, exporter)
+    })
+
+    // ensure it actually initted the init
+    assert.ok(otelSdk)
+
+    assert.end()
   })
 }
 
