@@ -253,18 +253,3 @@ function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
     }
   }
 }
-
-
-void `{% if selftest %}`;
-
-// import tap from 'tap'
-// import { Test } from './test'
-
-/* c8 ignore next */
-/*
-if (require.main === module) {
-  // TODO: Tests
-}
-*/
-void `{% endif %}`;
-
