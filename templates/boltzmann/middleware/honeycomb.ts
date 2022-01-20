@@ -117,7 +117,6 @@ function trace ({
                 // we don't want to crash the route just because
                 // otel didn't work...
                 console.warn(err)
-                return
               }
               // *now* we can exit the context
               resolve(null)
