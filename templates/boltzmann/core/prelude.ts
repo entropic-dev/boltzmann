@@ -513,7 +513,7 @@ if (require.main === module) {
   })
 
   test('initOtelSdk', (assert: Test) => {
-    assert.tearDown(() => {
+    assert.teardown(() => {
       otelSdk = null
     })
 
