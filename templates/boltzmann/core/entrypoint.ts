@@ -2,7 +2,6 @@ void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { startOtelSdk } from '../core/prelude'
 import { MiddlewareConfig } from '../core/middleware'
 import { _processMiddleware, _requireOr } from '../core/utils'
 import { attachPostgres } from '../middleware/postgres'
@@ -13,12 +12,13 @@ import { handlePing } from '../middleware/ping'
 import { trace } from '../middleware/honeycomb'
 import { runserver } from '../bin/runserver'
 import { log } from '../middleware/log'
+import * as honeycomb from '../core/honeycomb'
 void `{% endif %}`;
 
 /* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
   // {% if honeycomb %}
-  startOtelSdk().then(run)
+  honeycomb.start().then(run)
   function run() {
   // {% endif %}
 
