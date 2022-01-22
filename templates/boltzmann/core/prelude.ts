@@ -30,8 +30,15 @@ function _getServiceName() {
 
 import assert from 'assert'
 
-void `{% if honeycomb %}`;
-import * as honeycomb from './honeycomb'
+void `{% if honeycomb %}`
+// Honeycomb instrumentation is in index.tera *before* the prelude.
+// This is because instrumentation needs to be installed prior to
+// instrumented modules being imported. In selftest mode the file
+// exports its main object, but otherwise the honeycomb object
+// should be defined.
+void `{% if selftest %}`
+import { Honeycomb } from './honeycomb'
+void `{% endif %}`
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -53,7 +60,9 @@ if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
 }
 
-honeycomb.init(serviceName, honeycomb.getOptionsFromEnv(process.env))
+const honeycomb: Honeycomb = Honeycomb.fromEnv(serviceName, process.env);
+
+honeycomb.init()
 
 import onHeaders from 'on-headers'
 void `{% endif %}`;

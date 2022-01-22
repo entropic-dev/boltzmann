@@ -1,6 +1,6 @@
 void `{% if selftest %}`;
 export { trace, honeycombMiddlewareSpans }
-import * as honeycomb from '../core/honeycomb'
+import { honeycomb } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import onHeaders from 'on-headers'
@@ -24,7 +24,7 @@ function trace ({
 }
 
 function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
-  if (!honeycomb.enabled) {
+  if (honeycomb.options.disable) {
     return (next: Handler) => (context: Context) => next(context)
   }
 
