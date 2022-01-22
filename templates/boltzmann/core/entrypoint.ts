@@ -12,7 +12,7 @@ import { handlePing } from '../middleware/ping'
 import { trace } from '../middleware/honeycomb'
 import { runserver } from '../bin/runserver'
 import { log } from '../middleware/log'
-import * as honeycomb from '../core/honeycomb'
+import { honeycomb } from '../core/prelude'
 void `{% endif %}`;
 
 /* c8 ignore next */
