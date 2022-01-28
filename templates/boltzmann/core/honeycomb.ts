@@ -359,7 +359,9 @@ class Honeycomb {
 
       if (!this.features.honeycomb) {
         console.log("calling the beeline function")
+        console.log({ writeKey, dataset, sampleRate, serviceName });
         beeline({ writeKey, dataset, sampleRate, serviceName })
+        this.initialized = true
         return
       }
 
@@ -425,8 +427,8 @@ class Honeycomb {
       process.once('uncaughtException', die)
       process.once('unhandledRejection', die)
       await sdk.start()
-      this.started = true
     }
+    this.started = true
   }
 
   // Create a trace, call the runInContext function, then close the
@@ -437,7 +439,12 @@ class Honeycomb {
     runInContext: () => Promise<any>,
     headerSources?: string[]
   ): Promise<any> {
-    if (!this.features.honeycomb) {
+    if (!this.features.honeycomb || !this.initialized) {
+      // Don't do anything but run the callback
+      return runInContext()
+    }
+
+    if (!this.features.otlp) {
       // Call legacy beelines implementation
       return this.withBeelineTrace(context, runInContext, headerSources)
     }
@@ -505,6 +512,7 @@ class Honeycomb {
 
     */
 
+    // giddyup!
     const rv = await runInContext()
 
     const handler: Handler = <Handler>context.handler
@@ -546,6 +554,10 @@ class Honeycomb {
     runInContext: () => Promise<void>,
     headerSources?: string[]
   ): Promise<any> {
+    if (!this.features.honeycomb || !this.initialized) {
+      return runInContext()
+    }
+
     const schema = require('honeycomb-beeline/lib/schema')
     const tracker = require('honeycomb-beeline/lib/async_tracker')
     const _headerSources = headerSources || this.defaultHeaderSources
@@ -628,8 +640,11 @@ class Honeycomb {
   }
 
   public async withSpan(name: string, runInContext: () => Promise<any>): Promise<any> {
+    if (!this.features.honeycomb || !this.initialized) {
+      return runInContext()
+    }
+
     if (!this.features.otlp) {
-      // Call legacy beelines implementation
       return this.withBeelineSpan(name, runInContext)
     }
 
@@ -644,13 +659,17 @@ class Honeycomb {
   }
 
   private async withBeelineSpan(name: string, runInContext: () => Promise<any>): Promise<any> {
-      const span = beeline.startSpan({ name })
+    if (!this.features.honeycomb || !this.initialized) {
+      return runInContext()
+    }
 
-      const result = await runInContext()
+    const span = beeline.startSpan({ name })
 
-      beeline.finishSpan(span)
+    const result = await runInContext()
 
-      return result
+    beeline.finishSpan(span)
+
+    return result
   }
 }
 
