@@ -12,40 +12,33 @@ to and different from that one:
 
 1) Dependencies specific to honeycomb have to be imported and exported
    as in the prelude, for the same reasons.
-2) Dependencies not specific to honeycomb should be required at the
-   scope nearest to their use. This is so the namespace isn't polluted
-   in the prelude.
+2) Dependencies required for honeycomb but used generally should be at the
+   TOP of this file and in the self-test block at the TOP of prelude.ts
+2) Dependencies should be imported as *, to minimize the impact on the
+   boltzmann namespace and make all the OpenTelemetry library exports
+   accessible. Exceptions may be made for modules with only one meaningful
+  import
 
 Good luck!
 #}*/
+
+// Dependencies used downstream - it's worth your time to look at how these
+// are treated in prelude.ts!
+import isDev from 'are-we-dev'
 
 // We continue to support beelines...
 import beeline from 'honeycomb-beeline'
 
 // ...but are migrating to OpenTelemetry:
-import { Metadata, credentials } from '@grpc/grpc-js'
-import {
-  context as traceContext,
-  defaultTextMapSetter,
-  ROOT_CONTEXT,
-  Sampler,
-  trace,
-  Tracer
-} from '@opentelemetry/api'
-import {
-  ParentBasedSampler,
-  TraceIdRatioBasedSampler,
-  W3CTraceContextPropagator
-} from '@opentelemetry/core'
+import * as grpc from '@grpc/grpc-js'
+import * as otlpAPI from '@opentelemetry/api'
+import * as otlpCore from '@opentelemetry/core'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { Resource } from '@opentelemetry/resources'
-import { NodeSDK } from '@opentelemetry/sdk-node'
-import { SimpleSpanProcessor, SpanProcessor } from '@opentelemetry/sdk-trace-base'
+import * as otlpResources from '@opentelemetry/resources'
+import { NodeSDK as OtlpSDK } from '@opentelemetry/sdk-node'
+import * as otlpTraceBase from '@opentelemetry/sdk-trace-base'
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node'
-import {
-  SemanticAttributes,
-  SemanticResourceAttributes
-} from '@opentelemetry/semantic-conventions'
+import * as otlpSemanticConventions from '@opentelemetry/semantic-conventions'
 
 // We include node core instrumentation, as well as redis
 // and postgres instrumentation if those respective features
@@ -65,29 +58,30 @@ import {
 // instrumentations:
 //
 // * undici
-import { Instrumentation } from '@opentelemetry/instrumentation'
-import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns'
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http'
+import { Instrumentation as OtlpInstrumentation } from '@opentelemetry/instrumentation'
+import { DnsInstrumentation as OtlpDnsInstrumentation } from '@opentelemetry/instrumentation-dns'
+import { HttpInstrumentation as OtlpHttpInstrumentation } from '@opentelemetry/instrumentation-http'
 
 void `{% if redis %}`;
-import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis'
+import { RedisInstrumentation as OtlpRedisInstrumentation } from '@opentelemetry/instrumentation-redis'
 void `{% endif %}`
 
 void `{% if postgres %}`
-import { PgInstrumentation } from '@opentelemetry/instrumentation-pg'
+import { PgInstrumentation as OtlpPgInstrumentation } from '@opentelemetry/instrumentation-pg'
 void `{% endif %}`
+
 
 // TODO: Sort through these and find a good answer
 void `{% if selftest %}`
-import assert from 'assert'
 import { ServerResponse } from 'http'
 
-// TODO: Imports from internal modules will
-import { Context as Context } from '../data/context'
+import { Context } from '../data/context'
 import { Handler } from './middleware'
 
-import isDev from 'are-we-dev'
 void `{% endif %}`
+
+class HoneycombError extends Error {
+}
 
 // Arguments passed to Honeycomb's constructor
 interface HoneycombOptions {
@@ -96,8 +90,8 @@ interface HoneycombOptions {
   // disabled
   disable?: boolean
 
-  // When true, Do Otel
-  otel?: boolean
+  // When true, Do Otlp
+  otlp?: boolean
 
   // The Honeycomb write key and dataset
   writeKey?: string | null
@@ -110,11 +104,11 @@ interface HoneycombOptions {
   sampleRate?: number
 }
 
-// Whether or not otel, beelines and honeycomb are enabled
+// Whether or not otlp, beelines and honeycomb are enabled
 interface HoneycombFeatures {
   honeycomb: boolean
   beeline: boolean
-  otel: boolean
+  otlp: boolean
 }
 
 // There's a lot of plumbing that happens when setting up
@@ -124,22 +118,22 @@ interface HoneycombFeatures {
 // They're exposed on the Honeycomb class but in a nested
 // namespace.
 interface OTLPFactories {
-  metadata: (writeKey: string, dataset: string) => Metadata
-  sampler: (sampleRate: number) => Sampler
-  tracerProvider: (sampler: Sampler) => NodeTracerProvider
-  traceExporter: (url: string, metadata: Metadata) => OTLPTraceExporter
-  spanProcessor: (traceExporter: OTLPTraceExporter) => SpanProcessor
-  instrumentations: () => Instrumentation[]
+  metadata: (writeKey: string, dataset: string) => grpc.Metadata
+  sampler: (sampleRate: number) => otlpAPI.Sampler
+  tracerProvider: (sampler: otlpAPI.Sampler) => NodeTracerProvider
+  traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
+  spanProcessor: (traceExporter: OTLPTraceExporter) => otlpTraceBase.SpanProcessor
+  instrumentations: () => OtlpInstrumentation[]
   sdk: (
     serviceName: string,
-    instrumentations: Instrumentation[],
+    instrumentations: OtlpInstrumentation[],
     traceExporter: OTLPTraceExporter
-  ) => NodeSDK
+  ) => OtlpSDK
 }
 
-const defaultOTLPFactories: OTLPFactories = {
-  metadata (writeKey: string, dataset: string): Metadata {
-    const metadata = new Metadata()
+const defaultOtlpFactories: OTLPFactories = {
+  metadata (writeKey: string, dataset: string): grpc.Metadata {
+    const metadata = new grpc.Metadata()
     metadata.set('x-honeycomb-team', writeKey)
     metadata.set('x-honeycomb-dataset', dataset)
     return metadata
@@ -147,47 +141,47 @@ const defaultOTLPFactories: OTLPFactories = {
 
   // create a Sampler object, which is used to tune
   // the sampling rate
-  sampler (sampleRate: number): Sampler {
-    return new ParentBasedSampler({
-      root: new TraceIdRatioBasedSampler(sampleRate)
+  sampler (sampleRate: number): otlpAPI.Sampler {
+    return new otlpCore.ParentBasedSampler({
+      root: new otlpCore.TraceIdRatioBasedSampler(sampleRate)
     })
   },
 
   // It provides tracers!
-  tracerProvider (sampler: Sampler): NodeTracerProvider {
+  tracerProvider (sampler: otlpAPI.Sampler): NodeTracerProvider {
     return new NodeTracerProvider({ sampler })
   },
 
   // Export traces to an OTLP endpoint with GRPC
-  traceExporter (url: string, metadata: Metadata): OTLPTraceExporter {
+  traceExporter (url: string, metadata: grpc.Metadata): OTLPTraceExporter {
     return new OTLPTraceExporter({
       url,
-      credentials: credentials.createSsl(),
+      credentials: grpc.credentials.createSsl(),
       metadata
     })
   },
 
   // Process spans, using the supplied trace exporter to
   // do the actual exporting.
-  spanProcessor (traceExporter: OTLPTraceExporter): SpanProcessor {
+  spanProcessor (traceExporter: OTLPTraceExporter): otlpTraceBase.SpanProcessor {
     // There's a bug in the types here - SimpleSpanProcessor doesn't
     // take the optional Context argument in its signature and
     // typescript is understandably cranky about that.
-    return <SpanProcessor>(new SimpleSpanProcessor(traceExporter) as unknown)
+    return <otlpTraceBase.SpanProcessor>(new otlpTraceBase.SimpleSpanProcessor(traceExporter) as unknown)
   },
 
   instrumentations () {
-    let is: Instrumentation[] = [
-      new DnsInstrumentation({}),
-      new HttpInstrumentation({}),
+    let is: OtlpInstrumentation[] = [
+      new OtlpDnsInstrumentation({}),
+      new OtlpHttpInstrumentation({}),
     ]
 
     void `{% if redis %}`
-    is.push(new RedisInstrumentation({}))
+    is.push(new OtlpRedisInstrumentation({}))
     void `{% endif %}`
 
     void `{% if postgres %}`
-    is.push(new PgInstrumentation({}))
+    is.push(new OtlpPgInstrumentation({}))
     void `{% endif %}`
 
     return is
@@ -198,12 +192,12 @@ const defaultOTLPFactories: OTLPFactories = {
   // This is that singleton!
   sdk (
     serviceName: string,
-    instrumentations: Instrumentation[],
+    instrumentations: OtlpInstrumentation[],
     traceExporter: OTLPTraceExporter
-  ): NodeSDK {
-    return new NodeSDK({
-      resource: new Resource({
-        [SemanticResourceAttributes.SERVICE_NAME]: serviceName
+  ): OtlpSDK {
+    return new OtlpSDK({
+      resource: new otlpResources.Resource({
+        [otlpSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: serviceName
       }),
       traceExporter,
       instrumentations
@@ -216,17 +210,17 @@ const defaultOTLPFactories: OTLPFactories = {
 // are created. The Honeycomb class allows for
 // passing overrides into its constructor.
 interface OTLPFactoryOverrides {
-  metadata?: (writeKey: string, dataset: string) => Metadata
-  sampler?: (sampleRate: Number) => Sampler
-  tracerProvider?: (sampler: Sampler) => NodeTracerProvider
-  traceExporter?: (url: string, metadata: Metadata) => OTLPTraceExporter
-  spanProcessor?: (traceExporter: OTLPTraceExporter) => SpanProcessor
-  instrumentations?: () => Instrumentation[];
+  metadata?: (writeKey: string, dataset: string) => grpc.Metadata
+  sampler?: (sampleRate: Number) => otlpAPI.Sampler
+  tracerProvider?: (sampler: otlpAPI.Sampler) => NodeTracerProvider
+  traceExporter?: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
+  spanProcessor?: (traceExporter: OTLPTraceExporter) => otlpTraceBase.SpanProcessor
+  instrumentations?: () => OtlpInstrumentation[];
   sdk?: (
     serviceName: string,
-    instrumentations: Instrumentation[],
+    instrumentations: OtlpInstrumentation[],
     traceExporter: OTLPTraceExporter
-  ) => NodeSDK;
+  ) => OtlpSDK;
 }
 
 class Honeycomb {
@@ -247,7 +241,7 @@ class Honeycomb {
   public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
     // If there's no write key we won't get very far anyway
     const disable = !env.HONEYCOMB_WRITEKEY
-    let otel: boolean = false
+    let otlp: boolean = false
     const writeKey = env.HONEYCOMB_WRITEKEY || null
     const dataset = env.HONEYCOMB_DATASET || null
     const apiHost = env.HONEYCOMB_API_HOST || null
@@ -256,7 +250,7 @@ class Honeycomb {
     sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
 
     if (isNaN(sampleRate)) {
-      console.warn(
+      Honeycomb.log(
         `Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
         + 'defaulting to 1'
       )
@@ -267,13 +261,13 @@ class Honeycomb {
     // OpenTelemetry. There are prior uses of this variable here but
     // they should've been using https://.
     if (!disable && apiHost) {
-      otel = /^grpc:\/\//.test(apiHost)
+      otlp = /^grpc:\/\//.test(apiHost)
     }
 
     return {
       serviceName,
       disable,
-      otel,
+      otlp,
       writeKey,
       dataset,
       apiHost,
@@ -282,18 +276,24 @@ class Honeycomb {
   }
 
   private getWriteKey (): string {
-    assert(this.features.honeycomb && this.options.writeKey)
-    return this.options.writeKey as string
+    if (this.features.honeycomb && this.options.writeKey) {
+      return this.options.writeKey
+    }
+    throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!')
   }
 
   private getDataset () {
-    assert(this.features.honeycomb && this.options.dataset)
-    return this.options.dataset as string
+    if (this.features.honeycomb && this.options.dataset) {
+      return this.options.dataset
+    }
+    throw new HoneycombError('HONEYCOMB_DATASET is undefined!')
   }
 
   private getApiHost () {
-    assert(this.features.honeycomb && this.options.apiHost)
-    return this.options.apiHost as string
+    if (this.features.honeycomb && this.options.apiHost) {
+      return this.options.apiHost
+    }
+    throw new HoneycombError('HONEYCOMB_API_HOST is undefined!')
   }
 
   public options: HoneycombOptions
@@ -302,9 +302,8 @@ class Honeycomb {
 
   public initialized: boolean
   public started: boolean
-  public sdk: NodeSDK | null
-  public tracer: Tracer
-  public static beeline: typeof beeline = beeline
+  public sdk: OtlpSDK | null
+  public tracer: otlpAPI.Tracer
 
   constructor(
     options: HoneycombOptions,
@@ -313,17 +312,29 @@ class Honeycomb {
     this.options = options
     this.features = {
       honeycomb: !options.disable,
-      beeline: !options.disable && !options.otel,
-      otel: options.otel || false
+      beeline: !options.disable && !options.otlp,
+      otlp: options.otlp || false
     }
     this.initialized = false
     this.started = false
     this.sdk = null
-    this.tracer = trace.getTracer('boltzmann', '1.0.0')
+    this.tracer = otlpAPI.trace.getTracer('boltzmann', '1.0.0')
     this.factories = {
-      ...defaultOTLPFactories,
+      ...defaultOtlpFactories,
       ...(overrides || {})
     }
+  }
+
+  public static log(message: any): void {
+    // There's a good likelihood that bole hasn't been configured yet,
+    // so we use console here. We also want honeycomb to fail gracefully
+    // as nothing is more embarrassing than your service getting taken
+    // down by instrumentation, so we only log in live dev and in debug.
+    void `{% if not selftest %}`
+    if (process.env.DEBUG || isDev()) {
+      console.warn(message);
+    }
+    void `{% endif %}`
   }
 
   // Some non-standard OpenTelemetry attributes we add in
@@ -335,45 +346,54 @@ class Honeycomb {
     return `boltzmann.request.param.${param}`
   }
 
-  // Initialize Honeycomb! Stands up the otel node SDK if enabled,
+  // Initialize Honeycomb! Stands up the otlp node SDK if enabled,
   // otherwise sets up the beeline library.
   // This needs to occur before any imports you want instrumentation
   // to be aware of.
   public init(): void {
-    if (!this.features.honeycomb) return
+    try {
+      const writeKey = this.getWriteKey();
+      const dataset = this.getDataset();
+      const sampleRate = this.options.sampleRate || 1;
+      const serviceName = this.options.serviceName;
 
-    const writeKey = this.getWriteKey()
-    const dataset = this.getDataset()
-    const sampleRate = this.options.sampleRate || 1
-    const serviceName = this.options.serviceName
+      if (!this.features.honeycomb) {
+        console.log("calling the beeline function")
+        beeline({ writeKey, dataset, sampleRate, serviceName })
+        return
+      }
 
-    if (!this.features.otel) {
-      beeline({ writeKey, dataset, sampleRate, serviceName })
-      return
+      const f = this.factories
+      const apiHost: string = this.getApiHost()
+
+      const metadata: grpc.Metadata = f.metadata(writeKey, dataset)
+
+      const sampler: otlpAPI.Sampler = f.sampler(sampleRate)
+      const exporter = f.traceExporter(apiHost, metadata)
+      const processor = f.spanProcessor(exporter)
+      const instrumentations = f.instrumentations()
+
+      const provider: NodeTracerProvider = f.tracerProvider(sampler)
+      provider.addSpanProcessor(processor)
+      provider.register()
+
+      this.sdk = f.sdk(
+        serviceName,
+        instrumentations,
+        exporter
+      )
+
+      this.initialized = true
+    } catch (err) {
+      if (err instanceof HoneycombError) {
+        // Honeycomb.log(err);
+        return;
+      }
+      throw err;
     }
-
-    const f = this.factories
-    const apiHost: string = this.getApiHost()
-
-    const metadata: Metadata = f.metadata(writeKey, dataset)
-
-    const sampler: Sampler = f.sampler(sampleRate)
-    const exporter = f.traceExporter(apiHost, metadata)
-    const processor = f.spanProcessor(exporter)
-    const instrumentations = f.instrumentations()
-
-    const provider: NodeTracerProvider = f.tracerProvider(sampler)
-    provider.addSpanProcessor(processor)
-    provider.register()
-
-    this.sdk = f.sdk(
-      serviceName,
-      instrumentations,
-      exporter
-    )
-
-    this.initialized = true
   }
+
+
 
   // Start the OpenTelemetry SDK. If using beelines, this is
   // a no-op. This needs to happen before anything happens in
@@ -383,7 +403,7 @@ class Honeycomb {
     const sdk = this.sdk
 
     async function die(err: Error) {
-      console.error(err.stack)
+      Honeycomb.log(err);
       exitCode = 1
       await shutdown()
     }
@@ -393,7 +413,7 @@ class Honeycomb {
         try {
           await sdk.shutdown()
         } catch (err) {
-          console.error(err.stack)
+          Honeycomb.log(err)
         }
       }
       process.exit(exitCode)
@@ -423,7 +443,7 @@ class Honeycomb {
     }
 
     if (headerSources) {
-      console.warn('trace headerSources are a beeline-only feature')
+      Honeycomb.log('trace headerSources are a beeline-only feature')
     }
 
     /*
@@ -446,12 +466,12 @@ class Honeycomb {
       `${context.method} ${context.url.pathname}${context.url.search}`,
       {
         attributes: {
-          [SemanticAttributes.HTTP_HOST]: context.host,
-          [SemanticAttributes.HTTP_URL]: context.url.href,
-          [SemanticAttributes.NET_PEER_IP]: context.remote,
-          [SemanticAttributes.HTTP_METHOD]: context.method,
-          [SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
-          [SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
+          [otlpSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
+          [otlpSemanticConventions.SemanticAttributes.HTTP_URL]: context.url.href,
+          [otlpSemanticConventions.SemanticAttributes.NET_PEER_IP]: context.remote,
+          [otlpSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
+          [otlpSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
+          [otlpSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
           // TODO: Honeycomb.Attributes obvs
           [Honeycomb.OTEL_REQ_QUERY]: context.url.search
         }
@@ -460,24 +480,24 @@ class Honeycomb {
 
     // this propagator takes care of extracting trace parent
     // and state from request headers (and so on)
-    const propagator = new W3CTraceContextPropagator()
+    const propagator = new otlpCore.W3CTraceContextPropagator()
 
     propagator.inject(
-      trace.setSpanContext(
-        ROOT_CONTEXT,
+      otlpAPI.trace.setSpanContext(
+        otlpAPI.ROOT_CONTEXT,
         parentSpan.spanContext()
       ),
       carrier,
-      defaultTextMapSetter
+      otlpAPI.defaultTextMapSetter
     )
 
     /* TODO: Do I need to create and set a context? No, right?
 
     // create a parent active context
     const parentContext = propagator.extract(
-      ROOT_CONTEXT,
+      otlpAPI.ROOT_CONTEXT,
       carrier,
-      defaultTextMapGetter
+      otlpAPI.defaultTextMapGetter
     )
 
     // set the active context
@@ -490,19 +510,19 @@ class Honeycomb {
     const handler: Handler = <Handler>context.handler
 
     parentSpan.setAttribute(
-      SemanticAttributes.HTTP_STATUS_CODE,
+      otlpSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
       String(context._response.statusCode)
     )
     parentSpan.setAttribute(
-      SemanticAttributes.HTTP_ROUTE,
+      otlpSemanticConventions.SemanticAttributes.HTTP_ROUTE,
       <string>handler.route
     )
     parentSpan.setAttribute(
-      SemanticAttributes.HTTP_METHOD,
+      otlpSemanticConventions.SemanticAttributes.HTTP_METHOD,
       <string>handler.method
     )
     parentSpan.setAttribute(
-      SemanticResourceAttributes.SERVICE_VERSION,
+      otlpSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
       <string>handler.version
     )
 
@@ -528,7 +548,7 @@ class Honeycomb {
   ): Promise<any> {
     const schema = require('honeycomb-beeline/lib/schema')
     const tracker = require('honeycomb-beeline/lib/async_tracker')
-
+    const _headerSources = headerSources || this.defaultHeaderSources
     const traceContext = _getBeelineTraceContext(context)
     const trace = beeline.startTrace({
       [schema.EVENT_TYPE]: 'boltzmann',
@@ -580,7 +600,6 @@ class Honeycomb {
 
     boundFinisher(tracker.getTracked())
 
-    const _headerSources = headerSources || this.defaultHeaderSources
 
     return result
 
@@ -609,13 +628,13 @@ class Honeycomb {
   }
 
   public async withSpan(name: string, runInContext: () => Promise<any>): Promise<any> {
-    if (!this.features.otel) {
+    if (!this.features.otlp) {
       // Call legacy beelines implementation
       return this.withBeelineSpan(name, runInContext)
     }
 
     const span = this.tracer.startSpan(name)
-    trace.setSpan(traceContext.active(), span)
+    otlpAPI.trace.setSpan(otlpAPI.context.active(), span)
 
     const result = await runInContext()
 
@@ -637,39 +656,30 @@ class Honeycomb {
 
 export {
   beeline,
-  Metadata,
-  credentials,
-  traceContext,
-  defaultTextMapSetter,
-  ROOT_CONTEXT,
-  Sampler,
-  trace,
-  Tracer,
-  ParentBasedSampler,
-  TraceIdRatioBasedSampler,
-  W3CTraceContextPropagator,
+  grpc,
+  otlpAPI,
+  otlpCore,
   OTLPTraceExporter,
-  Resource,
-  NodeSDK,
-  SimpleSpanProcessor,
-  SpanProcessor,
+  otlpResources,
+  OtlpSDK,
+  otlpTraceBase,
   NodeTracerProvider,
-  SemanticAttributes,
-  SemanticResourceAttributes,
-  Instrumentation,
-  DnsInstrumentation,
-  HttpInstrumentation,
+  otlpSemanticConventions,
+  OtlpInstrumentation,
+  OtlpDnsInstrumentation,
+  OtlpHttpInstrumentation,
   // {% if redis %}
-  RedisInstrumentation,
+  OtlpRedisInstrumentation,
   // {% endif %}
   // {% if postgres %}
-  PgInstrumentation
+  OtlpPgInstrumentation
   // {% endif %}
 }
 
 export {
-  defaultOTLPFactories,
+  defaultOtlpFactories,
   Honeycomb,
+  HoneycombError,
   HoneycombOptions,
   HoneycombFeatures,
   OTLPFactories,
@@ -703,21 +713,21 @@ if (require.main === module) {
       )
     })
 
-    t.test('options.otel', async (assert: Test) => {
+    t.test('options.otlp', async (assert: Test) => {
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {}).otel,
+        Honeycomb.parseEnv('boltzmann', {}).otlp,
         false,
-        'should not use otel when no env vars'
+        'should not use otlp when no env vars'
       )
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: ''}).otel,
+        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: ''}).otlp,
         false,
-        'should not use otel when env vars are blank'
+        'should not use otlp when env vars are blank'
       )
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: 'some write key'}).otel,
+        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: 'some write key'}).otlp,
         false,
-        'should not use otel when only write key is defined'
+        'should not use otlp when only write key is defined'
       )
       assert.equal(
         Honeycomb.parseEnv(
@@ -726,31 +736,31 @@ if (require.main === module) {
             HONEYCOMB_WRITEKEY: 'some write key',
             HONEYCOMB_API_HOST: 'https://refinery.website'
           }
-        ).otel,
+        ).otlp,
         false,
-        'should not use otel when API host is not grpc://'
+        'should not use otlp when API host is not grpc://'
       )
       assert.equal(
         Honeycomb.parseEnv(
           'boltzmann',
           {
             HONEYCOMB_WRITEKEY: 'some write key',
-            HONEYCOMB_API_HOST: 'grpc://otel.website'
+            HONEYCOMB_API_HOST: 'grpc://otlp.website'
           }
-        ).otel,
+        ).otlp,
         true,
-        '*should* use otel when API host is grpc://'
+        '*should* use otlp when API host is grpc://'
       )
       assert.equal(
         Honeycomb.parseEnv(
           'boltzmann',
           {
             HONEYCOMB_WRITEKEY: '',
-            HONEYCOMB_API_HOST: 'grpc://otel.website'
+            HONEYCOMB_API_HOST: 'grpc://otlp.website'
           }
-        ).otel,
+        ).otlp,
         false,
-        'should not use otel when write key is empty, even if API host is grpc://'
+        'should not use otlp when write key is empty, even if API host is grpc://'
       )
     })
 
@@ -807,7 +817,7 @@ if (require.main === module) {
   test('factories', async (t: Test) => {
     const options = {
       enabled: true,
-      otel: true,
+      otlp: true,
       writeKey: 'some write key',
       dataset: 'some dataset',
       apiHost: 'grpc://example.com',
@@ -815,7 +825,7 @@ if (require.main === module) {
     }
 
     t.test('metadata', async (assert: Test) => {
-      const metadata = defaultOTLPFactories.metadata(
+      const metadata = defaultOtlpFactories.metadata(
         'some write key',
         'some dataset'
       )
@@ -833,23 +843,23 @@ if (require.main === module) {
 
     t.test('sampler', async (assert: Test) => {
       assert.ok(
-        defaultOTLPFactories.sampler(1) instanceof ParentBasedSampler,
-        'sampler(1) should be a ParentBasedSampler'
+        defaultOtlpFactories.sampler(1) instanceof otlpCore.ParentBasedSampler,
+        'sampler(1) should be a otlpCore.ParentBasedSampler'
       )
       assert.ok(
-        defaultOTLPFactories.sampler(0) instanceof ParentBasedSampler,
-        'sampler(0) should be a ParentBasedSampler'
+        defaultOtlpFactories.sampler(0) instanceof otlpCore.ParentBasedSampler,
+        'sampler(0) should be a otlpCore.ParentBasedSampler'
       )
       assert.ok(
-        defaultOTLPFactories.sampler(0.5) instanceof ParentBasedSampler,
-        'sampler(0.5) should be a ParentBasedSampler'
+        defaultOtlpFactories.sampler(0.5) instanceof otlpCore.ParentBasedSampler,
+        'sampler(0.5) should be a otlpCore.ParentBasedSampler'
       )
     })
 
     test('tracerProvider', async (assert: Test) => {
-      const sampler = defaultOTLPFactories.sampler(1)
+      const sampler = defaultOtlpFactories.sampler(1)
       assert.doesNotThrow(
-        () => defaultOTLPFactories.tracerProvider(sampler),
+        () => defaultOtlpFactories.tracerProvider(sampler),
         'should create a tracer provider'
       )
     })
@@ -857,33 +867,33 @@ if (require.main === module) {
     test('traceExporter', async (assert: Test) => {
       assert.doesNotThrow(() => {
         const url = 'grpc://example.com'
-        const metadata = defaultOTLPFactories.metadata(
+        const metadata = defaultOtlpFactories.metadata(
           'some write key',
           'some dataset'
         )
 
-        defaultOTLPFactories.traceExporter(url, metadata)
+        defaultOtlpFactories.traceExporter(url, metadata)
       }, 'should create a trace exporter')
     })
 
     test('spanProcessor', async (assert: Test) => {
       assert.doesNotThrow(() => {
-        const exporter = defaultOTLPFactories.traceExporter(
+        const exporter = defaultOtlpFactories.traceExporter(
           'grpc://example.com',
-          defaultOTLPFactories.metadata(
+          defaultOtlpFactories.metadata(
             'some write key',
             'some dataset'
           )
         )
 
-        defaultOTLPFactories.spanProcessor(exporter)
+        defaultOtlpFactories.spanProcessor(exporter)
       }, 'should create a span processor')
     })
 
     test('instrumentations', async (assert: Test) => {
       // expected instrumentations: dns, node core, postgres, redis
       assert.equal(
-        defaultOTLPFactories.instrumentations().length,
+        defaultOtlpFactories.instrumentations().length,
         4,
         'should create 4 instrumentations (dns, http, postgres, redis)'
       )
@@ -892,15 +902,15 @@ if (require.main === module) {
     test('sdk', async (assert: Test) => {
       // run the init function
       assert.doesNotThrow(() => {
-        const exporter = defaultOTLPFactories.traceExporter(
+        const exporter = defaultOtlpFactories.traceExporter(
           'grpc://example.com',
-          defaultOTLPFactories.metadata(
+          defaultOtlpFactories.metadata(
             'some write key',
             'some dataset'
           )
         )
-        const instrumentations = defaultOTLPFactories.instrumentations()
-        defaultOTLPFactories.sdk('boltzmann', instrumentations, exporter)
+        const instrumentations = defaultOtlpFactories.instrumentations()
+        defaultOtlpFactories.sdk('boltzmann', instrumentations, exporter)
       }, 'should create an sdk')
     })
   })
