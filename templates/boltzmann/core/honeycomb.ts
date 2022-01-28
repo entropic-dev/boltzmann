@@ -223,6 +223,13 @@ interface OTLPFactoryOverrides {
   ) => OtlpSDK;
 }
 
+// An interface for the return value of Honeycomb#startSpan
+// and/or Honeycomb#startTrace.
+interface Span {
+  end(): Promise<void>
+}
+
+// Let's GOOOOOOO
 class Honeycomb {
   // We load options from the environment. Unlike with Options,
   // we do a lot of feature detection here.
@@ -237,7 +244,6 @@ class Honeycomb {
     )
   }
 
-  // TODO: Can't inject serviceName here
   public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
     // If there's no write key we won't get very far anyway
     const disable = !env.HONEYCOMB_WRITEKEY
@@ -275,6 +281,11 @@ class Honeycomb {
     }
   }
 
+  // These accessors are type guards that ensure you're working
+  // with a defined/non-null property. It's a bit of 6-to-1 and
+  // half a dozen on the other, because you trade ifs for
+  // try/catches and honeycomb can basically never throw. Even
+  // so, it saves a little bit of boilerplate.
   private getWriteKey (): string {
     if (this.features.honeycomb && this.options.writeKey) {
       return this.options.writeKey
@@ -395,8 +406,6 @@ class Honeycomb {
     }
   }
 
-
-
   // Start the OpenTelemetry SDK. If using beelines, this is
   // a no-op. This needs to happen before anything happens in
   // the entrypoint and is an async operation.
@@ -431,22 +440,18 @@ class Honeycomb {
     this.started = true
   }
 
-  // Create a trace, call the runInContext function, then close the
-  // trace after it resolved. For beeline, this is is a Trace;
-  // for OpenTelemetry, it's a root span.
-  public async withTrace(
-    context: Context,
-    runInContext: () => Promise<any>,
-    headerSources?: string[]
-  ): Promise<any> {
+  // Start a trace. Returns a Trace, which may be closed by calling
+  // `trace.end()`.
+  public async startTrace(context: Context, headerSources?: string[]): Promise<Span> {
     if (!this.features.honeycomb || !this.initialized) {
-      // Don't do anything but run the callback
-      return runInContext()
+      return {
+        async end() {}
+      }
     }
 
     if (!this.features.otlp) {
       // Call legacy beelines implementation
-      return this.withBeelineTrace(context, runInContext, headerSources)
+      return this._startBeelineTrace(context, headerSources)
     }
 
     if (headerSources) {
@@ -469,7 +474,7 @@ class Honeycomb {
     let carrier = {}
 
     // Start a parent span
-    const parentSpan = tracer.startSpan(
+    const span = tracer.startSpan(
       `${context.method} ${context.url.pathname}${context.url.search}`,
       {
         attributes: {
@@ -492,7 +497,7 @@ class Honeycomb {
     propagator.inject(
       otlpAPI.trace.setSpanContext(
         otlpAPI.ROOT_CONTEXT,
-        parentSpan.spanContext()
+        span.spanContext()
       ),
       carrier,
       otlpAPI.defaultTextMapSetter
@@ -512,50 +517,54 @@ class Honeycomb {
 
     */
 
-    // giddyup!
-    const rv = await runInContext()
+    return {
+      end: async () => {
+        return this._endTraceSpan(span, context);
+      }
+    }
+  }
 
+  // Close an otel "parent span".
+  private async _endTraceSpan(span: otlpAPI.Span, context: Context): Promise<void> {
     const handler: Handler = <Handler>context.handler
 
-    parentSpan.setAttribute(
+    span.setAttribute(
       otlpSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
       String(context._response.statusCode)
     )
-    parentSpan.setAttribute(
+    span.setAttribute(
       otlpSemanticConventions.SemanticAttributes.HTTP_ROUTE,
       <string>handler.route
     )
-    parentSpan.setAttribute(
+    span.setAttribute(
       otlpSemanticConventions.SemanticAttributes.HTTP_METHOD,
       <string>handler.method
     )
-    parentSpan.setAttribute(
+    span.setAttribute(
       otlpSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
       <string>handler.version
     )
 
     Object.entries(context.params).map(([key, value]) => {
-      parentSpan.setAttribute(
+      span.setAttribute(
         Honeycomb.paramAttribute(key),
         value
       )
     })
-    parentSpan.end()
-
-    return rv
+    span.end()
   }
 
+  // Beelines implementation for starting/ending a trace
   private defaultHeaderSources: string[] = [ 'x-honeycomb-trace', 'x-request-id' ]
 
-  /* A beelines implementation of startTrace.
-   */
-  async withBeelineTrace(
+  private async _startBeelineTrace(
     context: Context,
-    runInContext: () => Promise<void>,
     headerSources?: string[]
-  ): Promise<any> {
+  ): Promise<Span> {
     if (!this.features.honeycomb || !this.initialized) {
-      return runInContext()
+      return {
+        async end() {}
+      }
     }
 
     const schema = require('honeycomb-beeline/lib/schema')
@@ -587,8 +596,6 @@ class Honeycomb {
       beeline.addContext(traceContext.customContext)
     }
 
-    if (!trace) return runInContext()
-
     const boundFinisher = beeline.bindFunctionToTrace((response: ServerResponse) => {
       beeline.addContext({
         'response.status_code': String(response.statusCode)
@@ -608,12 +615,11 @@ class Honeycomb {
       beeline.finishTrace(trace)
     })
 
-    const result = await runInContext()
-
-    boundFinisher(tracker.getTracked())
-
-
-    return result
+    return {
+      end: async () => {
+        boundFinisher(this, tracker.getTracked())
+      }
+    }
 
     function _getBeelineTraceContext (context: Context) {
       const source = _headerSources.find((header: string) => header in context.headers)
@@ -639,37 +645,45 @@ class Honeycomb {
     }
   }
 
-  public async withSpan(name: string, runInContext: () => Promise<any>): Promise<any> {
+  // Starting a span. For OpenTelemetry this is a "child" span
+  // (OTLP doesn't have the same trace concept as beelines. Returns
+  // a Span object.
+  public async startSpan(name: string): Promise<Span> {
     if (!this.features.honeycomb || !this.initialized) {
-      return runInContext()
+      return {
+        async end() {}
+      }
     }
 
     if (!this.features.otlp) {
-      return this.withBeelineSpan(name, runInContext)
+      return this._startBeelineSpan(name)
     }
 
     const span = this.tracer.startSpan(name)
     otlpAPI.trace.setSpan(otlpAPI.context.active(), span)
 
-    const result = await runInContext()
+    return {
+      async end() {
+        span.end()
+      }
+    }
 
-    span.end()
-
-    return result
   }
 
-  private async withBeelineSpan(name: string, runInContext: () => Promise<any>): Promise<any> {
+  private async _startBeelineSpan(name: string): Promise<Span> {
     if (!this.features.honeycomb || !this.initialized) {
-      return runInContext()
+      return {
+        async end() {}
+      }
     }
 
     const span = beeline.startSpan({ name })
 
-    const result = await runInContext()
-
-    beeline.finishSpan(span)
-
-    return result
+    return {
+      async end() {
+        beeline.finishSpan(span)
+      }
+    }
   }
 }
 
