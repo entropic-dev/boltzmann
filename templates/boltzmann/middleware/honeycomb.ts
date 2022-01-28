@@ -10,25 +10,15 @@ function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
 } = {}) {
   return function honeycombTrace (next: Handler) {
-    return (context: Context) => {
-      return honeycomb.withTrace(context, () => new Promise((resolve, reject) => {
-        const p = next(context)
+    return async (context: Context) => {
+      const trace = await honeycomb.startTrace(context, headerSources)
 
-        // TODO: This action needs to happen asynchronously - that is, the
-        // middleware stack needs to resolve before the headers get sent and
-        // we close the span.
-        //
-        // The likely implication of this is that we won't be able to use
-        // the context manager API - at least not directly. Instead, we'll
-        // want to go back to endTrace/endSpan.
+      // do not do as I do,
+      onHeaders(context._response, async () => {
+        await trace.end()
+      })
 
-        // do not do as I do,
-        onHeaders(context._response, () => {
-          p.then((result: any) => {
-            resolve(result);
-          }, reject)
-        })
-      }), headerSources)
+      return next(context)
     }
   }
 }
@@ -40,7 +30,13 @@ function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
 
   function honeycombSpan (next: Handler) {
     return async (context: Context): Promise<any> => {
-      return honeycomb.withSpan(`mw: ${name}`, () => next(context))
+      const span = await honeycomb.startSpan(`mw: ${name}`)
+
+      // Assumption: the invariant middleware between each layer
+      // will ensure that no errors are thrown to next().
+      const result = await next(context)
+      await span.end()
+      return result
     }
   }
 
