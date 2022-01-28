@@ -30,14 +30,27 @@ function _getServiceName() {
 
 import assert from 'assert'
 
+/*{#
+
+/!\ ACHTUNG! /!\
+
+Honeycomb instrumentation is in index.tera *before* the prelude.
+This is because instrumentation needs to be installed prior to
+instrumented modules being imported.
+
+In production, honeycomb.ts defines a class called Honeycomb, so we can
+simply reach for it. In self-test mode, we need to import it, as is typical
+for non-prelude files.
+
+For the most part, dependencies should be contained within honeycomb.ts.
+HOWEVER, in cases where a honeycomb.ts dependency is also required by other
+code, it must *also* be imported in a self-test scenario only.
+
+#}*/
 void `{% if honeycomb %}`
-// Honeycomb instrumentation is in index.tera *before* the prelude.
-// This is because instrumentation needs to be installed prior to
-// instrumented modules being imported. In selftest mode the file
-// exports its main object, but otherwise the honeycomb object
-// should be defined.
 void `{% if selftest %}`
 import { Honeycomb } from './honeycomb'
+import isDev from 'are-we-dev'
 void `{% endif %}`
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
@@ -121,7 +134,6 @@ import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } f
 
 import querystring from 'querystring'
 import { promisify } from 'util'
-import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
 import accepts from 'accepts'
 import { promises as fs } from 'fs'
@@ -222,4 +234,3 @@ export {
   querystring,
   ships,
 }
-void `{% endif %}`
