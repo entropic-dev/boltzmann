@@ -128,7 +128,7 @@ jobs:
           const fs = require('fs')
           const spawnSync = require('child_process').spawnSync
 
-          const executable = path.join(__dirname, 'boltzmann_' + os.arch() + '_' + os.platform()) + (os.platform() === 'win32' ? '.exe' : '')
+          const executable = path.join(__dirname, 'boltzmann_' + (os.platform() === 'darwin' ? 'x64' : os.arch()) + '_' + os.platform()) + (os.platform() === 'win32' ? '.exe' : '')
 
           if (!fs.existsSync(executable)) {
             console.error("Sorry, boltzmann is not yet supported on %s", os.platform())
