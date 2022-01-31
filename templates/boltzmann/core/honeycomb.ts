@@ -110,6 +110,10 @@ class Honeycomb {
     }
   }
 
+  public static _traceSpanName(method: string, pathname: string) {
+    return `${method} ${pathname}`
+  }
+
   // These accessors are type guards that ensure you're working
   // with a defined/non-null property. It's a bit of 6-to-1 and
   // half a dozen on the other, because you trade ifs for
@@ -232,7 +236,7 @@ class Honeycomb {
     const trace = beeline.startTrace({
       [schema.EVENT_TYPE]: 'boltzmann',
       [schema.PACKAGE_VERSION]: '1.0.0',
-      [schema.TRACE_SPAN_NAME]: `${context.method} ${context.url.pathname}${context.url.search}`,
+      [schema.TRACE_SPAN_NAME]: Honeycomb._traceSpanName(context.method, context.url.pathname),
       [schema.TRACE_ID_SOURCE]: traceContext.source,
       'request.host': context.host,
       'request.original_url': context.url.href,
@@ -421,6 +425,13 @@ if (require.main === module) {
         'should be url if url'
       )
     })
+
+    t.test('Honeycomb._traceSpanName', async (assert: Test) => {
+      assert.same(
+        Honeycomb._traceSpanName('GET', '/echo'),
+        'GET /echo'
+      )
+    });
   })
 }
 
