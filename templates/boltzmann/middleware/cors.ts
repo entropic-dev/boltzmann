@@ -22,11 +22,15 @@ function handleCORS ({
 
   return (next: Handler) => {
     return async function cors (context: Context) {
-      if (!includesStar && !originsArray.includes(String(context.headers.origin))) {
-        throw Object.assign(new Error('Origin not allowed'), {
-          [Symbol.for('status')]: 400
-        })
-      }
+      const reflectedOrigin = (
+        includesStar
+        ? '*'
+        : (
+          originsArray.includes(String(context.headers.origin))
+          ? context.headers.origin
+          : false
+        )
+      )
 
       const response = (
         context.method === 'OPTIONS'
@@ -37,7 +41,7 @@ function handleCORS ({
       )
 
       response[Symbol.for('headers')] = {
-        'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
+        ...(reflectedOrigin ? { 'Access-Control-Allow-Origin': reflectedOrigin } : {}),
         'Access-Control-Allow-Methods': ([] as any[]).concat(methods).join(','),
         'Access-Control-Allow-Headers': ([] as any[]).concat(headers).join(',')
       }
@@ -52,17 +56,6 @@ import tap from 'tap'
 /* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
-
-  test('handleCORS: returns 400 when origin is not included in allow list', async (assert) => {
-    const adaptor = handleCORS({ origins: ['foo.com'] })
-    const handler = adaptor(() => {})
-
-    const response = handler(<any>{ headers: { 'origin': 'bar.com' }})
-    assert.rejects(response, 'Origin not allowed')
-    const err = await response.catch(err => err)
-
-    assert.equal(err[Symbol.for('status')], 400)
-  })
 
   test('handleCORS: returns 204 response for any OPTIONS request', async (assert) => {
     const adaptor = handleCORS({ origins: ['foo.com'] })
