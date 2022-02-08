@@ -121,6 +121,7 @@ interface OtelFactories {
   traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtlpInstrumentation[]
+  traceContextPropagator: () => otelAPI.TextMapPropagator
   sdk: (
     serviceName: string,
     instrumentations: OtlpInstrumentation[],
@@ -182,6 +183,10 @@ const defaultOtelFactories: OtelFactories = {
     void `{% endif %}`
 
     return is
+  },
+
+  traceContextPropagator(): W3CTraceContextPropagator {
+    return new W3CTraceContextPropagator()
   },
 
   // The SDK will take a service name, instrumentations
@@ -389,6 +394,10 @@ class Honeycomb {
       provider.addSpanProcessor(processor)
       provider.register()
 
+      const propagator = f.traceContextPropagator()
+
+      otelAPI.propagation.setGlobalPropagator(propagator)
+
       this.sdk = f.sdk(
         serviceName,
         instrumentations,
@@ -469,11 +478,20 @@ class Honeycomb {
      * ▔▏┗┻┛┃┃┗┻┛▕▔
      */
 
-    const tracer = this.tracer
-    let carrier = {}
+    // TODO: In order to get trace propagation working correctly, we *may*
+    // need to extract the parent context with the request headers. I *believe*
+    // setting the W3CTraceContextPropagator as global and trace.setSpan are
+    // enough, but this needs to be confirmed.
+    /*
+    const parentContext = propagator.extract(
+      otelAPI.ROOT_CONTEXT,
+      context.request.headers,
+      otelAPI.defaultTextMapGetter
+    )
+    */
 
     // Start a parent span
-    const span = tracer.startSpan(
+    const span = this.tracer.startSpan(
       `${context.method} ${context.url.pathname}`,
       {
         attributes: {
@@ -483,39 +501,13 @@ class Honeycomb {
           [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
           [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
           [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-          // TODO: Honeycomb.Attributes obvs
           [Honeycomb.OTEL_REQ_QUERY]: context.url.search
         },
         kind: otelAPI.SpanKind.SERVER
       }
     )
 
-    // this propagator takes care of extracting trace parent
-    // and state from request headers (and so on)
-    const propagator = new otelCore.W3CTraceContextPropagator()
-
-    propagator.inject(
-      otelAPI.trace.setSpanContext(
-        otelAPI.ROOT_CONTEXT,
-        span.spanContext()
-      ),
-      carrier,
-      otelAPI.defaultTextMapSetter
-    )
-
-    /* TODO: Do I need to create and set a context? No, right?
-
-    // create a parent active context
-    const parentContext = propagator.extract(
-      otelAPI.ROOT_CONTEXT,
-      carrier,
-      otelAPI.defaultTextMapGetter
-    )
-
-    // set the active context
-    await traceContext.with(parentContext, async () => {
-
-    */
+    otelAPI.trace.setSpan(otelAPI.context.active(), span)
 
     return {
       end: async () => {
@@ -938,6 +930,12 @@ if (require.main === module) {
         4,
         'should create 4 instrumentations (dns, http, postgres, redis)'
       )
+    })
+
+    test('traceContextPropagator', async (assert: Test) => {
+      assert.doesNotThrow(() => {
+        defaultOtelFactories.traceContextPropagator()
+      })
     })
 
     test('sdk', async (assert: Test) => {
