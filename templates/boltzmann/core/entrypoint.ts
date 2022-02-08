@@ -30,12 +30,12 @@ if (require.main === module && !process.env.TAP) {
         // {# so we're gonna do this one flag at a time. #}
         const acc = []
 
-        // {% if honeycomb %}
-        acc.push(trace)
-        // {% endif %}
-
         // {% if ping %}
         acc.push(handlePing)
+        // {% endif %}
+
+        // {% if honeycomb %}
+        acc.push(trace)
         // {% endif %}
 
         // {% if livereload %}
