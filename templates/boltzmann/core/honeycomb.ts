@@ -479,7 +479,7 @@ class Honeycomb {
         attributes: {
           [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
           [otelSemanticConventions.SemanticAttributes.HTTP_URL]: context.url.href,
-          [otelSemanticConventions.SemanticAttributes.NET_PEER_IP]: context.remote,
+          [otelSemanticConventions.SemanticAttributes.HTTP_CLIENT_IP]: context.remote,
           [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
           [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
           [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
