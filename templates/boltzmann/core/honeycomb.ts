@@ -485,7 +485,8 @@ class Honeycomb {
           [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
           // TODO: Honeycomb.Attributes obvs
           [Honeycomb.OTEL_REQ_QUERY]: context.url.search
-        }
+        },
+        kind: otelAPI.SpanKind.SERVER
       }
     )
 
