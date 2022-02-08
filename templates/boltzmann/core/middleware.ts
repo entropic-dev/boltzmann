@@ -4,6 +4,7 @@ export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddlewa
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
+import { otelSemanticConventions } from '../core/honeycomb'
 import { enforceInvariants } from '../middleware/enforce-invariants'
 import { honeycombMiddlewareSpans } from '../middleware/honeycomb'
 import { BodyParserDefinition } from '../core/body'
@@ -84,16 +85,24 @@ async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler)
 async function handler (context: Context) {
   const handler = context.handler as Handler
   // {% if honeycomb %}
-  const span = await honeycomb.startSpan(
-    `handler: ${handler.name}`,
-    {
-      'handler.name': handler.name,
-      'handler.method': String(handler.method),
-      'handler.route': handler.route,
-      'handler.version': handler.version || '*',
-      'handler.decorators': String(handler.decorators)
-    }
-  )
+
+  // TODO: This check is for backwards-compatibility reasons and may be
+  // removed in the future.
+  const spanOpts = honeycomb.features.otel ? {
+    [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
+    [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
+    'boltzmann.http.handler.name': handler.name,
+    'boltzmann.http.handler.version': handler.version || '*',
+    'boltzmann.http.handler.decorators': String(handler.decorators)
+  } : {
+    'handler.name': handler.name,
+    'handler.method': String(handler.method),
+    'handler.route': handler.route,
+    'handler.version': handler.version || '*',
+    'handler.decorators': String(handler.decorators)
+  }
+
+  const span = await honeycomb.startSpan(`handler: ${handler.name}`, spanOpts)
 
   try {
     // {% endif %}
