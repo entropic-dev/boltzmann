@@ -352,10 +352,10 @@ class Honeycomb {
   // Some non-standard OpenTelemetry attributes we add in
   // the middlewares...
 
-  public static OTEL_REQ_QUERY = 'boltzmann.query'
+  public static OTEL_REQ_QUERY = 'boltzmann.http.query'
 
   public static paramAttribute(param: string): string {
-    return `boltzmann.request.param.${param}`
+    return `boltzmann.http.request.param.${param}`
   }
 
   // Initialize Honeycomb! Stands up the otel node SDK if enabled,
@@ -474,7 +474,7 @@ class Honeycomb {
 
     // Start a parent span
     const span = tracer.startSpan(
-      `${context.method} ${context.url.pathname}${context.url.search}`,
+      `${context.method} ${context.url.pathname}`,
       {
         attributes: {
           [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
