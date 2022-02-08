@@ -185,8 +185,8 @@ const defaultOtelFactories: OtelFactories = {
     return is
   },
 
-  traceContextPropagator(): W3CTraceContextPropagator {
-    return new W3CTraceContextPropagator()
+  traceContextPropagator(): otelCore.W3CTraceContextPropagator {
+    return new otelCore.W3CTraceContextPropagator()
   },
 
   // The SDK will take a service name, instrumentations
