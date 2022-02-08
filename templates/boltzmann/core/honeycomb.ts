@@ -641,7 +641,6 @@ class Honeycomb {
   // (OTLP doesn't have the same trace concept as beelines. Returns
   // a Span object.
   public async startSpan(name: string, attributes?: { [a: string]: string | undefined }): Promise<Span> {
-
     if (!this.features.honeycomb || !this.initialized) {
       return {
         async end() {}
@@ -652,7 +651,13 @@ class Honeycomb {
       return this._startBeelineSpan(name, attributes || {})
     }
 
-    const span = this.tracer.startSpan(name)
+    const spanOpts: otelAPI.SpanOptions = { kind: otelAPI.SpanKind.SERVER }
+
+    if (attributes) {
+      spanOpts.attributes = attributes
+    }
+
+    const span = this.tracer.startSpan(name, spanOpts)
     otelAPI.trace.setSpan(otelAPI.context.active(), span)
 
     return {
@@ -663,7 +668,7 @@ class Honeycomb {
 
   }
 
-  private async _startBeelineSpan(name: string, attributes: { [a: string]: string | undefined}): Promise<Span> {
+  private async _startBeelineSpan(name: string, attributes: { [a: string]: string | undefined }): Promise<Span> {
     if (!this.features.honeycomb || !this.initialized) {
       return {
         async end() {}
