@@ -1,14 +1,13 @@
 void `{% if selftest %}`;
 export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
 
-import beeline from 'honeycomb-beeline'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
 import { enforceInvariants } from '../middleware/enforce-invariants'
 import { honeycombMiddlewareSpans } from '../middleware/honeycomb'
 import { BodyParserDefinition } from '../core/body'
-import { HttpMetadata } from '../core/prelude'
+import { honeycomb, HttpMetadata } from '../core/prelude'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
@@ -85,26 +84,23 @@ async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler)
 async function handler (context: Context) {
   const handler = context.handler as Handler
   // {% if honeycomb %}
-  let span = null
-  if (process.env.HONEYCOMB_WRITEKEY) {
-    span = beeline.startSpan({
-      name: `handler: ${handler.name}`,
+  const span = await honeycomb.startSpan(
+    `handler: ${handler.name}`,
+    {
       'handler.name': handler.name,
       'handler.method': String(handler.method),
       'handler.route': handler.route,
       'handler.version': handler.version || '*',
       'handler.decorators': String(handler.decorators)
-    })
-  }
+    }
+  )
 
   try {
     // {% endif %}
     return await handler(context)
     // {% if honeycomb %}
   } finally {
-    if (process.env.HONEYCOMB_WRITEKEY && span !== null) {
-      beeline.finishSpan(span)
-    }
+    await span.end()
   }
   // {% endif %}
 }

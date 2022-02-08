@@ -310,7 +310,8 @@ class Honeycomb {
   // Starting a span. For OpenTelemetry this is a "child" span
   // (OTLP doesn't have the same trace concept as beelines. Returns
   // a Span object.
-  public async startSpan(name: string): Promise<Span> {
+  public async startSpan(name: string, attributes?: { [a: string]: string | undefined }): Promise<Span> {
+
     if (!this.features.honeycomb || !this.initialized) {
       return {
         async end() {}
@@ -318,17 +319,17 @@ class Honeycomb {
     }
 
     // This method is also intended to focus on OTLP in the future...
-    return this._startBeelineSpan(name)
+    return this._startBeelineSpan(name, attributes || {})
   }
 
-  private async _startBeelineSpan(name: string): Promise<Span> {
+  private async _startBeelineSpan(name: string, attributes: { [a: string]: string | undefined}): Promise<Span> {
     if (!this.features.honeycomb || !this.initialized) {
       return {
         async end() {}
       }
     }
 
-    const span = beeline.startSpan({ name })
+    const span = beeline.startSpan({ name, ...attributes })
 
     return {
       async end() {
