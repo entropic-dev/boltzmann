@@ -44,20 +44,17 @@ import * as otelSemanticConventions from '@opentelemetry/semantic-conventions'
 // and postgres instrumentation if those respective features
 // are enabled.
 //
-// TODO: Can these be overridden?
-//
 // Some instrumentation that is NOT included, because boltzmann
 // doesn't support the technology:
 //
 // * @opentelemetry/instrumentation-grpc
 // * @opentelemetry/instrumentation-graphql
 //
-// TODO: Double-check these
-//
 // Some packages which, to our knowledge, don't have available
 // instrumentations:
 //
 // * undici
+//
 import { Instrumentation as OtlpInstrumentation } from '@opentelemetry/instrumentation'
 import { DnsInstrumentation as OtlpDnsInstrumentation } from '@opentelemetry/instrumentation-dns'
 import { HttpInstrumentation as OtlpHttpInstrumentation } from '@opentelemetry/instrumentation-http'
@@ -317,10 +314,16 @@ class Honeycomb {
   public features: HoneycombFeatures
   public factories: OtelFactories
 
-  public initialized: boolean
-  public started: boolean
+  public tracerProvider: NodeTracerProvider | null
+  public traceExporter: OTLPTraceExporter | null
+  public spanProcessor: otelTraceBase.SpanProcessor | null
+  public instrumentations: OtlpInstrumentation[] | null
+  public traceContextPropagator: otelAPI.TextMapPropagator | null
   public sdk: OtelSDK | null
   public tracer: otelAPI.Tracer
+
+  public initialized: boolean
+  public started: boolean
 
   constructor(
     options: HoneycombOptions,
@@ -334,8 +337,15 @@ class Honeycomb {
     }
     this.initialized = false
     this.started = false
+
+    this.tracerProvider = null
+    this.traceExporter = null
+    this.spanProcessor = null
+    this.instrumentations = null
+    this.traceContextPropagator = null
     this.sdk = null
     this.tracer = otelAPI.trace.getTracer('boltzmann', '1.0.0')
+
     this.factories = {
       ...defaultOtelFactories,
       ...(overrides || {})
@@ -368,13 +378,17 @@ class Honeycomb {
   // This needs to occur before any imports you want instrumentation
   // to be aware of.
   public init(): void {
+    if (!this.features.honeycomb) {
+      this.initialized = true
+      return
+    }
     try {
       const writeKey = this.getWriteKey();
       const dataset = this.getDataset();
       const sampleRate = this.options.sampleRate || 1;
       const serviceName = this.options.serviceName;
 
-      if (!this.features.honeycomb) {
+      if (!this.features.otel) {
         beeline({ writeKey, dataset, sampleRate, serviceName })
         this.initialized = true
         return
@@ -398,16 +412,24 @@ class Honeycomb {
 
       otelAPI.propagation.setGlobalPropagator(propagator)
 
-      this.sdk = f.sdk(
+      const sdk = f.sdk(
         serviceName,
         instrumentations,
         exporter
       )
 
+      this.traceExporter = exporter
+      this.spanProcessor = processor
+      this.instrumentations = instrumentations
+      this.tracerProvider = provider
+      this.traceContextPropagator = propagator
+
+      this.sdk = sdk
+
       this.initialized = true
     } catch (err) {
       if (err instanceof HoneycombError) {
-        // Honeycomb.log(err);
+        Honeycomb.log(err);
         return;
       }
       throw err;
@@ -427,14 +449,8 @@ class Honeycomb {
       await shutdown()
     }
 
-    async function shutdown() {
-      if (sdk) {
-        try {
-          await sdk.shutdown()
-        } catch (err) {
-          Honeycomb.log(err)
-        }
-      }
+    const shutdown = async () => {
+      await this.stop()
       process.exit(exitCode)
     }
 
@@ -446,6 +462,16 @@ class Honeycomb {
       await sdk.start()
     }
     this.started = true
+  }
+
+  public async stop(): Promise<void> {
+    const sdk = this.sdk
+    if (!sdk) return
+    try {
+      await sdk.shutdown()
+    } catch (err) {
+      Honeycomb.log(err)
+    }
   }
 
   // Start a trace. Returns a Trace, which may be closed by calling
@@ -718,6 +744,43 @@ export {
 }
 
 void `{% if selftest %}`
+
+class OtelTestSpanProcessor extends otelTraceBase.SimpleSpanProcessor {
+  public _exporterCreatedSpans: otelTraceBase.ReadableSpan[] = []
+
+  constructor(_exporter: otelTraceBase.SpanExporter) {
+    super(_exporter)
+    this._exporterCreatedSpans = []
+  }
+
+  onEnd(span: otelTraceBase.ReadableSpan): void {
+    this._exporterCreatedSpans.push(span)
+
+    // Don't call onEnd on super - we don't actually want this span to get
+    // emitted!
+  }
+}
+
+function getOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): otelTraceBase.ReadableSpan[] {
+  const processor: any = spanProcessor
+
+  if (!processor) {
+    throw new Error(
+      'Span processor is not defined - did you initialize honeycomb?'
+    )
+  }
+
+  if (!processor._exporterCreatedSpans) {
+    throw new Error(
+      'Span processor has no test spans - did you create an OtelTestSpanProcessor?'
+    )
+  }
+
+  return <otelTraceBase.ReadableSpan[]>(processor._exporterCreatedSpans)
+}
+
+export { getOtelTestSpans, OtelTestSpanProcessor }
+
 import tap from 'tap'
 type Test = (typeof tap.Test)["prototype"]
 

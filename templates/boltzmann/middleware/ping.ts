@@ -6,6 +6,7 @@ import { Context } from '../data/context'
 import { ship } from '../core/prelude'
 void `{% endif %}`;
 
+handlePing.doNotTrace = true
 function handlePing () {
   return (next: Handler) => (context: Context) => {
     if (context.url.pathname === '/monitor/ping') {

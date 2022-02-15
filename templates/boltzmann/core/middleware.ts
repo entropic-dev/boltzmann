@@ -1,14 +1,42 @@
 void `{% if selftest %}`;
+import { honeycomb } from '../core/prelude'
+import { getOtelTestSpans, OtelTestSpanProcessor } from '../core/honeycomb'
+
+/* c8 ignore next */
+if (require.main === module) {
+  // TODO: Cram this into a test helper in honeycomb core
+  honeycomb.options = {
+    serviceName: 'boltzmann-test',
+    disable: false,
+    otel: true,
+    writeKey: 'SOME_WRITEKEY',
+    dataset: 'SOME_DATASET',
+    apiHost: 'grpc://api-host.com',
+    sampleRate: 1
+  }
+
+  honeycomb.features = {
+    honeycomb: true,
+    beeline: false,
+    otel: true
+  }
+
+  honeycomb.factories.spanProcessor = (traceExporter) => {
+    return new OtelTestSpanProcessor(traceExporter)
+  }
+
+  honeycomb.init()
+}
+
 export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
 
+import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
-
 import { otelSemanticConventions } from '../core/honeycomb'
 import { enforceInvariants } from '../middleware/enforce-invariants'
-import { honeycombMiddlewareSpans } from '../middleware/honeycomb'
+import { honeycombMiddlewareSpans, trace } from '../middleware/honeycomb'
 import { BodyParserDefinition } from '../core/body'
-import { honeycomb, HttpMetadata } from '../core/prelude'
 import { route } from '../middleware/route'
 import { Context } from '../data/context'
 import { dev } from '../middleware/dev'
@@ -44,7 +72,8 @@ interface Adaptor {
 
 interface Middleware {
   (...args: any[]): Adaptor
-  name?: string
+  name?: string,
+  doNotTrace?: boolean
 }
 
 type MiddlewareConfig = Middleware | [Middleware, ...any[]]
@@ -88,6 +117,7 @@ async function handler (context: Context) {
 
   // TODO: This check is for backwards-compatibility reasons and may be
   // removed in the future.
+  // TODO: Refactor this into `honeycomb.startHandlerSpan`
   const spanOpts = honeycomb.features.otel ? {
     [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
     [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
@@ -113,3 +143,59 @@ async function handler (context: Context) {
   }
   // {% endif %}
 }
+
+
+void `{% if selftest %}`
+import tap from 'tap'
+type Test = (typeof tap.Test)["prototype"]
+import { runserver } from '../bin/runserver'
+import { inject } from '@hapi/shot'
+
+// A simple test middleware that intercepts the request prior to any
+// handlers seeing it
+const helloMiddleware: Middleware = () => {
+  return (next: Handler) => {
+    return (context: Context) => {
+      return 'Hello!'
+    }
+  }
+}
+
+// A simple test handler which throws - useful for ensuring that the handler
+// isn't called
+const throwingHandler: Handler = (context: Context) => {
+  throw new Error('handler should not be called')
+}
+throwingHandler.route = 'GET /'
+
+/* c8 ignore next */
+if (require.main === module) {
+  const { test } = tap
+
+  test('honeycomb-instrumented middlewares emit spans', async (assert: Test) => {
+    await honeycomb.start()
+
+    const server = await runserver({
+      middleware: [
+        // The "trace" middleware is marked as doNotTrace, so we shouldn't
+        // be creating pre-trace spans (but should get a trace span)
+        trace,
+        // This middleware *should* get auto-spanned
+        helloMiddleware
+      ],
+      handlers: { handler: throwingHandler }
+    })
+    const [onRequest] = server.listeners('request')
+    const response = await inject(<any>onRequest, { method: 'GET', url: '/' })
+
+    assert.same(response.payload, 'Hello!')
+
+    await honeycomb.stop()
+
+    const spans = getOtelTestSpans(honeycomb.spanProcessor)
+
+    assert.same(spans.length, 2, 'two spans should be emitted')
+  })
+}
+
+void `{% endif %}`
