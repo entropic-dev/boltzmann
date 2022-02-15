@@ -6,6 +6,7 @@ import { Context } from '../data/context'
 import onHeaders from 'on-headers'
 void `{% endif %}`;
 
+trace.doNotTrace = true
 function trace ({
   headerSources = ['x-honeycomb-trace', 'x-request-id'],
 } = {}) {
