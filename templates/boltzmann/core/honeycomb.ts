@@ -508,17 +508,20 @@ class Honeycomb {
     // need to extract the parent context with the request headers. I *believe*
     // setting the W3CTraceContextPropagator as global and trace.setSpan are
     // enough, but this needs to be confirmed.
-    /*
-    const parentContext = propagator.extract(
-      otelAPI.ROOT_CONTEXT,
-      context.request.headers,
+
+    let traceContext = otelAPI.context.active()
+
+    // TODO: Do we need this step? Esp. if we don't set any context
+    // properties?
+    traceContext = otelAPI.propagation.extract(
+      traceContext,
+      {},
       otelAPI.defaultTextMapGetter
     )
-    */
 
-    // Start a parent span
     const span = this.tracer.startSpan(
       `${context.method} ${context.url.pathname}`,
+      // TODO: Move attributes to middleware
       {
         attributes: {
           [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
@@ -529,11 +532,12 @@ class Honeycomb {
           [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
           [Honeycomb.OTEL_REQ_QUERY]: context.url.search
         },
-        kind: otelAPI.SpanKind.SERVER
-      }
+        kind: otelAPI.SpanKind.SERVER,
+      },
+      traceContext
     )
 
-    otelAPI.trace.setSpan(otelAPI.context.active(), span)
+    otelAPI.trace.setSpan(traceContext, span)
 
     return {
       end: async () => {
@@ -677,14 +681,24 @@ class Honeycomb {
       return this._startBeelineSpan(name, attributes || {})
     }
 
+    let traceContext = otelAPI.context.active()
+
+    // TODO: Do we need this step? Esp. if we don't set any context
+    // properties?
+    traceContext = otelAPI.propagation.extract(
+      traceContext,
+      {},
+      otelAPI.defaultTextMapGetter
+    )
+
     const spanOpts: otelAPI.SpanOptions = { kind: otelAPI.SpanKind.SERVER }
 
     if (attributes) {
       spanOpts.attributes = attributes
     }
 
-    const span = this.tracer.startSpan(name, spanOpts)
-    otelAPI.trace.setSpan(otelAPI.context.active(), span)
+    const span = this.tracer.startSpan(name, spanOpts, traceContext)
+    otelAPI.trace.setSpan(traceContext, span)
 
     return {
       async end() {
