@@ -754,7 +754,9 @@ class OtelTestSpanProcessor extends otelTraceBase.SimpleSpanProcessor {
   }
 
   onEnd(span: otelTraceBase.ReadableSpan): void {
-    this._exporterCreatedSpans.push(span)
+    // collect spans in the order they were opened (they close in the
+    // opposite order)
+    this._exporterCreatedSpans.unshift(span)
 
     // Don't call onEnd on super - we don't actually want this span to get
     // emitted!
