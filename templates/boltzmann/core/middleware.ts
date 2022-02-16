@@ -6,7 +6,7 @@ import { getOtelTestSpans, OtelTestSpanProcessor } from '../core/honeycomb'
 if (require.main === module) {
   // TODO: Cram this into a test helper in honeycomb core
   honeycomb.options = {
-    serviceName: 'boltzmann-test',
+    serviceName: 'test-app',
     disable: false,
     otel: true,
     writeKey: 'SOME_WRITEKEY',
@@ -24,6 +24,10 @@ if (require.main === module) {
   honeycomb.factories.spanProcessor = (traceExporter) => {
     return new OtelTestSpanProcessor(traceExporter)
   }
+
+  // TODO: Test + adjust to ensure no spans get emitted for the /monitor/ping
+  // route
+  // honeycomb.factories.instrumentations = () => []
 
   honeycomb.init()
 }
@@ -194,7 +198,83 @@ if (require.main === module) {
 
     const spans = getOtelTestSpans(honeycomb.spanProcessor)
 
-    assert.same(spans.length, 2, 'two spans should be emitted')
+    // TODO: Clean this up when I'm confident in the asserts
+    // ssert.same(spans, [], 'un-comment this to render all spans')
+
+    const instrumentationSpans = spans.map(span => {
+      return {
+        spanName: span.name,
+        library: span.instrumentationLibrary.name
+      }
+    }).filter(
+      span => span.library.match(/^@opentelemetry\/instrumentation-/)
+    )
+
+    const boltzmannSpans = spans.map(span => {
+      const context = span.spanContext()
+
+      return {
+        spanName: span.name,
+        serviceName: String(span.resource.attributes['service.name']).split(':')[0],
+        library: span.instrumentationLibrary.name,
+        spanId: context.spanId,
+        traceId: context.traceId,
+        parentSpanId: span.parentSpanId,
+        attributes: span.attributes
+      }
+ 
+    }).filter(
+      span => !span.library.match(/^@opentelemetry\/instrumentation-/)
+    )
+
+    assert.same(
+      instrumentationSpans,
+      [
+        // This span fires when OpenTelemetry fails to send a span to the
+        // grpc endpoint (which is pretty funny)
+        {
+          spanName: 'HTTP GET',
+          library: '@opentelemetry/instrumentation-http'
+        }
+      ],
+      'auto-instrumentation is emitting expected spans'
+    )
+
+    assert.same(
+      boltzmannSpans,
+      [
+        {
+          spanName: 'GET /',
+          serviceName: 'test-app',
+          library: 'boltzmann',
+          traceId: boltzmannSpans[0].traceId,
+          spanId: boltzmannSpans[0].spanId,
+          parentSpanId: undefined,
+          attributes: {
+            "http.host": "localhost",
+            "http.url": "http://localhost/",
+            "http.client_ip": "",
+            "http.method": "GET",
+            "http.scheme": "http:",
+            "http.route": "/",
+            "boltzmann.http.query": "",
+            "http.status_code": "200",
+          }
+
+        },
+        {
+          spanName: 'mw: helloMiddleware',
+          serviceName: 'test-app',
+          library: 'boltzmann',
+          traceId: boltzmannSpans[0].traceId,
+          spanId: boltzmannSpans[1].spanId,
+          parentSpanId: boltzmannSpans[0].spanId,
+          // TODO: There *should* be attributes here, no?
+          attributes: {}
+        }
+      ],
+      "There are two nested spans, in the same trace, with service name and attributes"
+    )
   })
 }
 

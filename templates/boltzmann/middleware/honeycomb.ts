@@ -24,8 +24,8 @@ function trace ({
   }
 }
 
-function honeycombMiddlewareSpans ({name}: {name?: string} = {}) {
-  if (honeycomb.options.disable) {
+function honeycombMiddlewareSpans ({name, doNotTrace}: {name?: string, doNotTrace?: boolean} = {}) {
+  if (honeycomb.options.disable || doNotTrace) {
     return (next: Handler) => (context: Context) => next(context)
   }
 
