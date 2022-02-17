@@ -199,7 +199,7 @@ if (require.main === module) {
     const spans = getOtelTestSpans(honeycomb.spanProcessor)
 
     // TODO: Clean this up when I'm confident in the asserts
-    // ssert.same(spans, [], 'un-comment this to render all spans')
+    assert.same(spans, [], 'un-comment this to render all spans')
 
     const instrumentationSpans = spans.map(span => {
       return {
@@ -230,8 +230,7 @@ if (require.main === module) {
     assert.same(
       instrumentationSpans,
       [
-        // This span fires when OpenTelemetry fails to send a span to the
-        // grpc endpoint (which is pretty funny)
+        // These are all grpc api client calls - very meta!
         {
           spanName: 'HTTP GET',
           library: '@opentelemetry/instrumentation-http'
@@ -243,13 +242,25 @@ if (require.main === module) {
     assert.same(
       boltzmannSpans,
       [
+        // The middleware span
+        {
+          spanName: 'mw: helloMiddleware',
+          serviceName: 'test-app',
+          library: 'boltzmann',
+          traceId: boltzmannSpans[0].traceId,
+          spanId: boltzmannSpans[0].spanId,
+          parentSpanId: undefined,
+          // TODO: There *should* be attributes here, no?
+          attributes: {}
+        },
+        // The request-level parent span
         {
           spanName: 'GET /',
           serviceName: 'test-app',
           library: 'boltzmann',
           traceId: boltzmannSpans[0].traceId,
           spanId: boltzmannSpans[0].spanId,
-          parentSpanId: undefined,
+          parentSpanId: boltzmannSpans[0].spanId,
           attributes: {
             "http.host": "localhost",
             "http.url": "http://localhost/",
@@ -260,19 +271,8 @@ if (require.main === module) {
             "boltzmann.http.query": "",
             "http.status_code": "200",
           }
-
         },
-        {
-          spanName: 'mw: helloMiddleware',
-          serviceName: 'test-app',
-          library: 'boltzmann',
-          traceId: boltzmannSpans[0].traceId,
-          spanId: boltzmannSpans[1].spanId,
-          parentSpanId: boltzmannSpans[0].spanId,
-          // TODO: There *should* be attributes here, no?
-          attributes: {}
-        }
-      ],
+     ],
       "There are two nested spans, in the same trace, with service name and attributes"
     )
   })
