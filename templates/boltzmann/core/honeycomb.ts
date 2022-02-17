@@ -687,7 +687,12 @@ class Honeycomb {
     // properties?
     traceContext = otelAPI.propagation.extract(
       traceContext,
-      {},
+      {
+        // TODO: Need to do plumbing here - note that the trace context does
+        // not have these fields, so this is extremely wrong!
+        // traceparent: traceContext.traceId,
+        // tracestate: traceContext.traceState
+      },
       otelAPI.defaultTextMapGetter
     )
 
@@ -768,12 +773,12 @@ class OtelTestSpanProcessor extends otelTraceBase.SimpleSpanProcessor {
   }
 
   onEnd(span: otelTraceBase.ReadableSpan): void {
-    // collect spans in the order they were opened (they close in the
-    // opposite order)
-    this._exporterCreatedSpans.unshift(span)
+    // don't call super's onEnd, if only because it mysteriously causes
+    // sdk startup to time out in test
 
-    // Don't call onEnd on super - we don't actually want this span to get
-    // emitted!
+    // note that this collects spans as they *close*, meaning a parent span
+    // will be *behind* its children
+    this._exporterCreatedSpans.push(span)
   }
 }
 
@@ -788,14 +793,36 @@ function getOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): ot
 
   if (!processor._exporterCreatedSpans) {
     throw new Error(
-      'Span processor has no test spans - did you create an OtelTestSpanProcessor?'
+      'Span processor is not an OtelTestSpanProcessor'
     )
   }
 
   return <otelTraceBase.ReadableSpan[]>(processor._exporterCreatedSpans)
 }
 
-export { getOtelTestSpans, OtelTestSpanProcessor }
+function resetOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): void {
+  const processor: any = spanProcessor
+
+  if (!processor) {
+    throw new Error(
+      'Span processor is not defined - did you initialize honeycomb?'
+    )
+  }
+
+  if (!processor._exporterCreatedSpans) {
+    throw new Error(
+      'Span processor is not an OtelTestSpanProcessor'
+    )
+  }
+
+  processor._exporterCreatedSpans = []
+}
+
+export {
+  getOtelTestSpans,
+  OtelTestSpanProcessor,
+  resetOtelTestSpans
+}
 
 import tap from 'tap'
 type Test = (typeof tap.Test)["prototype"]
