@@ -593,6 +593,7 @@ class Honeycomb {
     const tracker = require('honeycomb-beeline/lib/async_tracker')
     const _headerSources = headerSources || this.defaultHeaderSources
     const traceContext = _getBeelineTraceContext(context)
+
     const trace = beeline.startTrace({
       [schema.EVENT_TYPE]: 'boltzmann',
       [schema.PACKAGE_VERSION]: '1.0.0',
@@ -647,18 +648,23 @@ class Honeycomb {
       const source = _headerSources.find((header: string) => header in context.headers)
 
       if (!source || !context.headers[source]) {
+        Honeycomb.log('No source header?!')
         return {}
       }
 
       if (source === 'x-honeycomb-trace') {
+        Honeycomb.log(`we have a trace header!! ${source}`)
         const data = beeline.unmarshalTraceContext(context.headers[source])
 
         if (!data) {
+          Honeycomb.log('unmarshalling trace context yielded no data T_T')
           return {}
         }
 
         return Object.assign({}, data, { source: `${source} http header` })
       }
+
+      Honeycomb.log(`we have an http request header! ${source}`)
 
       return {
         traceId: context.headers[source],
