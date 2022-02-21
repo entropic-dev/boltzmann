@@ -243,6 +243,36 @@ class Honeycomb {
     )
   }
 
+  public static mock(): Honeycomb {
+    return new Honeycomb(
+      {
+        serviceName: 'test-app',
+        disable: false,
+        otel: true,
+        writeKey: 'SOME_WRITEKEY',
+        dataset: 'SOME_DATASET',
+        apiHost: 'grpc://api-host.com',
+        sampleRate: 1
+      },
+      // TODO: Test + adjust to ensure no spans get emitted for the /monitor/ping route
+      // honeycomb.factories.instrumentations = () => []
+      {
+        spanProcessor(traceExporter) {
+          return new OtelTestSpanProcessor(traceExporter)
+        }
+      }
+    )
+
+    // TODO: Test these for sensibility
+    /*
+      honeycomb.features = {
+        honeycomb: true,
+        beeline: false,
+        otel: true
+      }
+    */
+  }
+
   public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
     // If there's no write key we won't get very far anyway
     const disable = !env.HONEYCOMB_WRITEKEY

@@ -73,7 +73,10 @@ if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
 }
 
-const honeycomb: Honeycomb = Honeycomb.fromEnv(serviceName, process.env);
+let honeycomb: Honeycomb = Honeycomb.fromEnv(serviceName, process.env);
+void `{% if selftest }`;
+honeycomb = Honeycomb.mock()
+void `{% endif %}`;
 
 honeycomb.init()
 

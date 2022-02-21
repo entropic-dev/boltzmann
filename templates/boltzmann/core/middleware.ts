@@ -1,39 +1,6 @@
 void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
-import { getOtelTestSpans, OtelTestSpanProcessor } from '../core/honeycomb'
-
-/* c8 ignore next */
-if (require.main === module) {
-  // TODO: Cram this into a test helper in honeycomb core
-  honeycomb.options = {
-    serviceName: 'test-app',
-    disable: false,
-    otel: true,
-    writeKey: 'SOME_WRITEKEY',
-    dataset: 'SOME_DATASET',
-    apiHost: 'grpc://api-host.com',
-    sampleRate: 1
-  }
-
-  honeycomb.features = {
-    honeycomb: true,
-    beeline: false,
-    otel: true
-  }
-
-  honeycomb.factories.spanProcessor = (traceExporter) => {
-    return new OtelTestSpanProcessor(traceExporter)
-  }
-
-  // TODO: Test + adjust to ensure no spans get emitted for the /monitor/ping
-  // route
-  // honeycomb.factories.instrumentations = () => []
-
-  honeycomb.init()
-}
-
-export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
-
+import { getOtelTestSpans } from '../core/honeycomb'
 import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
@@ -148,6 +115,17 @@ async function handler (context: Context) {
   // {% endif %}
 }
 
+void `{%if selftest %}`;
+export {
+  Response,
+  Handler,
+  Adaptor,
+  Middleware,
+  MiddlewareConfig,
+  buildMiddleware,
+  handler
+}
+void `{% endif %}`;
 
 void `{% if selftest %}`
 import tap from 'tap'
