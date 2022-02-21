@@ -55,23 +55,16 @@ import * as otelSemanticConventions from '@opentelemetry/semantic-conventions'
 //
 // * undici
 //
-import { Instrumentation as OtlpInstrumentation } from '@opentelemetry/instrumentation'
-import { DnsInstrumentation as OtlpDnsInstrumentation } from '@opentelemetry/instrumentation-dns'
-import { HttpInstrumentation as OtlpHttpInstrumentation } from '@opentelemetry/instrumentation-http'
+import { Instrumentation as OtelInstrumentation } from '@opentelemetry/instrumentation'
+import { DnsInstrumentation as OtelDnsInstrumentation } from '@opentelemetry/instrumentation-dns'
+import { HttpInstrumentation as OtelHttpInstrumentation } from '@opentelemetry/instrumentation-http'
 
 void `{% if redis %}`;
-import { RedisInstrumentation as OtlpRedisInstrumentation } from '@opentelemetry/instrumentation-redis'
+import { RedisInstrumentation as OtelRedisInstrumentation } from '@opentelemetry/instrumentation-redis'
 void `{% endif %}`
 
 void `{% if postgres %}`
-import { PgInstrumentation as OtlpPgInstrumentation } from '@opentelemetry/instrumentation-pg'
-void `{% endif %}`
-
-void `{% if selftest %}`
-import { ServerResponse } from 'http'
-
-import { Context } from '../data/context'
-import { Handler } from './middleware'
+import { PgInstrumentation as OtelPgInstrumentation } from '@opentelemetry/instrumentation-pg'
 void `{% endif %}`
 
 class HoneycombError extends Error {
@@ -84,7 +77,7 @@ interface HoneycombOptions {
   // disabled
   disable?: boolean
 
-  // When true, Do Otlp
+  // When true, Do Otel
   otel?: boolean
 
   // The Honeycomb write key and dataset
@@ -117,11 +110,11 @@ interface OtelFactories {
   tracerProvider: (sampler: otelAPI.Sampler) => NodeTracerProvider
   traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
-  instrumentations: () => OtlpInstrumentation[]
+  instrumentations: () => OtelInstrumentation[]
   traceContextPropagator: () => otelAPI.TextMapPropagator
   sdk: (
     serviceName: string,
-    instrumentations: OtlpInstrumentation[],
+    instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ) => OtelSDK
 }
@@ -166,17 +159,17 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   instrumentations () {
-    let is: OtlpInstrumentation[] = [
-      new OtlpDnsInstrumentation({}),
-      new OtlpHttpInstrumentation({}),
+    let is: OtelInstrumentation[] = [
+      new OtelDnsInstrumentation({}),
+      new OtelHttpInstrumentation({}),
     ]
 
     void `{% if redis %}`
-    is.push(new OtlpRedisInstrumentation({}))
+    is.push(new OtelRedisInstrumentation({}))
     void `{% endif %}`
 
     void `{% if postgres %}`
-    is.push(new OtlpPgInstrumentation({}))
+    is.push(new OtelPgInstrumentation({}))
     void `{% endif %}`
 
     return is
@@ -191,7 +184,7 @@ const defaultOtelFactories: OtelFactories = {
   // This is that singleton!
   sdk (
     serviceName: string,
-    instrumentations: OtlpInstrumentation[],
+    instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ): OtelSDK {
     return new OtelSDK({
@@ -214,18 +207,12 @@ interface OtelFactoryOverrides {
   tracerProvider?: (sampler: otelAPI.Sampler) => NodeTracerProvider
   traceExporter?: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
-  instrumentations?: () => OtlpInstrumentation[];
+  instrumentations?: () => OtelInstrumentation[];
   sdk?: (
     serviceName: string,
-    instrumentations: OtlpInstrumentation[],
+    instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ) => OtelSDK;
-}
-
-// An interface for the return value of Honeycomb#startSpan
-// and/or Honeycomb#startTrace.
-interface Span {
-  end(): Promise<void>
 }
 
 // Let's GOOOOOOO
@@ -310,10 +297,6 @@ class Honeycomb {
     }
   }
 
-  public static _traceSpanName(method: string, pathname: string) {
-    return `${method} ${pathname}`
-  }
-
   // These accessors are type guards that ensure you're working
   // with a defined/non-null property. It's a bit of 6-to-1 and
   // half a dozen on the other, because you trade ifs for
@@ -347,7 +330,7 @@ class Honeycomb {
   public tracerProvider: NodeTracerProvider | null
   public traceExporter: OTLPTraceExporter | null
   public spanProcessor: otelTraceBase.SpanProcessor | null
-  public instrumentations: OtlpInstrumentation[] | null
+  public instrumentations: OtelInstrumentation[] | null
   public traceContextPropagator: otelAPI.TextMapPropagator | null
   public sdk: OtelSDK | null
   public tracer: otelAPI.Tracer
@@ -503,267 +486,6 @@ class Honeycomb {
       Honeycomb.log(err)
     }
   }
-
-  // Start a trace. Returns a Trace, which may be closed by calling
-  // `trace.end()`.
-  public async startTrace(context: Context, headerSources?: string[]): Promise<Span> {
-    if (!this.features.honeycomb || !this.initialized) {
-      return {
-        async end() {}
-      }
-    }
-
-    if (!this.features.otel) {
-      // Call legacy beelines implementation
-      return this._startBeelineTrace(context, headerSources)
-    }
-
-    if (headerSources) {
-      Honeycomb.log('trace headerSources are a beeline-only feature')
-    }
-
-    /*
-     * ┏┓
-     * ┃┃╱╲ in
-     * ┃╱╱╲╲ this
-     * ╱╱╭╮╲╲house
-     * ▔▏┗┛▕▔ we
-     * ╱▔▔▔▔▔▔▔▔▔▔╲
-     * trace with opentelemetry
-     * ╱╱┏┳┓╭╮┏┳┓ ╲╲
-     * ▔▏┗┻┛┃┃┗┻┛▕▔
-     */
-
-    // TODO: In order to get trace propagation working correctly, we *may*
-    // need to extract the parent context with the request headers. I *believe*
-    // setting the W3CTraceContextPropagator as global and trace.setSpan are
-    // enough, but this needs to be confirmed.
-
-    let traceContext = otelAPI.context.active()
-
-    // TODO: Do we need this step? Esp. if we don't set any context
-    // properties?
-    traceContext = otelAPI.propagation.extract(
-      traceContext,
-      {},
-      otelAPI.defaultTextMapGetter
-    )
-
-    const span = this.tracer.startSpan(
-      `${context.method} ${context.url.pathname}`,
-      // TODO: Move attributes to middleware
-      {
-        attributes: {
-          [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
-          [otelSemanticConventions.SemanticAttributes.HTTP_URL]: context.url.href,
-          [otelSemanticConventions.SemanticAttributes.HTTP_CLIENT_IP]: context.remote,
-          [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
-          [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
-          [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-          [Honeycomb.OTEL_REQ_QUERY]: context.url.search
-        },
-        kind: otelAPI.SpanKind.SERVER,
-      },
-      traceContext
-    )
-
-    otelAPI.trace.setSpan(traceContext, span)
-
-    return {
-      end: async () => {
-        return this._endTraceSpan(span, context);
-      }
-    }
-  }
-
-  // Close an otel "parent span".
-  private async _endTraceSpan(span: otelAPI.Span, context: Context): Promise<void> {
-    const handler: Handler = <Handler>context.handler
-
-    span.setAttribute(
-      otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
-      String(context._response.statusCode)
-    )
-    span.setAttribute(
-      otelSemanticConventions.SemanticAttributes.HTTP_ROUTE,
-      <string>handler.route
-    )
-    span.setAttribute(
-      otelSemanticConventions.SemanticAttributes.HTTP_METHOD,
-      <string>handler.method
-    )
-    span.setAttribute(
-      otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
-      <string>handler.version
-    )
-
-    Object.entries(context.params).map(([key, value]) => {
-      span.setAttribute(
-        Honeycomb.paramAttribute(key),
-        value
-      )
-    })
-    span.end()
-  }
-
-  // Beelines implementation for starting/ending a trace
-  private defaultHeaderSources: string[] = [ 'x-honeycomb-trace', 'x-request-id' ]
-
-  private async _startBeelineTrace(
-    context: Context,
-    headerSources?: string[]
-  ): Promise<Span> {
-    if (!this.features.honeycomb || !this.initialized) {
-      return {
-        async end() {}
-      }
-    }
-
-    const schema = require('honeycomb-beeline/lib/schema')
-    const tracker = require('honeycomb-beeline/lib/async_tracker')
-    const _headerSources = headerSources || this.defaultHeaderSources
-    const traceContext = _getBeelineTraceContext(context)
-
-    const trace = beeline.startTrace({
-      [schema.EVENT_TYPE]: 'boltzmann',
-      [schema.PACKAGE_VERSION]: '1.0.0',
-      [schema.TRACE_SPAN_NAME]: Honeycomb._traceSpanName(context.method, context.url.pathname),
-      [schema.TRACE_ID_SOURCE]: traceContext.source,
-      'request.host': context.host,
-      'request.original_url': context.url.href,
-      'request.remote_addr': context.remote,
-      'request.method': context.method,
-      'request.scheme': context.url.protocol,
-      'request.path': context.url.pathname,
-      'request.query': context.url.search
-    },
-    traceContext.traceId,
-    traceContext.parentSpanId,
-    traceContext.dataset)
-
-    if (isDev()) {
-      context._honeycombTrace = trace
-    }
-
-    if (traceContext.customContext) {
-      beeline.addContext(traceContext.customContext)
-    }
-
-    const boundFinisher = beeline.bindFunctionToTrace((response: ServerResponse) => {
-      beeline.addContext({
-        'response.status_code': String(response.statusCode)
-      })
-
-      beeline.addContext({
-        'request.route': context.handler.route,
-        'request.method': context.handler.method,
-        'request.version': context.handler.version
-      })
-
-      const params = Object.entries(context.params).map(([key, value]) => {
-        return [`request.param.${key}`, value]
-      })
-      beeline.addContext(Object.fromEntries(params))
-
-      beeline.finishTrace(trace)
-    })
-
-    return {
-      end: async () => {
-        boundFinisher(this, tracker.getTracked())
-      }
-    }
-
-    function _getBeelineTraceContext (context: Context) {
-      const source = _headerSources.find((header: string) => header in context.headers)
-
-      if (!source || !context.headers[source]) {
-        Honeycomb.log('No source header?!')
-        return {}
-      }
-
-      if (source === 'x-honeycomb-trace') {
-        Honeycomb.log(`we have a trace header!! ${source}`)
-        const data = beeline.unmarshalTraceContext(context.headers[source])
-
-        if (!data) {
-          Honeycomb.log('unmarshalling trace context yielded no data T_T')
-          return {}
-        }
-
-        return Object.assign({}, data, { source: `${source} http header` })
-      }
-
-      Honeycomb.log(`we have an http request header! ${source}`)
-
-      return {
-        traceId: context.headers[source],
-        source: `${source} http header`
-      }
-    }
-  }
-
-  // Starting a span. For OpenTelemetry this is a "child" span
-  // (OTLP doesn't have the same trace concept as beelines. Returns
-  // a Span object.
-  public async startSpan(name: string, attributes?: { [a: string]: string | undefined }): Promise<Span> {
-    if (!this.features.honeycomb || !this.initialized) {
-      return {
-        async end() {}
-      }
-    }
-
-    if (!this.features.otel) {
-      return this._startBeelineSpan(name, attributes || {})
-    }
-
-    let traceContext = otelAPI.context.active()
-
-    // TODO: Do we need this step? Esp. if we don't set any context
-    // properties?
-    traceContext = otelAPI.propagation.extract(
-      traceContext,
-      {
-        // TODO: Need to do plumbing here - note that the trace context does
-        // not have these fields, so this is extremely wrong!
-        // traceparent: traceContext.traceId,
-        // tracestate: traceContext.traceState
-      },
-      otelAPI.defaultTextMapGetter
-    )
-
-    const spanOpts: otelAPI.SpanOptions = { kind: otelAPI.SpanKind.SERVER }
-
-    if (attributes) {
-      spanOpts.attributes = attributes
-    }
-
-    const span = this.tracer.startSpan(name, spanOpts, traceContext)
-    otelAPI.trace.setSpan(traceContext, span)
-
-    return {
-      async end() {
-        span.end()
-      }
-    }
-
-  }
-
-  private async _startBeelineSpan(name: string, attributes: { [a: string]: string | undefined }): Promise<Span> {
-    if (!this.features.honeycomb || !this.initialized) {
-      return {
-        async end() {}
-      }
-    }
-
-    const span = beeline.startSpan({ name, ...attributes })
-
-    return {
-      async end() {
-        beeline.finishSpan(span)
-      }
-    }
-  }
 }
 
 export {
@@ -777,14 +499,14 @@ export {
   otelTraceBase,
   NodeTracerProvider,
   otelSemanticConventions,
-  OtlpInstrumentation,
-  OtlpDnsInstrumentation,
-  OtlpHttpInstrumentation,
+  OtelInstrumentation,
+  OtelDnsInstrumentation,
+  OtelHttpInstrumentation,
   // {% if redis %}
-  OtlpRedisInstrumentation,
+  OtelRedisInstrumentation,
   // {% endif %}
   // {% if postgres %}
-  OtlpPgInstrumentation
+  OtelPgInstrumentation
   // {% endif %}
 }
 
@@ -986,13 +708,6 @@ if (require.main === module) {
         'should be url if url'
       )
     })
-
-    t.test('Honeycomb._traceSpanName', async (assert: Test) => {
-      assert.same(
-        Honeycomb._traceSpanName('GET', '/echo'),
-        'GET /echo'
-      )
-    });
   })
   test('factories', async (t: Test) => {
     const options = {
