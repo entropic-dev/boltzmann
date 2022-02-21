@@ -169,9 +169,37 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   instrumentations () {
+    // Any paths we add here will get no traces whatsoever. This is
+    // appropriate for the ping route, which should never trace.
+    const ignoreIncomingPaths = [
+      '/monitor/ping'
+    ]
+
+    // OpenTelemetry attempts to auto-collect GCE metadata, causing traces
+    // we don't care about. We do our best to ignore them by independently
+    // calculating which endpoints it's going to try to call.
+    //
+    // See: https://github.com/googleapis/gcp-metadata/blob/main/src/index.ts#L26-L44
+    const ignoreOutgoingUrls = [
+      /^https?:\/\/169\.254\.169\.254/,
+      /^https?:\/\/metadata\.google\.internal/,
+    ]
+    let gceBase: string | null = process.env.GCE_METADATA_IP || process.env.GCE_METADATA_HOST || null
+    if (gceBase) {
+      if (!/^https?:\/\//.test(gceBase)) {
+        gceBase = `http://${gceBase}`;
+      }
+      ignoreOutgoingUrls.push(new RegExp(`^${gceBase}`))
+    }
+
     let is: OtelInstrumentation[] = [
       new OtelDnsInstrumentation({}),
-      new OtelHttpInstrumentation({}),
+      new OtelHttpInstrumentation({
+        // TODO: These fields are expected to become deprecated in the
+        // near future...
+        ignoreIncomingPaths,
+        ignoreOutgoingUrls
+      }),
     ]
 
     void `{% if redis %}`
