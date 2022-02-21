@@ -107,13 +107,17 @@ interface HoneycombFeatures {
 interface OtelFactories {
   metadata: (writeKey: string, dataset: string) => grpc.Metadata
   sampler: (sampleRate: number) => otelAPI.Sampler
-  tracerProvider: (sampler: otelAPI.Sampler) => NodeTracerProvider
+  resource: (serviceName: string) => otelResources.Resource
+  tracerProvider: (
+    resource: otelResources.Resource,
+    sampler: otelAPI.Sampler
+  ) => NodeTracerProvider
   traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
   traceContextPropagator: () => otelAPI.TextMapPropagator
   sdk: (
-    serviceName: string,
+    resource: otelResources.Resource,
     instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ) => OtelSDK
@@ -135,9 +139,15 @@ const defaultOtelFactories: OtelFactories = {
     })
   },
 
+  resource (serviceName: string): otelResources.Resource {
+    return new otelResources.Resource({
+      [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: serviceName
+    })
+  },
+
   // It provides tracers!
-  tracerProvider (sampler: otelAPI.Sampler): NodeTracerProvider {
-    return new NodeTracerProvider({ sampler })
+  tracerProvider (resource: otelResources.Resource, sampler: otelAPI.Sampler): NodeTracerProvider {
+    return new NodeTracerProvider({ resource, sampler })
   },
 
   // Export traces to an OTLP endpoint with GRPC
@@ -183,14 +193,12 @@ const defaultOtelFactories: OtelFactories = {
   // and a trace exporter and give us a stateful singleton.
   // This is that singleton!
   sdk (
-    serviceName: string,
+    resource: otelResources.Resource,
     instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ): OtelSDK {
     return new OtelSDK({
-      resource: new otelResources.Resource({
-        [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: serviceName
-      }),
+      resource,
       traceExporter,
       instrumentations
     })
@@ -204,12 +212,16 @@ const defaultOtelFactories: OtelFactories = {
 interface OtelFactoryOverrides {
   metadata?: (writeKey: string, dataset: string) => grpc.Metadata
   sampler?: (sampleRate: Number) => otelAPI.Sampler
-  tracerProvider?: (sampler: otelAPI.Sampler) => NodeTracerProvider
+  resource?: (serviceName: string) => otelResources.Resource
+  tracerProvider?: (
+    resource: otelResources.Resource,
+    sampler: otelAPI.Sampler
+  ) => NodeTracerProvider
   traceExporter?: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations?: () => OtelInstrumentation[];
   sdk?: (
-    serviceName: string,
+    resource: otelResources.Resource,
     instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ) => OtelSDK;
@@ -333,7 +345,6 @@ class Honeycomb {
   public instrumentations: OtelInstrumentation[] | null
   public traceContextPropagator: otelAPI.TextMapPropagator | null
   public sdk: OtelSDK | null
-  public tracer: otelAPI.Tracer
 
   public initialized: boolean
   public started: boolean
@@ -357,12 +368,15 @@ class Honeycomb {
     this.instrumentations = null
     this.traceContextPropagator = null
     this.sdk = null
-    this.tracer = otelAPI.trace.getTracer('boltzmann', '1.0.0')
 
     this.factories = {
       ...defaultOtelFactories,
       ...(overrides || {})
     }
+  }
+
+  get tracer (): otelAPI.Tracer {
+    return otelAPI.trace.getTracer('boltzmann', '1.0.0')
   }
 
   public static log(message: any): void {
@@ -411,13 +425,14 @@ class Honeycomb {
       const apiHost: string = this.getApiHost()
 
       const metadata: grpc.Metadata = f.metadata(writeKey, dataset)
+      const resource: otelResources.Resource = f.resource(serviceName)
 
       const sampler: otelAPI.Sampler = f.sampler(sampleRate)
       const exporter = f.traceExporter(apiHost, metadata)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 
-      const provider: NodeTracerProvider = f.tracerProvider(sampler)
+      const provider: NodeTracerProvider = f.tracerProvider(resource, sampler)
       provider.addSpanProcessor(processor)
       provider.register()
 
@@ -426,7 +441,7 @@ class Honeycomb {
       otelAPI.propagation.setGlobalPropagator(propagator)
 
       const sdk = f.sdk(
-        serviceName,
+        resource,
         instrumentations,
         exporter
       )
@@ -736,6 +751,10 @@ if (require.main === module) {
       )
     })
 
+    t.test('resource', async (assert: Test) => {
+      assert.doesNotThrow(() => defaultOtelFactories.resource('test-service'))
+    })
+
     t.test('sampler', async (assert: Test) => {
       assert.ok(
         defaultOtelFactories.sampler(1) instanceof otelCore.ParentBasedSampler,
@@ -753,8 +772,9 @@ if (require.main === module) {
 
     test('tracerProvider', async (assert: Test) => {
       const sampler = defaultOtelFactories.sampler(1)
+      const resource = defaultOtelFactories.resource('test-service')
       assert.doesNotThrow(
-        () => defaultOtelFactories.tracerProvider(sampler),
+        () => defaultOtelFactories.tracerProvider(resource, sampler),
         'should create a tracer provider'
       )
     })
@@ -803,6 +823,7 @@ if (require.main === module) {
     test('sdk', async (assert: Test) => {
       // run the init function
       assert.doesNotThrow(() => {
+        const resource = defaultOtelFactories.resource('test-service')
         const exporter = defaultOtelFactories.traceExporter(
           'grpc://example.com',
           defaultOtelFactories.metadata(
@@ -811,7 +832,7 @@ if (require.main === module) {
           )
         )
         const instrumentations = defaultOtelFactories.instrumentations()
-        defaultOtelFactories.sdk('boltzmann', instrumentations, exporter)
+        defaultOtelFactories.sdk(resource, instrumentations, exporter)
       }, 'should create an sdk')
     })
   })

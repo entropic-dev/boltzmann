@@ -74,7 +74,7 @@ if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
 }
 
 let honeycomb: Honeycomb = Honeycomb.fromEnv(serviceName, process.env);
-void `{% if selftest }`;
+void `{% if selftest %}`;
 honeycomb = Honeycomb.mock()
 void `{% endif %}`;
 

@@ -1,4 +1,6 @@
 void `{% if selftest %}`;
+import { honeycomb } from '../core/prelude'
+import { otelAPI } from '../core/honeycomb'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Accepts } from 'accepts'
 import accepts from 'accepts'
@@ -19,6 +21,7 @@ class Context {
   private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
   public _loadSession: GetSession
+  public _spans: otelAPI.Span[]
 
   /**{{- tsdoc(page="02-handlers.md", section="id") -}}*/
   public id: string
@@ -66,6 +69,7 @@ class Context {
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')
     }
+    this._spans = []
   }
 
   static baseHandler (context: Context): Promise<any> {
@@ -124,11 +128,33 @@ class Context {
   }
 
   // {% if honeycomb %}
+
+  pushParentSpan (span: otelAPI.Span) {
+    this._spans.push(span)
+  }
+
+  get parentSpan (): otelAPI.Span | null {
+    if (this._spans.length) {
+      return this._spans[this._spans.length - 1]
+    }
+    return null
+  }
+
+  popParentSpan (): otelAPI.Span | null {
+    return this._spans.pop() || null
+  }
+
   /**{{- tsdoc(page="02-handlers.md", section="traceURL") -}}*/
   get traceURL () {
     const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`)
-    url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
-    url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
+    if (honeycomb.features.beeline) {
+      url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
+      url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
+    } else if (honeycomb.features.otel) {
+      // TODO: Fill this out lol
+      url.searchParams.set('trace_id', 'TODO')
+      url.searchParams.set('trace_start_ts', 'TODO')
+    }
     return String(url)
   }
   // {% endif %}
