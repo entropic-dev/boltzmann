@@ -1,10 +1,9 @@
 void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
-import { getOtelTestSpans } from '../core/honeycomb'
+import { beeline, getOtelTestSpans, otelAPI, otelSemanticConventions } from '../core/honeycomb'
 import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
-import { otelSemanticConventions } from '../core/honeycomb'
 import { enforceInvariants } from '../middleware/enforce-invariants'
 import { honeycombMiddlewareSpans, trace } from '../middleware/honeycomb'
 import { BodyParserDefinition } from '../core/body'
@@ -82,35 +81,67 @@ async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler)
   }, Promise.resolve(router))
 }
 
+function handlerSpanName(handler: Handler) {
+  return `handler: ${handler.name || '<unknown>'}`
+}
+
 async function handler (context: Context) {
   const handler = context.handler as Handler
   // {% if honeycomb %}
+  let beelineSpan = null
+  let otelSpan = null
+  if (honeycomb.features.beeline) {
+    beelineSpan = beeline.startSpan({
+      name: handlerSpanName(handler),
+      'handler.name': handler.name,
+      'handler.method': String(handler.method),
+      'handler.route': handler.route,
+      'handler.version': handler.version || '*',
+      'handler.decorators': String(handler.decorators)
+    })
+  } else if (honeycomb.features.otel) {
+    let traceContext = otelAPI.context.active()
 
-  // TODO: This check is for backwards-compatibility reasons and may be
-  // removed in the future.
-  // TODO: Refactor this into `honeycomb.startHandlerSpan`
-  const spanOpts = honeycomb.features.otel ? {
-    [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
-    [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
-    'boltzmann.http.handler.name': handler.name,
-    'boltzmann.http.handler.version': handler.version || '*',
-    'boltzmann.http.handler.decorators': String(handler.decorators)
-  } : {
-    'handler.name': handler.name,
-    'handler.method': String(handler.method),
-    'handler.route': handler.route,
-    'handler.version': handler.version || '*',
-    'handler.decorators': String(handler.decorators)
+    // TODO: Do we need this step? Esp. if we don't set any context
+    // properties?
+    traceContext = otelAPI.propagation.extract(
+      traceContext,
+      {
+        // TODO: Need to do plumbing here - note that the trace context does
+        // not have these fields, so this is extremely wrong!
+        // traceparent: traceContext.traceId,
+        // tracestate: traceContext.traceState
+      },
+      otelAPI.defaultTextMapGetter
+    )
+
+    otelSpan = honeycomb.tracer.startSpan(
+      handlerSpanName(handler),
+      {
+        attributes: {
+          [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
+          [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
+          'boltzmann.http.handler.name': handler.name || '<unknown>',
+          'boltzmann.http.handler.version': handler.version || '*',
+          'boltzmann.http.handler.decorators': String(handler.decorators),
+        },
+        kind: otelAPI.SpanKind.SERVER
+      },
+      traceContext
+    )
+    otelAPI.trace.setSpan(traceContext, otelSpan)
   }
-
-  const span = await honeycomb.startSpan(`handler: ${handler.name}`, spanOpts)
 
   try {
     // {% endif %}
     return await handler(context)
     // {% if honeycomb %}
   } finally {
-    await span.end()
+    if (beelineSpan !== null) {
+      beeline.finishSpan(beelineSpan)
+    } else if (otelSpan !== null) {
+      otelSpan.end()
+    }
   }
   // {% endif %}
 }
