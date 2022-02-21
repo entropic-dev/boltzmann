@@ -114,7 +114,7 @@ function beelineTrace ({
       })
 
       // do not do as I do,
-      onHeaders(context._response, async function () {
+      onHeaders(context._response, function () {
         return boundFinisher(this, tracker.getTracked())
       })
 
@@ -154,8 +154,9 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
       })
 
       // Assumption: the invariant middleware between each layer
-      // will ensure that no errors are thrown to next().
+      // will ensure that no errors are thrown from next().
       const result = await next(context)
+
       beeline.finishSpan(span)
       return result
     }
@@ -214,25 +215,31 @@ function otelTrace ({
         traceContext
       )
 
-      // TODO: beelines may return a null trace - can a null span happen here?
-
       otelAPI.trace.setSpan(traceContext, span)
 
       if (isDev()) {
         context._honeycombTrace = span
       }
 
+      context.pushParentSpan(span)
+
       // do not as I do,
       onHeaders(context._response, function () {
-        return endSpan(context, span)
+        return endSpan(context)
       })
 
       return next(context)
     }
   }
 
-  function endSpan(context: Context, span: otelAPI.Span) {
+  function endSpan(context: Context) {
     const handler: Handler = <Handler>context.handler
+    const span = context._spans.pop()
+
+    if (!span) {
+      Honeycomb.log('No span to close!')
+      return
+    }
 
     span.setAttribute(
       otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
@@ -265,19 +272,12 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
   return function honeycombSpan (next: Handler) {
     return async (context: Context) => {
       let traceContext = otelAPI.context.active()
-
-      // TODO: Do we need this step? Esp. if we don't set any context
-      // properties?
-      traceContext = otelAPI.propagation.extract(
-        traceContext,
-        {
-          // TODO: Need to do plumbing here - note that the trace context does
-          // not have these fields, so this is extremely wrong!
-          // traceparent: traceContext.traceId,
-          // tracestate: traceContext.traceState
-        },
-        otelAPI.defaultTextMapGetter
-      )
+      if (context.parentSpan) {
+        traceContext = otelAPI.trace.setSpan(
+          traceContext,
+          context.parentSpan
+        )
+      }
 
       const span = honeycomb.tracer.startSpan(
         middlewareSpanName(name),
@@ -286,8 +286,11 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
       )
       otelAPI.trace.setSpan(traceContext, span)
 
+      context.pushParentSpan(span)
       const result = await next(context)
+      context.popParentSpan()
       span.end()
+
       return result
     }
   }
