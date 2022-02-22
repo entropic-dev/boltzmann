@@ -372,8 +372,7 @@ class Honeycomb {
   public initialized: boolean
   public started: boolean
 
-  // TODO: Bole | null
-  public logger: any
+  public logger: typeof bole | null
 
   constructor(
     options: HoneycombOptions,
@@ -555,7 +554,6 @@ class Honeycomb {
 export {
   beeline,
   bole,
-  // Bole,
   grpc,
   isDev,
   otel,
