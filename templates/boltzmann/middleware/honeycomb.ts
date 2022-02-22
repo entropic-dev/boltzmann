@@ -193,85 +193,93 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
 function otelTrace () {
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
-      void `{% if selftest %}`
       let traceContext = otel.context.active()
 
-      otel.propagation.extract(
-        traceContext,
-        context.headers,
-        otel.defaultTextMapGetter
-      )
+      // Typically, HTTP auto-instrumentation will create a parent span for us
+      let span: otel.Span | null = otel.trace.getSpan(traceContext) || null
+      let createdSpan = false
 
-      const span = honeycomb.tracer.startSpan(
-        traceName(context.method, context.url.pathname),
-        {
-          attributes: {
-            [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
-            [otelSemanticConventions.SemanticAttributes.HTTP_URL]: context.url.href,
-            [otelSemanticConventions.SemanticAttributes.HTTP_CLIENT_IP]: context.remote,
-            [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
-            [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
-            [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-            'boltzmann.http.query': context.url.search
+      // In shot testing (and other scenarios that don't touch HTTP
+      // auto-instrumentation, we'll need to create one
+      if (!span) {
+        otel.propagation.extract(
+          traceContext,
+          context.headers,
+          otel.defaultTextMapGetter
+        )
+
+        span = honeycomb.tracer.startSpan(
+          traceName(context.method, context.url.pathname),
+          {
+            attributes: {
+              [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
+              [otelSemanticConventions.SemanticAttributes.HTTP_URL]: context.url.href,
+              [otelSemanticConventions.SemanticAttributes.HTTP_CLIENT_IP]: context.remote,
+              [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
+              [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
+              [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
+            },
+            kind: otel.SpanKind.SERVER,
           },
-          kind: otel.SpanKind.SERVER,
-        },
-        traceContext
-      )
+          traceContext
+        )
+        createdSpan = true
+      }
 
-      otel.trace.setSpan(traceContext, span)
-
-      context.pushSpan(span)
-      void `{% endif %}`
+      if (span) {
+        span.setAttribute('boltzmann.http.query', context.url.search)
+        otel.trace.setSpan(traceContext, span)
+        context.span = span
+      } else if (createdSpan) {
+        Honeycomb.log('trace: could not create a span - something is seriously wrong')
+      } else {
+        Honeycomb.log("trace: could not find span - why didn't one get created? something is seriously wrong")
+      }
 
       // do not as I do,
       onHeaders(context._response, function () {
-        return endSpan(context)
+        const handler: Handler = <Handler>context.handler
+
+        if (!span) {
+          return
+        }
+
+        if (createdSpan) {
+          span.setAttribute(
+            otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
+            String(context._response.statusCode)
+          )
+          span.setAttribute(
+            otelSemanticConventions.SemanticAttributes.HTTP_ROUTE,
+            <string>handler.route
+          )
+          span.setAttribute(
+            otelSemanticConventions.SemanticAttributes.HTTP_METHOD,
+            <string>handler.method
+          )
+        }
+
+        span.setAttribute(
+          otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
+          <string>handler.version
+        )
+
+        Object.entries(context.params).map(([key, value]) => {
+          if (span) {
+            span.setAttribute(
+              paramSpanAttribute(key),
+              value
+            )
+          }
+        })
+        
+        if (createdSpan) {
+          span.end()
+        }
       })
 
       return next(context)
     }
-  }
-
-  function endSpan(context: Context) {
-    const handler: Handler = <Handler>context.handler
-    const span = context.parentSpan
-      ? context.popSpan()
-      : otel.trace.getSpan(otel.context.active())
-
-    if (!span) {
-      return
-    }
-
-    void `{% if selftest %}`
-    span.setAttribute(
-      otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
-      String(context._response.statusCode)
-    )
-    span.setAttribute(
-      otelSemanticConventions.SemanticAttributes.HTTP_ROUTE,
-      <string>handler.route
-    )
-    span.setAttribute(
-      otelSemanticConventions.SemanticAttributes.HTTP_METHOD,
-      <string>handler.method
-    )
-    void `{% endif %}`
-
-    span.setAttribute(
-      otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
-      <string>handler.version
-    )
-
-    Object.entries(context.params).map(([key, value]) => {
-      span.setAttribute(
-        paramSpanAttribute(key),
-        value
-      )
-    })
-    void `{% if selftest %}`
-    span.end()
-    void `{% endif %}`
   }
 }
 
@@ -279,10 +287,11 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
   return function honeycombSpan (next: Handler) {
     return async (context: Context) => {
       let traceContext = otel.context.active()
-      if (context.parentSpan) {
+      let parentSpan = context.span
+      if (parentSpan) {
         traceContext = otel.trace.setSpan(
           traceContext,
-          context.parentSpan
+          parentSpan
         )
       }
 
@@ -293,9 +302,9 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
       )
       otel.trace.setSpan(traceContext, span)
 
-      context.pushSpan(span)
+      context.span = span
       const result = await next(context)
-      context.popSpan()
+      context.span = parentSpan
       span.end()
 
       return result

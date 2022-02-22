@@ -20,7 +20,6 @@ class Context {
   private _parsedUrl?: URL
   private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
-  private _spans: Array<otel.Span>
   public _loadSession: GetSession
 
   /**{{- tsdoc(page="02-handlers.md", section="id") -}}*/
@@ -69,7 +68,7 @@ class Context {
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')
     }
-    this._spans = []
+    this.span = null
   }
 
   static baseHandler (context: Context): Promise<any> {
@@ -129,20 +128,8 @@ class Context {
 
   // {% if honeycomb %}
 
-  pushSpan (span: otel.Span) {
-    this._spans.push(span)
-  }
-
-  get parentSpan (): otel.Span | null {
-    if (this._spans.length) {
-      return this._spans[this._spans.length - 1]
-    }
-    return null
-  }
-
-  popSpan (): otel.Span | null {
-    return this._spans.pop() || null
-  }
+  /**{{- tsdoc(page="02-handlers.md", section="span") -}}*/
+  public span: otel.Span | null
 
   /**{{- tsdoc(page="02-handlers.md", section="traceURL") -}}*/
   get traceURL () {
