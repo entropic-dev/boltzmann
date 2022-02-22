@@ -450,13 +450,13 @@
   ),
   DependencySpec(
     name: "@typescript-eslint/parser",
-    version: "^4.11.0",
+    version: "^5.12.1",
     kind: Development,
     preconditions: None
   ),
   DependencySpec(
     name: "@typescript-eslint/eslint-plugin",
-    version: "^4.11.0",
+    version: "^5.12.0",
     kind: Development,
     preconditions: None
   ),
