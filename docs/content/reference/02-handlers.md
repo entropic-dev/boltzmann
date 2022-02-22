@@ -595,6 +595,14 @@ async function logout(context) {
 }
 ```
 
+### `span`
+
+{{ changelog(version = "0.6.0") }}
+
+**Requires the [`--honeycomb`] feature.**
+
+If using OpenTelemetry for tracing, the current OpenTelemetry span.
+
 ### `traceURL`
 
 {{ changelog(version = "0.1.4") }}

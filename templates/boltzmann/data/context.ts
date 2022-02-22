@@ -48,6 +48,11 @@ class Context {
   public _postgresConnection?: Promise<PGClient>
   // {% endif %}
 
+  // {% if honeycomb %}
+  /**{{- tsdoc(page="02-handlers.md", section="span") -}}*/
+  public span: otel.Span | null
+  // {% endif %}
+
   ;[extensions: string]: any
 
   constructor(public request: IncomingMessage, public _response: ServerResponse) {
@@ -68,7 +73,9 @@ class Context {
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')
     }
+    void `{% if honeycomb %}`
     this.span = null
+    void `{% endif %}`
   }
 
   static baseHandler (context: Context): Promise<any> {
@@ -127,10 +134,6 @@ class Context {
   }
 
   // {% if honeycomb %}
-
-  /**{{- tsdoc(page="02-handlers.md", section="span") -}}*/
-  public span: otel.Span | null
-
   /**{{- tsdoc(page="02-handlers.md", section="traceURL") -}}*/
   get traceURL () {
     const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`)
