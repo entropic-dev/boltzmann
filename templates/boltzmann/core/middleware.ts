@@ -1,7 +1,7 @@
 void `{% if selftest %}`;
 export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
 import { honeycomb } from '../core/prelude'
-import { beeline, getOtelTestSpans, otelAPI, otelSemanticConventions } from '../core/honeycomb'
+import { beeline, getOtelTestSpans, otel, otelSemanticConventions } from '../core/honeycomb'
 import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
@@ -101,10 +101,10 @@ async function handler (context: Context) {
       'handler.decorators': String(handler.decorators)
     })
   } else if (honeycomb.features.otel) {
-    let traceContext = otelAPI.context.active()
+    let traceContext = otel.context.active()
 
     if (context.parentSpan) {
-      traceContext = otelAPI.trace.setSpan(
+      traceContext = otel.trace.setSpan(
         traceContext,
         context.parentSpan
       )
@@ -120,11 +120,11 @@ async function handler (context: Context) {
           'boltzmann.http.handler.version': handler.version || '*',
           'boltzmann.http.handler.decorators': String(handler.decorators),
         },
-        kind: otelAPI.SpanKind.SERVER
+        kind: otel.SpanKind.SERVER
       },
       traceContext
     )
-    otelAPI.trace.setSpan(traceContext, otelSpan)
+    otel.trace.setSpan(traceContext, otelSpan)
     context.pushParentSpan(otelSpan)
   }
 

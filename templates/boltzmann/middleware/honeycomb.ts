@@ -2,7 +2,7 @@ void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
 
 export { trace, honeycombMiddlewareSpans }
-import { beeline, Honeycomb, otelAPI, otelSemanticConventions } from '../core/honeycomb'
+import { beeline, Honeycomb, otel, otelSemanticConventions } from '../core/honeycomb'
 import { ServerResponse } from 'http'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
@@ -184,12 +184,12 @@ function otelTrace ({
 
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
-      let traceContext = otelAPI.context.active()
+      let traceContext = otel.context.active()
 
-      otelAPI.propagation.extract(
+      otel.propagation.extract(
         traceContext,
         context.headers,
-        otelAPI.defaultTextMapGetter
+        otel.defaultTextMapGetter
       )
 
       const span = honeycomb.tracer.startSpan(
@@ -204,12 +204,12 @@ function otelTrace ({
             [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
             [Honeycomb.OTEL_REQ_QUERY]: context.url.search
           },
-          kind: otelAPI.SpanKind.SERVER,
+          kind: otel.SpanKind.SERVER,
         },
         traceContext
       )
 
-      otelAPI.trace.setSpan(traceContext, span)
+      otel.trace.setSpan(traceContext, span)
 
       if (isDev()) {
         context._honeycombTrace = span
@@ -265,9 +265,9 @@ function otelTrace ({
 function otelMiddlewareSpans ({name}: {name?: string} = {}) {
   return function honeycombSpan (next: Handler) {
     return async (context: Context) => {
-      let traceContext = otelAPI.context.active()
+      let traceContext = otel.context.active()
       if (context.parentSpan) {
-        traceContext = otelAPI.trace.setSpan(
+        traceContext = otel.trace.setSpan(
           traceContext,
           context.parentSpan
         )
@@ -275,10 +275,10 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
 
       const span = honeycomb.tracer.startSpan(
         middlewareSpanName(name),
-        { kind: otelAPI.SpanKind.SERVER },
+        { kind: otel.SpanKind.SERVER },
         traceContext
       )
-      otelAPI.trace.setSpan(traceContext, span)
+      otel.trace.setSpan(traceContext, span)
 
       context.pushParentSpan(span)
       const result = await next(context)

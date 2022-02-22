@@ -1,6 +1,6 @@
 void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
-import { otelAPI } from '../core/honeycomb'
+import { otel } from '../core/honeycomb'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Accepts } from 'accepts'
 import accepts from 'accepts'
@@ -21,7 +21,7 @@ class Context {
   private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
   public _loadSession: GetSession
-  public _spans: otelAPI.Span[]
+  public _spans: otel.Span[]
 
   /**{{- tsdoc(page="02-handlers.md", section="id") -}}*/
   public id: string
@@ -129,18 +129,18 @@ class Context {
 
   // {% if honeycomb %}
 
-  pushParentSpan (span: otelAPI.Span) {
+  pushParentSpan (span: otel.Span) {
     this._spans.push(span)
   }
 
-  get parentSpan (): otelAPI.Span | null {
+  get parentSpan (): otel.Span | null {
     if (this._spans.length) {
       return this._spans[this._spans.length - 1]
     }
     return null
   }
 
-  popParentSpan (): otelAPI.Span | null {
+  popParentSpan (): otel.Span | null {
     return this._spans.pop() || null
   }
 
