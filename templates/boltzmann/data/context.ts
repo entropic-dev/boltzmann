@@ -159,14 +159,14 @@ class Context {
   }
 
   /**{{- tsdoc(page="02-handlers.md", section="addTraceAttributes") -}}*/
-  addTraceAttributes(attributes: Record<string, string>): void {
+  addTraceAttributes(attributes: Record<string, unknown>): void {
     if (honeycomb.features.otel) {
       // OpenTelemetry doesn't have the concept of trace context attributes
       // the same way that beelines do, so we set the attributes on the
       // request-level span instead
       Object.entries(attributes).forEach(([key, value]) => {
         if (this._traceSpan) {
-          this._traceSpan.setAttribute(key, `app.${value}`)
+          this._traceSpan.setAttribute(`app.${key}`, String(value))
         }
       })
     } else if (honeycomb.features.beeline) {
