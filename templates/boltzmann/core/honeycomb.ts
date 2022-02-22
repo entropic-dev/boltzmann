@@ -253,112 +253,6 @@ interface OtelFactoryOverrides {
 
 // Let's GOOOOOOO
 class Honeycomb {
-  // We load options from the environment. Unlike with Options,
-  // we do a lot of feature detection here.
-  public static fromEnv(
-    serviceName: string,
-    env: typeof process.env = process.env,
-    overrides: OtelFactoryOverrides = {}
-  ): Honeycomb {
-    return new Honeycomb(
-      Honeycomb.parseEnv(serviceName, env),
-      overrides
-    )
-  }
-
-  public static mock(): Honeycomb {
-    return new Honeycomb(
-      {
-        serviceName: 'test-app',
-        disable: false,
-        otel: true,
-        writeKey: 'SOME_WRITEKEY',
-        dataset: 'SOME_DATASET',
-        apiHost: 'grpc://api-host.com',
-        sampleRate: 1
-      },
-      // TODO: Test + adjust to ensure no spans get emitted for the /monitor/ping route
-      // honeycomb.factories.instrumentations = () => []
-      {
-        spanProcessor(traceExporter) {
-          return new OtelTestSpanProcessor(traceExporter)
-        }
-      }
-    )
-
-    // TODO: Test these for sensibility
-    /*
-      honeycomb.features = {
-        honeycomb: true,
-        beeline: false,
-        otel: true
-      }
-    */
-  }
-
-  public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
-    // If there's no write key we won't get very far anyway
-    const disable = !env.HONEYCOMB_WRITEKEY
-    let otel: boolean = false
-    const writeKey = env.HONEYCOMB_WRITEKEY || null
-    const dataset = env.HONEYCOMB_DATASET || null
-    const apiHost = env.HONEYCOMB_API_HOST || null
-    let sampleRate = 1
-
-    sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
-
-    if (isNaN(sampleRate)) {
-      Honeycomb.log(
-        `Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
-        + 'defaulting to 1'
-      )
-      sampleRate = 1
-    }
-
-    // If the API host is a grpc:// endpoint, we feature switch to
-    // OpenTelemetry. There are prior uses of this variable here but
-    // they should've been using https://.
-    if (!disable && apiHost) {
-      otel = /^grpc:\/\//.test(apiHost)
-    }
-
-    return {
-      serviceName,
-      disable,
-      otel,
-      writeKey,
-      dataset,
-      apiHost,
-      sampleRate
-    }
-  }
-
-  // These accessors are type guards that ensure you're working
-  // with a defined/non-null property. It's a bit of 6-to-1 and
-  // half a dozen on the other, because you trade ifs for
-  // try/catches and honeycomb can basically never throw. Even
-  // so, it saves a little bit of boilerplate.
-  private getWriteKey (): string {
-    if (this.features.honeycomb && this.options.writeKey) {
-      return this.options.writeKey
-    }
-    throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!')
-  }
-
-  private getDataset () {
-    if (this.features.honeycomb && this.options.dataset) {
-      return this.options.dataset
-    }
-    throw new HoneycombError('HONEYCOMB_DATASET is undefined!')
-  }
-
-  private getApiHost () {
-    if (this.features.honeycomb && this.options.apiHost) {
-      return this.options.apiHost
-    }
-    throw new HoneycombError('HONEYCOMB_API_HOST is undefined!')
-  }
-
   public options: HoneycombOptions
   public features: HoneycombFeatures
   public factories: OtelFactories
@@ -402,71 +296,78 @@ class Honeycomb {
   }
 
   get tracer (): otel.Tracer {
+    // TODO: Can we do better than hard-coding 1.0.0?
     return otel.trace.getTracer('boltzmann', '1.0.0')
   }
 
-  public static log(message: string | Error): void {
-    // Honeycomb starts up very early in the process's lifetime and
-    // can't count on bole being configured. In those cases, we fall
-    // back to console.log and JSON.stringify. Only use this if you
-    // can't use a bole logger!
-
-    // We always log at the debug level, in an effort to make tracing as quiet
-    // as possible while still being stdout-debuggable. We also mute them
-    // during unit tests.
-    let isDebug = !process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug'
-
-    void `{% if selftest %}`
-      isDebug = false
-    void `{% endif %}`
-
-    if (isDebug) {
-      const line: any = {
-        time: (new Date()).toISOString(),
-        level: 'debug',
-        name: 'boltzmann:honeycomb'
-      }
-
-      if (message instanceof Error) {
-        line.err = {
-          name: message.name,
-          message: message.message,
-          stack: String(message.stack)
-        }
-      } else {
-        line.message = message
-      }
-
-      console.log(JSON.stringify(line))
-    }
+  // We (usually) load options from the environment. Unlike with Options,
+  // we do a lot of feature detection here.
+  public static fromEnv(
+    serviceName: string,
+    env: typeof process.env = process.env,
+    overrides: OtelFactoryOverrides = {}
+  ): Honeycomb {
+    return new Honeycomb(
+      Honeycomb.parseEnv(serviceName, env),
+      overrides
+    )
   }
 
-  public log(message: string | Error): void {
-    // The logger middleware creates a logger on the honeycomb object. If it's
-    // in place, we'll gladly use it.
-    if (this.logger) {
-      this.logger.debug(message)
-      return
+  // serviceName is defined in the prelude, so rather than doing the same
+  // logic twice we let the prelude inject it when creating the honeycomb
+  // object.
+  public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
+    // If there's no write key we won't get very far anyway
+    const disable = !env.HONEYCOMB_WRITEKEY
+    let otel: boolean = false
+    const writeKey = env.HONEYCOMB_WRITEKEY || null
+    const dataset = env.HONEYCOMB_DATASET || null
+    const apiHost = env.HONEYCOMB_API_HOST || null
+    let sampleRate = 1
+
+    sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
+
+    if (isNaN(sampleRate)) {
+      Honeycomb.log(
+        `Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
+        + 'defaulting to 1'
+      )
+      sampleRate = 1
     }
 
-    // Otherwise, fall back to console.log + JSON.stringify
-    Honeycomb.log(message)
+    // If the API host is a grpc:// endpoint, we feature switch to
+    // OpenTelemetry. There are prior uses of this variable here but
+    // they should've been using https://.
+    if (!disable && apiHost) {
+      otel = /^grpc:\/\//.test(apiHost)
+    }
+
+    return {
+      serviceName,
+      disable,
+      otel,
+      writeKey,
+      dataset,
+      apiHost,
+      sampleRate
+    }
   }
 
   // Initialize Honeycomb! Stands up the otel node SDK if enabled,
   // otherwise sets up the beeline library.
   // This needs to occur before any imports you want instrumentation
-  // to be aware of.
+  // to be aware of. This step is separated from the constructor if only because
+  // there are irreversible side effects galore.
   public init(): void {
     if (!this.features.honeycomb) {
       this.initialized = true
       return
     }
     try {
-      const writeKey = this.getWriteKey();
-      const dataset = this.getDataset();
-      const sampleRate = this.options.sampleRate || 1;
-      const serviceName = this.options.serviceName;
+      const writeKey = this.writeKey
+      const dataset = this.dataset
+      const sampleRate = this.options.sampleRate || 1
+      const serviceName = this.options.serviceName
 
       if (!this.features.otel) {
         beeline({ writeKey, dataset, sampleRate, serviceName })
@@ -475,7 +376,7 @@ class Honeycomb {
       }
 
       const f = this.factories
-      const apiHost: string = this.getApiHost()
+      const apiHost: string = this.apiHost
 
       const metadata: grpc.Metadata = f.metadata(writeKey, dataset)
       const resource: otelResources.Resource = f.resource(serviceName)
@@ -549,6 +450,103 @@ class Honeycomb {
       this.log(err)
     }
   }
+
+  // These accessors are type guards that ensure you're working
+  // with a defined/non-null property. It's a bit of 6-to-1 and
+  // half a dozen on the other, because you trade ifs for
+  // try/catches and honeycomb can basically never throw. Even
+  // so, it saves a little bit of boilerplate.
+  public get writeKey (): string {
+    if (this.features.honeycomb && this.options.writeKey) {
+      return this.options.writeKey
+    }
+    throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!')
+  }
+
+  public get dataset () {
+    if (this.features.honeycomb && this.options.dataset) {
+      return this.options.dataset
+    }
+    throw new HoneycombError('HONEYCOMB_DATASET is undefined!')
+  }
+
+  public get apiHost () {
+    if (this.features.honeycomb && this.options.apiHost) {
+      return this.options.apiHost
+    }
+    throw new HoneycombError('HONEYCOMB_API_HOST is undefined!')
+  }
+
+  // We *do* have a handful of logging use cases...
+
+  public static log(message: string | Error): void {
+    // Honeycomb starts up very early in the process's lifetime and
+    // can't count on bole being configured. In those cases, we fall
+    // back to console.log and JSON.stringify. Only use this if you
+    // can't use a bole logger!
+
+    // We always log at the debug level, in an effort to make tracing as quiet
+    // as possible while still being stdout-debuggable. We also mute them
+    // during unit tests.
+    let isDebug = !process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug'
+
+    void `{% if selftest %}`
+      isDebug = false
+    void `{% endif %}`
+
+    if (isDebug) {
+      const line: any = {
+        time: (new Date()).toISOString(),
+        level: 'debug',
+        name: 'boltzmann:honeycomb'
+      }
+
+      if (message instanceof Error) {
+        line.err = {
+          name: message.name,
+          message: message.message,
+          stack: String(message.stack)
+        }
+      } else {
+        line.message = message
+      }
+
+      console.log(JSON.stringify(line))
+    }
+  }
+
+  public log(message: string | Error): void {
+    // The logger middleware creates a logger on the honeycomb object. If it's
+    // in place, we'll gladly use it.
+    if (this.logger) {
+      this.logger.debug(message)
+      return
+    }
+
+    // Otherwise, fall back to console.log + JSON.stringify
+    Honeycomb.log(message)
+  }
+
+  // {% if selftest %}
+  public static mock(): Honeycomb {
+    return new Honeycomb(
+      {
+        serviceName: 'test-app',
+        disable: false,
+        otel: true,
+        writeKey: 'SOME_WRITEKEY',
+        dataset: 'SOME_DATASET',
+        apiHost: 'grpc://api-host.com',
+        sampleRate: 1
+      },
+      {
+        spanProcessor(traceExporter) {
+          return new OtelTestSpanProcessor(traceExporter)
+        }
+      }
+    )
+  }
+  // {% endif %}
 }
 
 export {
