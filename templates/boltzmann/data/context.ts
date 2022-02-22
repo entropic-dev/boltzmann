@@ -129,7 +129,7 @@ class Context {
 
   // {% if honeycomb %}
 
-  pushParentSpan (span: otel.Span) {
+  pushSpan (span: otel.Span) {
     this._spans.push(span)
   }
 
@@ -140,7 +140,7 @@ class Context {
     return null
   }
 
-  popParentSpan (): otel.Span | null {
+  popSpan (): otel.Span | null {
     return this._spans.pop() || null
   }
 
