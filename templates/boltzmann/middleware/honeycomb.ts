@@ -184,17 +184,11 @@ function otelTrace ({
 
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
-      // TODO: In order to get trace propagation working correctly, we *may*
-      // need to extract the parent context with the request headers. I *believe*
-      // setting the W3CTraceContextPropagator as global and trace.setSpan are
-      // enough, but this needs to be confirmed.
       let traceContext = otelAPI.context.active()
 
-      // TODO: Do we need this step? Esp. if we don't set any context
-      // properties?
-      traceContext = otelAPI.propagation.extract(
+      otelAPI.propagation.extract(
         traceContext,
-        {},
+        context.headers,
         otelAPI.defaultTextMapGetter
       )
 
