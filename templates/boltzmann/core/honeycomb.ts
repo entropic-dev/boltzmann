@@ -526,27 +526,6 @@ class Honeycomb {
     // Otherwise, fall back to console.log + JSON.stringify
     Honeycomb.log(message)
   }
-
-  // {% if selftest %}
-  public static mock(): Honeycomb {
-    return new Honeycomb(
-      {
-        serviceName: 'test-app',
-        disable: false,
-        otel: true,
-        writeKey: 'SOME_WRITEKEY',
-        dataset: 'SOME_DATASET',
-        apiHost: 'grpc://api-host.com',
-        sampleRate: 1
-      },
-      {
-        spanProcessor(traceExporter) {
-          return new OtelTestSpanProcessor(traceExporter)
-        }
-      }
-    )
-  }
-  // {% endif %}
 }
 
 export {
@@ -639,7 +618,27 @@ function resetOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): 
   processor._exporterCreatedSpans = []
 }
 
+function createMockHoneycomb(): Honeycomb {
+  return new Honeycomb(
+    {
+      serviceName: 'test-app',
+      disable: false,
+      otel: true,
+      writeKey: 'SOME_WRITEKEY',
+      dataset: 'SOME_DATASET',
+      apiHost: 'grpc://api-host.com',
+      sampleRate: 1
+    },
+    {
+      spanProcessor(traceExporter) {
+        return new OtelTestSpanProcessor(traceExporter)
+      }
+    }
+  )
+}
+
 export {
+  createMockHoneycomb,
   getOtelTestSpans,
   OtelTestSpanProcessor,
   resetOtelTestSpans
