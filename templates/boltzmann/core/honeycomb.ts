@@ -25,6 +25,7 @@ Good luck!
 // Dependencies used downstream - it's worth your time to look at how these
 // are treated in prelude.ts!
 import isDev from 'are-we-dev'
+import bole from '@entropic/bole'
 
 // We continue to support beelines...
 import beeline from 'honeycomb-beeline'
@@ -371,6 +372,9 @@ class Honeycomb {
   public initialized: boolean
   public started: boolean
 
+  // TODO: Bole | null
+  public logger: any
+
   constructor(
     options: HoneycombOptions,
     overrides: OtelFactoryOverrides = {}
@@ -394,22 +398,60 @@ class Honeycomb {
       ...defaultOtelFactories,
       ...(overrides || {})
     }
+
+    this.logger = null
   }
 
   get tracer (): otel.Tracer {
     return otel.trace.getTracer('boltzmann', '1.0.0')
   }
 
-  public static log(message: any): void {
-    // There's a good likelihood that bole hasn't been configured yet,
-    // so we use console here. We also want honeycomb to fail gracefully
-    // as nothing is more embarrassing than your service getting taken
-    // down by instrumentation, so we only log in live dev and in debug.
-    void `{% if not selftest %}`
-    if (process.env.DEBUG || isDev()) {
-      console.warn(message);
-    }
+  public static log(message: string | Error): void {
+    // Honeycomb starts up very early in the process's lifetime and
+    // can't count on bole being configured. In those cases, we fall
+    // back to console.log and JSON.stringify. Only use this if you
+    // can't use a bole logger!
+
+    // We always log at the debug level, in an effort to make tracing as quiet
+    // as possible while still being stdout-debuggable. We also mute them
+    // during unit tests.
+    let isDebug = !process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug'
+
+    void `{% if selftest %}`
+      isDebug = false
     void `{% endif %}`
+
+    if (isDebug) {
+      const line: any = {
+        time: (new Date()).toISOString(),
+        level: 'debug',
+        name: 'boltzmann:honeycomb'
+      }
+
+      if (message instanceof Error) {
+        line.err = {
+          name: message.name,
+          message: message.message,
+          stack: String(message.stack)
+        }
+      } else {
+        line.message = message
+      }
+
+      console.log(JSON.stringify(line))
+    }
+  }
+
+  public log(message: string | Error): void {
+    // The logger middleware creates a logger on the honeycomb object. If it's
+    // in place, we'll gladly use it.
+    if (this.logger) {
+      this.logger.debug(message)
+      return
+    }
+
+    // Otherwise, fall back to console.log + JSON.stringify
+    Honeycomb.log(message)
   }
 
   // Initialize Honeycomb! Stands up the otel node SDK if enabled,
@@ -464,7 +506,7 @@ class Honeycomb {
       this.initialized = true
     } catch (err) {
       if (err instanceof HoneycombError) {
-        Honeycomb.log(err);
+        this.log(err);
         return;
       }
       throw err;
@@ -478,8 +520,8 @@ class Honeycomb {
     let exitCode = 0
     const sdk = this.sdk
 
-    async function die(err: Error) {
-      Honeycomb.log(err);
+    const die = async (err: Error) => {
+      this.log(err);
       exitCode = 1
       await shutdown()
     }
@@ -505,14 +547,17 @@ class Honeycomb {
     try {
       await sdk.shutdown()
     } catch (err) {
-      Honeycomb.log(err)
+      this.log(err)
     }
   }
 }
 
 export {
   beeline,
+  bole,
+  // Bole,
   grpc,
+  isDev,
   otel,
   otelCore,
   OTLPTraceExporter,

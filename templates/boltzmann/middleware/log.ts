@@ -4,6 +4,7 @@ export { log }
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
+import { honeycomb } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
@@ -20,6 +21,7 @@ function log ({
     stream = pretty
   }
   bole.output({ level, stream })
+  honeycomb.logger = bole('boltzmann:honeycomb')
 
   return function logMiddleware (next: Handler) {
     return async function inner (context: Context) {
