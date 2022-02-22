@@ -97,6 +97,7 @@ import { Accepts } from 'accepts'
 import { RouteOptions, Handler as FMWHandler, HTTPVersion, HTTPMethod } from 'find-my-way'
 import Ajv from 'ajv'
 import * as cookie from 'cookie'
+import type tap from 'tap'
 void `{% if redis %}`;
 import { WrappedNodeRedisClient } from 'handy-redis'
 void `{% endif %}`;
@@ -224,6 +225,7 @@ export {
   Listener,
   ResponseObject,
   cookie,
+  tap,
   os,
   path,
   http,
