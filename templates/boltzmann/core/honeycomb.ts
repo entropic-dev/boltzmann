@@ -115,7 +115,6 @@ interface OtelFactories {
   traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
-  traceContextPropagator: () => otel.TextMapPropagator
   sdk: (
     resource: otelResources.Resource,
     instrumentations: OtelInstrumentation[],
@@ -211,10 +210,6 @@ const defaultOtelFactories: OtelFactories = {
     void `{% endif %}`
 
     return is
-  },
-
-  traceContextPropagator(): otelCore.W3CTraceContextPropagator {
-    return new otelCore.W3CTraceContextPropagator()
   },
 
   // The SDK will take a service name, instrumentations
@@ -371,7 +366,6 @@ class Honeycomb {
   public traceExporter: OTLPTraceExporter | null
   public spanProcessor: otelTraceBase.SpanProcessor | null
   public instrumentations: OtelInstrumentation[] | null
-  public traceContextPropagator: otel.TextMapPropagator | null
   public sdk: OtelSDK | null
 
   public initialized: boolean
@@ -394,7 +388,6 @@ class Honeycomb {
     this.traceExporter = null
     this.spanProcessor = null
     this.instrumentations = null
-    this.traceContextPropagator = null
     this.sdk = null
 
     this.factories = {
@@ -455,10 +448,6 @@ class Honeycomb {
       provider.addSpanProcessor(processor)
       provider.register()
 
-      const propagator = f.traceContextPropagator()
-
-      otel.propagation.setGlobalPropagator(propagator)
-
       const sdk = f.sdk(
         resource,
         instrumentations,
@@ -469,7 +458,6 @@ class Honeycomb {
       this.spanProcessor = processor
       this.instrumentations = instrumentations
       this.tracerProvider = provider
-      this.traceContextPropagator = propagator
 
       this.sdk = sdk
 
@@ -831,12 +819,6 @@ if (require.main === module) {
         4,
         'should create 4 instrumentations (dns, http, postgres, redis)'
       )
-    })
-
-    test('traceContextPropagator', async (assert: Test) => {
-      assert.doesNotThrow(() => {
-        defaultOtelFactories.traceContextPropagator()
-      })
     })
 
     test('sdk', async (assert: Test) => {
