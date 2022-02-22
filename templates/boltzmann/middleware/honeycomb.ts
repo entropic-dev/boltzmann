@@ -49,6 +49,7 @@ function trace ({
     return beelineTrace({ headerSources })
   }
 
+  // Note: headerSources is not respected by otel tracing!
   return otelTrace()
 }
 
@@ -189,16 +190,10 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
  * ╱╱┏┳┓╭╮┏┳┓ ╲╲
  * ▔▏┗┻┛┃┃┗┻┛▕▔
  */
-function otelTrace ({
-  headerSources = [],
-} = {}) {
-  if (headerSources.length) {
-    // TODO: Can we respect these? Should we respect these?
-    Honeycomb.log('trace headerSources are a beeline-only feature')
-  }
-
+function otelTrace () {
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
+      void `{% if selftest %}`
       let traceContext = otel.context.active()
 
       otel.propagation.extract(
@@ -217,7 +212,7 @@ function otelTrace ({
             [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
             [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
             [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-            [Honeycomb.OTEL_REQ_QUERY]: context.url.search
+            'boltzmann.http.query': context.url.search
           },
           kind: otel.SpanKind.SERVER,
         },
@@ -226,11 +221,8 @@ function otelTrace ({
 
       otel.trace.setSpan(traceContext, span)
 
-      if (isDev()) {
-        context._honeycombTrace = span
-      }
-
-      context.pushParentSpan(span)
+      context.pushSpan(span)
+      void `{% endif %}`
 
       // do not as I do,
       onHeaders(context._response, function () {
@@ -243,13 +235,15 @@ function otelTrace ({
 
   function endSpan(context: Context) {
     const handler: Handler = <Handler>context.handler
-    const span = context._spans.pop()
+    const span = context.parentSpan
+      ? context.popSpan()
+      : otel.trace.getSpan(otel.context.active())
 
     if (!span) {
-      Honeycomb.log('No span to close!')
       return
     }
 
+    void `{% if selftest %}`
     span.setAttribute(
       otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
       String(context._response.statusCode)
@@ -262,6 +256,8 @@ function otelTrace ({
       otelSemanticConventions.SemanticAttributes.HTTP_METHOD,
       <string>handler.method
     )
+    void `{% endif %}`
+
     span.setAttribute(
       otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
       <string>handler.version
@@ -269,11 +265,13 @@ function otelTrace ({
 
     Object.entries(context.params).map(([key, value]) => {
       span.setAttribute(
-        Honeycomb.paramAttribute(key),
+        paramSpanAttribute(key),
         value
       )
     })
+    void `{% if selftest %}`
     span.end()
+    void `{% endif %}`
   }
 }
 
@@ -295,9 +293,9 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
       )
       otel.trace.setSpan(traceContext, span)
 
-      context.pushParentSpan(span)
+      context.pushSpan(span)
       const result = await next(context)
-      context.popParentSpan()
+      context.popSpan()
       span.end()
 
       return result

@@ -125,7 +125,7 @@ async function handler (context: Context) {
       traceContext
     )
     otel.trace.setSpan(traceContext, otelSpan)
-    context.pushParentSpan(otelSpan)
+    context.pushSpan(otelSpan)
   }
 
   try {
@@ -136,7 +136,7 @@ async function handler (context: Context) {
     if (beelineSpan !== null) {
       beeline.finishSpan(beelineSpan)
     } else if (otelSpan !== null) {
-      context.popParentSpan()
+      context.popSpan()
       otelSpan.end()
     }
   }
@@ -195,10 +195,7 @@ if (require.main === module) {
 
       return {
         spanName: span.name,
-        // TODO: This test fails with "unknown_service" but that may be an
-        // issue with how things are mocked - test in practice and see what
-        // shakes out!
-        // serviceName: String(span.resource.attributes['service.name']).split(':')[0],
+        serviceName: String(span.resource.attributes['service.name']).split(':')[0],
         library: span.instrumentationLibrary.name,
         spanId: context.spanId,
         traceId: context.traceId,
@@ -214,7 +211,7 @@ if (require.main === module) {
         // The middleware span
         {
           spanName: 'mw: helloMiddleware',
-          // serviceName: 'test-app',
+          serviceName: 'test-app',
           library: 'boltzmann',
           traceId: boltzmannSpans[1].traceId,
           spanId: boltzmannSpans[0].spanId,
@@ -224,8 +221,8 @@ if (require.main === module) {
         },
         // The request-level parent span
         {
-          spanName: 'GET /',
-          // serviceName: 'test-app',
+          spanName: 'HTTP GET',
+          serviceName: 'test-app',
           library: 'boltzmann',
           traceId: boltzmannSpans[1].traceId,
           spanId: boltzmannSpans[1].spanId,
