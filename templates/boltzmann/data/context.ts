@@ -165,7 +165,7 @@ class Context {
       // the same way that beelines do, so we set the attributes on the
       // request-level span instead
       Object.entries(attributes).forEach(([key, value]) => {
-        if (this._traceSpan) {
+        if (this._traceSpan && value) {
           this._traceSpan.setAttribute(`app.${key}`, String(value))
         }
       })
