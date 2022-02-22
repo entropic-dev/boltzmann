@@ -68,6 +68,7 @@ class Context {
     this.id = String(
       request.headers['x-honeycomb-trace'] ||
       request.headers['x-request-id'] ||
+      request.headers['traceparent'] ||
       uuid.v4()
     )
     this._loadSession = async () => {
