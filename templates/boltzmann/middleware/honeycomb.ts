@@ -11,11 +11,27 @@ import isDev from 'are-we-dev'
 void `{% endif %}`;
 
 function traceName(method: string, pathname: string) {
+  // This is how OpenTelemetry names request-level spans by default, so we
+  // go with the grain
+  if (honeycomb.features.otel) {
+    return `HTTP ${method}`
+  }
+  // This is what the beeline traces are named today
   return `${method} ${pathname}`
 }
 
 function middlewareSpanName(name?: string) {
   return `mw: ${name || '<unknown>'}`
+}
+
+function paramSpanAttribute(param: string): string {
+  return `boltzmann.http.request.param.${param}`
+}
+
+export {
+  traceName,
+  middlewareSpanName,
+  paramSpanAttribute
 }
 
 // The trace middleware creates a request-level span or trace. It delegates
@@ -62,7 +78,6 @@ function beelineTrace ({
 
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
-      Honeycomb.log('starting a beeline trace')
       const traceContext = _getTraceContext(context)
 
       const trace = beeline.startTrace({
@@ -301,7 +316,7 @@ if (require.main === module) {
   test('traceName', async (assert: Test) => {
     assert.same(
       traceName('GET', '/echo'),
-      'GET /echo'
+      'HTTP GET'
     )
   });
 

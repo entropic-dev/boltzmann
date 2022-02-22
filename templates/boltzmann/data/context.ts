@@ -20,8 +20,8 @@ class Context {
   private _parsedUrl?: URL
   private _body?: Promise<Record<string, any>>
   private _cookie?: Cookie
+  private _spans: Array<otel.Span>
   public _loadSession: GetSession
-  public _spans: otel.Span[]
 
   /**{{- tsdoc(page="02-handlers.md", section="id") -}}*/
   public id: string

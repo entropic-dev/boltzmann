@@ -419,15 +419,6 @@ class Honeycomb {
     void `{% endif %}`
   }
 
-  // Some non-standard OpenTelemetry attributes we add in
-  // the middlewares...
-
-  public static OTEL_REQ_QUERY = 'boltzmann.http.query'
-
-  public static paramAttribute(param: string): string {
-    return `boltzmann.http.request.param.${param}`
-  }
-
   // Initialize Honeycomb! Stands up the otel node SDK if enabled,
   // otherwise sets up the beeline library.
   // This needs to occur before any imports you want instrumentation
