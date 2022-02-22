@@ -141,9 +141,14 @@ class Context {
       url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
       url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
     } else if (honeycomb.features.otel) {
-      // TODO: Fill this out lol
-      url.searchParams.set('trace_id', 'TODO')
-      url.searchParams.set('trace_start_ts', 'TODO')
+      const spanCtx = this._honeycombTrace.spanContext()
+      const [startSeconds, startNanos] = this._honeycombTrace.startTime
+      url.searchParams.set('trace_id', spanCtx.traceId)
+
+      url.searchParams.set(
+        'trace_start_ts',
+        String(startSeconds * 1000 + startNanos / 1000)
+      )
     }
     return String(url)
   }

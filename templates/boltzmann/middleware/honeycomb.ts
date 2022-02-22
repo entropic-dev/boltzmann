@@ -230,6 +230,10 @@ function otelTrace () {
         span.setAttribute('boltzmann.http.query', context.url.search)
         otel.trace.setSpan(traceContext, span)
         context.span = span
+
+        if (isDev()) {
+          context._honeycombTrace = span
+        }
       } else if (createdSpan) {
         Honeycomb.log('trace: could not create a span - something is seriously wrong')
       } else {
