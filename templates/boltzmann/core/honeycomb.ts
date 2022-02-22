@@ -31,7 +31,7 @@ import beeline from 'honeycomb-beeline'
 
 // ...but are migrating to OpenTelemetry:
 import * as grpc from '@grpc/grpc-js'
-import * as otelAPI from '@opentelemetry/api'
+import * as otel from '@opentelemetry/api'
 import * as otelCore from '@opentelemetry/core'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import * as otelResources from '@opentelemetry/resources'
@@ -106,16 +106,16 @@ interface HoneycombFeatures {
 // namespace.
 interface OtelFactories {
   metadata: (writeKey: string, dataset: string) => grpc.Metadata
-  sampler: (sampleRate: number) => otelAPI.Sampler
+  sampler: (sampleRate: number) => otel.Sampler
   resource: (serviceName: string) => otelResources.Resource
   tracerProvider: (
     resource: otelResources.Resource,
-    sampler: otelAPI.Sampler
+    sampler: otel.Sampler
   ) => NodeTracerProvider
   traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
-  traceContextPropagator: () => otelAPI.TextMapPropagator
+  traceContextPropagator: () => otel.TextMapPropagator
   sdk: (
     resource: otelResources.Resource,
     instrumentations: OtelInstrumentation[],
@@ -133,7 +133,7 @@ const defaultOtelFactories: OtelFactories = {
 
   // create a Sampler object, which is used to tune
   // the sampling rate
-  sampler (sampleRate: number): otelAPI.Sampler {
+  sampler (sampleRate: number): otel.Sampler {
     return new otelCore.ParentBasedSampler({
       root: new otelCore.TraceIdRatioBasedSampler(sampleRate)
     })
@@ -146,7 +146,7 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   // It provides tracers!
-  tracerProvider (resource: otelResources.Resource, sampler: otelAPI.Sampler): NodeTracerProvider {
+  tracerProvider (resource: otelResources.Resource, sampler: otel.Sampler): NodeTracerProvider {
     return new NodeTracerProvider({ resource, sampler })
   },
 
@@ -239,11 +239,11 @@ const defaultOtelFactories: OtelFactories = {
 // passing overrides into its constructor.
 interface OtelFactoryOverrides {
   metadata?: (writeKey: string, dataset: string) => grpc.Metadata
-  sampler?: (sampleRate: Number) => otelAPI.Sampler
+  sampler?: (sampleRate: Number) => otel.Sampler
   resource?: (serviceName: string) => otelResources.Resource
   tracerProvider?: (
     resource: otelResources.Resource,
-    sampler: otelAPI.Sampler
+    sampler: otel.Sampler
   ) => NodeTracerProvider
   traceExporter?: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
@@ -371,7 +371,7 @@ class Honeycomb {
   public traceExporter: OTLPTraceExporter | null
   public spanProcessor: otelTraceBase.SpanProcessor | null
   public instrumentations: OtelInstrumentation[] | null
-  public traceContextPropagator: otelAPI.TextMapPropagator | null
+  public traceContextPropagator: otel.TextMapPropagator | null
   public sdk: OtelSDK | null
 
   public initialized: boolean
@@ -403,8 +403,8 @@ class Honeycomb {
     }
   }
 
-  get tracer (): otelAPI.Tracer {
-    return otelAPI.trace.getTracer('boltzmann', '1.0.0')
+  get tracer (): otel.Tracer {
+    return otel.trace.getTracer('boltzmann', '1.0.0')
   }
 
   public static log(message: any): void {
@@ -455,7 +455,7 @@ class Honeycomb {
       const metadata: grpc.Metadata = f.metadata(writeKey, dataset)
       const resource: otelResources.Resource = f.resource(serviceName)
 
-      const sampler: otelAPI.Sampler = f.sampler(sampleRate)
+      const sampler: otel.Sampler = f.sampler(sampleRate)
       const exporter = f.traceExporter(apiHost, metadata)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
@@ -466,7 +466,7 @@ class Honeycomb {
 
       const propagator = f.traceContextPropagator()
 
-      otelAPI.propagation.setGlobalPropagator(propagator)
+      otel.propagation.setGlobalPropagator(propagator)
 
       const sdk = f.sdk(
         resource,
@@ -534,7 +534,7 @@ class Honeycomb {
 export {
   beeline,
   grpc,
-  otelAPI,
+  otel,
   otelCore,
   OTLPTraceExporter,
   otelResources,
