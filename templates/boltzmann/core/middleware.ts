@@ -91,6 +91,7 @@ async function handler (context: Context) {
   // {% if honeycomb %}
   let beelineSpan = null
   let otelSpan = null
+  let parentOtelSpan = context.span
   if (honeycomb.features.beeline) {
     beelineSpan = beeline.startSpan({
       name: handlerSpanName(handler),
@@ -103,10 +104,10 @@ async function handler (context: Context) {
   } else if (honeycomb.features.otel) {
     let traceContext = otel.context.active()
 
-    if (context.parentSpan) {
+    if (context.span) {
       traceContext = otel.trace.setSpan(
         traceContext,
-        context.parentSpan
+        context.span
       )
     }
 
@@ -125,7 +126,7 @@ async function handler (context: Context) {
       traceContext
     )
     otel.trace.setSpan(traceContext, otelSpan)
-    context.pushSpan(otelSpan)
+    context.span = otelSpan
   }
 
   try {
@@ -136,8 +137,8 @@ async function handler (context: Context) {
     if (beelineSpan !== null) {
       beeline.finishSpan(beelineSpan)
     } else if (otelSpan !== null) {
-      context.popSpan()
       otelSpan.end()
+      context.span = parentOtelSpan
     }
   }
   // {% endif %}
