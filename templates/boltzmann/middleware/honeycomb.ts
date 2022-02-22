@@ -237,9 +237,9 @@ function otelTrace () {
           context._honeycombTrace = span
         }
       } else if (createdSpan) {
-        logger.warning('could not create a root span - something is seriously wrong')
+        logger.debug('could not create a root span - something is seriously wrong')
       } else {
-        logger.warning(
+        logger.debug(
           "could not find and did not attempt to create a root span - something is seriously wrong"
         )
       }

@@ -142,7 +142,6 @@ import accepts from 'accepts'
 import { promises as fs } from 'fs'
 import crypto from 'crypto'
 import http from 'http'
-import bole from '@entropic/bole'
 import path from 'path'
 import os from 'os'
 void `{% if redis %}`;
@@ -226,13 +225,11 @@ export {
   cookie,
   os,
   path,
-  bole,
   http,
   crypto,
   fs,
   accepts,
   fmw,
-  isDev,
   promisify,
   querystring,
   ships,
