@@ -8,6 +8,7 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import onHeaders from 'on-headers'
 import isDev from 'are-we-dev'
+import bole from '@entropic/bole'
 void `{% endif %}`;
 
 function traceName(method: string, pathname: string) {
@@ -191,6 +192,7 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
  * ▔▏┗┻┛┃┃┗┻┛▕▔
  */
 function otelTrace () {
+  const logger = bole('boltzmann:trace')
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
       let traceContext = otel.context.active()
@@ -235,9 +237,11 @@ function otelTrace () {
           context._honeycombTrace = span
         }
       } else if (createdSpan) {
-        Honeycomb.log('trace: could not create a span - something is seriously wrong')
+        logger.warning('could not create a root span - something is seriously wrong')
       } else {
-        Honeycomb.log("trace: could not find span - why didn't one get created? something is seriously wrong")
+        logger.warning(
+          "could not find and did not attempt to create a root span - something is seriously wrong"
+        )
       }
 
       // do not as I do,
