@@ -435,7 +435,9 @@ class Honeycomb {
       process.once('SIGTERM', shutdown)
       process.once('beforeExit', shutdown)
       process.once('uncaughtException', die)
-      process.once('unhandledRejection', die)
+      process.once('unhandledRejection', async (reason: Error | any, _: Promise<any>) => {
+        await die(reason)
+      })
       await sdk.start()
     }
     this.started = true
