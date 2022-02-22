@@ -2,7 +2,7 @@ void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
 
 export { trace, honeycombMiddlewareSpans }
-import { beeline, Honeycomb, otel, otelSemanticConventions } from '../core/honeycomb'
+import { beeline, otel, otelSemanticConventions } from '../core/honeycomb'
 import { ServerResponse } from 'http'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
@@ -231,6 +231,7 @@ function otelTrace () {
       if (span) {
         span.setAttribute('boltzmann.http.query', context.url.search)
         otel.trace.setSpan(traceContext, span)
+        context._traceSpan = span
         context.span = span
 
         if (isDev()) {

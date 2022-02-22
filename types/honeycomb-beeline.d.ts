@@ -12,6 +12,7 @@ declare module 'honeycomb-beeline' {
     finishTrace: (_: string) => void
     bindFunctionToTrace<T extends Fn>(...args: Parameters<T>): ReturnType<T>
     addContext: (opts?: Record<string, unknown>) => void
+    addTraceContext: (opts?: Record<string, unknown>) => void
   }
 
   declare const beeline: Beeline;

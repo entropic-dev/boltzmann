@@ -1,6 +1,6 @@
 void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
-import { otel } from '../core/honeycomb'
+import { beeline, otel } from '../core/honeycomb'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Accepts } from 'accepts'
 import accepts from 'accepts'
@@ -50,7 +50,9 @@ class Context {
 
   // {% if honeycomb %}
   /**{{- tsdoc(page="02-handlers.md", section="span") -}}*/
-  public span: otel.Span | null
+  public span?: otel.Span
+
+  public _traceSpan?: otel.Span
   // {% endif %}
 
   ;[extensions: string]: any
@@ -74,9 +76,6 @@ class Context {
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')
     }
-    void `{% if honeycomb %}`
-    this.span = null
-    void `{% endif %}`
   }
 
   static baseHandler (context: Context): Promise<any> {
@@ -141,17 +140,35 @@ class Context {
     if (honeycomb.features.beeline) {
       url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
       url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
-    } else if (honeycomb.features.otel) {
-      const spanCtx = this._honeycombTrace.spanContext()
-      const [startSeconds, startNanos] = this._honeycombTrace.startTime
+    } else if (honeycomb.features.otel && this._traceSpan) {
+      // _traceSpan's type is otel.Span but startTime only exists on the
+      // otelTraceBase.Span subclass. Therefore, we duck type the property and
+      // fall back to "a minute ago" if it's not defined.
+      const span = this._traceSpan as any
+      const spanCtx = this._traceSpan.spanContext()
+      let startTime = Date.now() - 60000
+      if (span.startTime) {
+        const [startSeconds, startNanos] = span.startTime
+        startTime = startSeconds * 1000 + startNanos / 1000
+      }
       url.searchParams.set('trace_id', spanCtx.traceId)
 
-      url.searchParams.set(
-        'trace_start_ts',
-        String(startSeconds * 1000 + startNanos / 1000)
-      )
+      url.searchParams.set('trace_start_ts', String(startTime))
     }
     return String(url)
+  }
+
+  /**{{- tsdoc(page="02-handlers.md", section="addTraceAttributes") -}}*/
+  addTraceAttributes(attributes: Record<string, string>): void {
+    if (honeycomb.features.otel && this.span) {
+      Object.entries(attributes).forEach(([key, value]) => {
+        if (this._traceSpan) {
+          this._traceSpan.setAttribute(key, value)
+        }
+      })
+    } else if (honeycomb.features.beeline) {
+      beeline.addTraceContext(attributes)
+    }
   }
   // {% endif %}
 
