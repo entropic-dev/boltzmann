@@ -51,8 +51,8 @@ class Context {
   // {% if honeycomb %}
   /**{{- tsdoc(page="02-handlers.md", section="span") -}}*/
   public span?: otel.Span
-
   public _traceSpan?: otel.Span
+  public _traceAttributes: Record<string, unknown>
   // {% endif %}
 
   ;[extensions: string]: any
@@ -76,6 +76,9 @@ class Context {
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')
     }
+    void `{% if honeycomb %}`
+    this._traceAttributes = {}
+    void `{% endif %}`
   }
 
   static baseHandler (context: Context): Promise<any> {
@@ -164,11 +167,7 @@ class Context {
       // OpenTelemetry doesn't have the concept of trace context attributes
       // the same way that beelines do, so we set the attributes on the
       // request-level span instead
-      Object.entries(attributes).forEach(([key, value]) => {
-        if (this._traceSpan && value) {
-          this._traceSpan.setAttribute(`app.${key}`, String(value))
-        }
-      })
+      this._traceAttributes = {...this._traceAttributes, ...attributes}
     } else if (honeycomb.features.beeline) {
       beeline.addTraceContext(attributes)
     }

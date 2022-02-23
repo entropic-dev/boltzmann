@@ -99,7 +99,7 @@ async function handler (context: Context) {
       'handler.method': String(handler.method),
       'handler.route': handler.route,
       'handler.version': handler.version || '*',
-      'handler.decorators': String(handler.decorators)
+      'handler.decorators': String(handler.decorators),
     })
   } else if (honeycomb.features.otel) {
     let traceContext = otel.context.active()
@@ -120,6 +120,9 @@ async function handler (context: Context) {
           'boltzmann.http.handler.name': handler.name || '<unknown>',
           'boltzmann.http.handler.version': handler.version || '*',
           'boltzmann.http.handler.decorators': String(handler.decorators),
+          // for backwards compatibility with beeline traces
+          service_name: honeycomb.options.serviceName,
+          'boltzmann.honeycomb.trace_type': 'otel',
         },
         kind: otel.SpanKind.SERVER
       },
@@ -218,7 +221,10 @@ if (require.main === module) {
           spanId: boltzmannSpans[0].spanId,
           parentSpanId: boltzmannSpans[1].spanId,
           // TODO: There *should* be attributes here, no?
-          attributes: {}
+          attributes: {
+            "service_name": "test-app",
+            "boltzmann.honeycomb.trace_type": "otel",
+          }
         },
         // The request-level parent span
         {
