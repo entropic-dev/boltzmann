@@ -21,7 +21,16 @@ function log ({
     stream = pretty
   }
   bole.output({ level, stream })
+
+  void `{% if honeycomb %}`
   honeycomb.logger = bole('boltzmann:honeycomb')
+  if (honeycomb.features.beeline) {
+    honeycomb.logger.warn(
+      'Honeycomb beeline support is deprecated and will be removed in a future version. '
+      + 'To use OpenTelemetry, set HONEYCOMB_API_HOST to a grpc:// endpoint.'
+    )
+  }
+  void `{% endif %}`
 
   return function logMiddleware (next: Handler) {
     return async function inner (context: Context) {
