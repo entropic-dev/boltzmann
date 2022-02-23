@@ -198,7 +198,7 @@ function otelTrace () {
       let traceContext = otel.context.active()
 
       // Typically, HTTP auto-instrumentation will create a parent span for us
-      let span: otel.Span | null = otel.trace.getSpan(traceContext) || null
+      let span: otel.Span | undefined = otel.trace.getSpan(traceContext)
       let createdSpan = false
 
       // In shot testing (and other scenarios that don't touch HTTP
@@ -225,9 +225,13 @@ function otelTrace () {
           },
           traceContext
         )
+        // We need to clean up this span later - put a pin in it
         createdSpan = true
       }
 
+      // startSpan should always return a span, but as far as typescript is
+      // concerned the span could still be undefined. We could assert that it
+      // exists, but throwing instrumentation-related errors is poor form.
       if (span) {
         span.setAttribute('boltzmann.http.query', context.url.search)
         otel.trace.setSpan(traceContext, span)
@@ -245,7 +249,6 @@ function otelTrace () {
         )
       }
 
-      // do not as I do,
       onHeaders(context._response, function () {
         const handler: Handler = <Handler>context.handler
 
@@ -253,6 +256,8 @@ function otelTrace () {
           return
         }
 
+        // If we don't have an automatic span, we need to fill in some basic
+        // response properties.
         if (createdSpan) {
           span.setAttribute(
             otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
@@ -281,7 +286,8 @@ function otelTrace () {
             )
           }
         })
-        
+       
+        // If we created the span, we also need to close it
         if (createdSpan) {
           span.end()
         }

@@ -194,6 +194,9 @@ const defaultOtelFactories: OtelFactories = {
 
     let is: OtelInstrumentation[] = [
       new OtelDnsInstrumentation({}),
+      // NOTE: This instrumentation creates the default "trace" span and manages
+      // header propagation! See the honeycomb trace middleware for more
+      // details.
       new OtelHttpInstrumentation({
         // TODO: These fields are expected to become deprecated in the
         // near future...
