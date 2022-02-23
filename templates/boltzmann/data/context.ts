@@ -49,8 +49,6 @@ class Context {
   // {% endif %}
 
   // {% if honeycomb %}
-  /**{{- tsdoc(page="02-handlers.md", section="span") -}}*/
-  public span?: otel.Span
   public _traceSpan?: otel.Span
   public _traceAttributes: Record<string, unknown>
   // {% endif %}
