@@ -244,9 +244,11 @@ function otelTrace () {
       // exists, but throwing instrumentation-related errors is poor form.
       if (span) {
         span.setAttribute('boltzmann.http.query', context.url.search)
-        otel.trace.setSpan(traceContext, span)
-        context._traceSpan = span
-        context.span = span
+        traceContext = otel.trace.setSpan(traceContext, span)
+
+        if (isDev()) {
+          context._traceSpan = span
+        }
 
         if (isDev()) {
           context._honeycombTrace = span
@@ -306,7 +308,9 @@ function otelTrace () {
         }
       })
 
-      return next(context)
+      return otel.context.with(traceContext, () => {
+        return next(context)
+      })
     }
   }
 }
@@ -315,13 +319,6 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
   return function honeycombSpan (next: Handler) {
     return async (context: Context) => {
       let traceContext = otel.context.active()
-      let parentSpan = context.span
-      if (parentSpan) {
-        traceContext = otel.trace.setSpan(
-          traceContext,
-          parentSpan
-        )
-      }
 
       const span = honeycomb.tracer.startSpan(
         middlewareSpanName(name),
@@ -336,8 +333,9 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
       )
       otel.trace.setSpan(traceContext, span)
 
-      context.span = span
-      const result = await next(context)
+      const result = await otel.context.with(traceContext, () => {
+        return next(context)
+      })
 
       Object.entries(context._traceAttributes).forEach(([key, value]) => {
         if (value) {
@@ -345,7 +343,6 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
         }
       })
 
-      context.span = parentSpan
       span.end()
 
       return result
