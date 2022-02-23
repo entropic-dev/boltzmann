@@ -199,7 +199,7 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
  * ▔▏┗┻┛┃┃┗┻┛▕▔
  */
 function otelTrace () {
-  const logger = bole('boltzmann:trace')
+  const logger = bole('boltzmann:honeycomb:trace')
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
       let traceContext = otel.context.active()
@@ -211,7 +211,7 @@ function otelTrace () {
       // In shot testing (and other scenarios that don't touch HTTP
       // auto-instrumentation, we'll need to create one
       if (!span) {
-        otel.propagation.extract(
+        traceContext = otel.propagation.extract(
           traceContext,
           context.headers,
           otel.defaultTextMapGetter
@@ -227,10 +227,7 @@ function otelTrace () {
               [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
               [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
               [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-              // for backwards compatibility with beeline traces
-              service_name: honeycomb.options.serviceName,
-              'boltzmann.honeycomb.trace_type': 'otel'
-            },
+           },
             kind: otel.SpanKind.SERVER,
           },
           traceContext
@@ -243,6 +240,9 @@ function otelTrace () {
       // concerned the span could still be undefined. We could assert that it
       // exists, but throwing instrumentation-related errors is poor form.
       if (span) {
+        // for backwards compatibility with beeline traces
+        span.setAttribute('service_name', honeycomb.options.serviceName)
+        span.setAttribute('boltzmann.honeycomb.trace_type', 'otel')
         span.setAttribute('boltzmann.http.query', context.url.search)
         traceContext = otel.trace.setSpan(traceContext, span)
 
@@ -331,7 +331,7 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
         },
         traceContext
       )
-      otel.trace.setSpan(traceContext, span)
+      traceContext = otel.trace.setSpan(traceContext, span)
 
       const result = await otel.context.with(traceContext, () => {
         return next(context)
