@@ -93,7 +93,10 @@ function beelineTrace ({
         'request.method': context.method,
         'request.scheme': context.url.protocol,
         'request.path': context.url.pathname,
-        'request.query': context.url.search
+        'request.query': context.url.search,
+        // for forward compatibility with OpenTelemetry traces
+        [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
+        'boltzmann.honeycomb.trace_type': 'beeline'
       },
       traceContext.traceId,
       traceContext.parentSpanId,
@@ -220,6 +223,9 @@ function otelTrace () {
               [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
               [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
               [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
+              // for backwards compatibility with beeline traces
+              service_name: honeycomb.options.serviceName,
+              'boltzmann.honeycomb.trace_type': 'otel'
             },
             kind: otel.SpanKind.SERVER,
           },

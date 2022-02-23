@@ -237,6 +237,8 @@ if (require.main === module) {
             "http.route": "/",
             "boltzmann.http.query": "",
             "http.status_code": "200",
+            "service_name": "test-app",
+            "boltzmann.honeycomb.trace_type": "otel"
           }
         },
      ],
