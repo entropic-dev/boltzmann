@@ -29,6 +29,10 @@ function paramSpanAttribute(param: string): string {
   return `boltzmann.http.request.param.${param}`
 }
 
+function traceAttribute(key: string) {
+  return `app.${key}`
+}
+
 export {
   traceName,
   middlewareSpanName,
@@ -284,12 +288,15 @@ function otelTrace () {
           <string>handler.version
         )
 
-        Object.entries(context.params).map(([key, value]) => {
+        Object.entries(context._traceAttributes).forEach(([key, value]) => {
+          if (span && value) {
+            span.setAttribute(traceAttribute(key), String(value))
+          }
+        })
+
+        Object.entries(context.params).forEach(([key, value]) => {
           if (span) {
-            span.setAttribute(
-              paramSpanAttribute(key),
-              value
-            )
+            span.setAttribute(paramSpanAttribute(key), value)
           }
         })
        
@@ -318,13 +325,26 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
 
       const span = honeycomb.tracer.startSpan(
         middlewareSpanName(name),
-        { kind: otel.SpanKind.SERVER },
+        {
+          attributes: {
+            service_name: honeycomb.options.serviceName,
+            'boltzmann.honeycomb.trace_type': 'otel'
+          },
+          kind: otel.SpanKind.SERVER
+        },
         traceContext
       )
       otel.trace.setSpan(traceContext, span)
 
       context.span = span
       const result = await next(context)
+
+      Object.entries(context._traceAttributes).forEach(([key, value]) => {
+        if (value) {
+          span.setAttribute(traceAttribute(key), String(value))
+        }
+      })
+
       context.span = parentSpan
       span.end()
 
