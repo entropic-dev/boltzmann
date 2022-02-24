@@ -1,7 +1,7 @@
 void `{% if selftest %}`;
 export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
 import { honeycomb } from '../core/prelude'
-import { beeline, getOtelTestSpans, otel, otelSemanticConventions } from '../core/honeycomb'
+import { beeline, getOtelMockSpans, otel, otelSemanticConventions } from '../core/honeycomb'
 import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
@@ -111,10 +111,7 @@ async function handler (context: Context) {
           [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
           'boltzmann.http.handler.name': handler.name || '<unknown>',
           'boltzmann.http.handler.version': handler.version || '*',
-          'boltzmann.http.handler.decorators': String(handler.decorators),
-          // for backwards compatibility with beeline traces
-          service_name: honeycomb.options.serviceName,
-          'boltzmann.honeycomb.trace_type': 'otel',
+          'boltzmann.http.handler.decorators': String(handler.decorators)
         },
         kind: otel.SpanKind.SERVER
       },
@@ -182,7 +179,7 @@ if (require.main === module) {
 
     assert.same(response.payload, 'Hello!')
 
-    const spans = getOtelTestSpans(honeycomb.spanProcessor)
+    const spans = getOtelMockSpans(honeycomb.spanProcessor)
 
     // assert.same(spans, [], 'un-comment this to render all spans')
 
@@ -191,7 +188,7 @@ if (require.main === module) {
 
       return {
         spanName: span.name,
-        serviceName: String(span.resource.attributes['service.name']).split(':')[0],
+        serviceName: span.resource.attributes['service.name'],
         library: span.instrumentationLibrary.name,
         spanId: context.spanId,
         traceId: context.traceId,
