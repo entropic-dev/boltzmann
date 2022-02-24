@@ -1,6 +1,6 @@
 void `{% if selftest %}`;
 import { honeycomb } from '../core/prelude'
-
+import assert from 'assert'
 export { trace, honeycombMiddlewareSpans }
 import { beeline, otel, otelSemanticConventions } from '../core/honeycomb'
 import { ServerResponse } from 'http'
@@ -250,9 +250,12 @@ function otelTrace () {
           context._honeycombTrace = span
         }
       } else {
-        logger.debug(
-          "could not find and did not attempt to create a root span - something is seriously wrong"
-        )
+        logger.debug(new assert.AssertionError({
+          message: 'no parent span found or created',
+          actual: span,
+          expected: true,
+          operator: '=='
+        }))
       }
 
       onHeaders(context._response, function () {
