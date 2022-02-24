@@ -48,11 +48,6 @@ class Context {
   public _postgresConnection?: Promise<PGClient>
   // {% endif %}
 
-  // {% if honeycomb %}
-  public _traceSpan?: otel.Span
-  public _traceAttributes: Record<string, unknown>
-  // {% endif %}
-
   ;[extensions: string]: any
 
   constructor(public request: IncomingMessage, public _response: ServerResponse) {
@@ -74,9 +69,6 @@ class Context {
     this._loadSession = async () => {
       throw new Error('To use context.session, attach session middleware to your app')
     }
-    void `{% if honeycomb %}`
-    this._traceAttributes = {}
-    void `{% endif %}`
   }
 
   static baseHandler (context: Context): Promise<any> {
@@ -141,15 +133,11 @@ class Context {
     if (honeycomb.features.beeline) {
       url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
       url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
-    } else if (honeycomb.features.otel && this._traceSpan) {
-      // _traceSpan's type is otel.Span but startTime only exists on the
-      // otelTraceBase.Span subclass. Therefore, we duck type the property and
-      // fall back to "a minute ago" if it's not defined.
-      const span = this._traceSpan as any
-      const spanCtx = this._traceSpan.spanContext()
+    } else if (honeycomb.features.otel) {
+      const spanCtx = this._honeycombTrace.spanContext()
       let startTime = Date.now() - 60000
-      if (span.startTime) {
-        const [startSeconds, startNanos] = span.startTime
+      if (this._honeycombTrace.startTime) {
+        const [startSeconds, startNanos] = this._honeycombTrace.startTime
         startTime = startSeconds * 1000 + startNanos / 1000
       }
       url.searchParams.set('trace_id', spanCtx.traceId)
@@ -158,19 +146,6 @@ class Context {
     }
     return String(url)
   }
-
-  /**{{- tsdoc(page="02-handlers.md", section="addTraceAttributes") -}}*/
-  addTraceAttributes(attributes: Record<string, unknown>): void {
-    if (honeycomb.features.otel) {
-      // OpenTelemetry doesn't have the concept of trace context attributes
-      // the same way that beelines do, so we set the attributes on the
-      // request-level span instead
-      this._traceAttributes = {...this._traceAttributes, ...attributes}
-    } else if (honeycomb.features.beeline) {
-      beeline.addTraceContext(attributes)
-    }
-  }
-  // {% endif %}
 
   /**{{- tsdoc(page="02-handlers.md", section="url") -}}*/
   get url() {
