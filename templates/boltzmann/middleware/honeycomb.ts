@@ -247,14 +247,8 @@ function otelTrace () {
         traceContext = otel.trace.setSpan(traceContext, span)
 
         if (isDev()) {
-          context._traceSpan = span
-        }
-
-        if (isDev()) {
           context._honeycombTrace = span
         }
-      } else if (createdSpan) {
-        logger.debug('could not create a root span - something is seriously wrong')
       } else {
         logger.debug(
           "could not find and did not attempt to create a root span - something is seriously wrong"
@@ -289,12 +283,6 @@ function otelTrace () {
           otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
           <string>handler.version
         )
-
-        Object.entries(context._traceAttributes).forEach(([key, value]) => {
-          if (span && value) {
-            span.setAttribute(traceAttribute(key), String(value))
-          }
-        })
 
         Object.entries(context.params).forEach(([key, value]) => {
           if (span) {
@@ -335,12 +323,6 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
 
       const result = await otel.context.with(traceContext, () => {
         return next(context)
-      })
-
-      Object.entries(context._traceAttributes).forEach(([key, value]) => {
-        if (value) {
-          span.setAttribute(traceAttribute(key), String(value))
-        }
       })
 
       span.end()
