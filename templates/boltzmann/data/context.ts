@@ -146,6 +146,7 @@ class Context {
     }
     return String(url)
   }
+  // {% endif %}
 
   /**{{- tsdoc(page="02-handlers.md", section="url") -}}*/
   get url() {
