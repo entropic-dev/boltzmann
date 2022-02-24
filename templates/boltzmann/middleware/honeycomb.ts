@@ -241,8 +241,6 @@ function otelTrace () {
       // exists, but throwing instrumentation-related errors is poor form.
       if (span) {
         // for backwards compatibility with beeline traces
-        span.setAttribute('service_name', honeycomb.options.serviceName)
-        span.setAttribute('boltzmann.honeycomb.trace_type', 'otel')
         span.setAttribute('boltzmann.http.query', context.url.search)
         traceContext = otel.trace.setSpan(traceContext, span)
 
@@ -313,13 +311,7 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
 
       const span = honeycomb.tracer.startSpan(
         middlewareSpanName(name),
-        {
-          attributes: {
-            service_name: honeycomb.options.serviceName,
-            'boltzmann.honeycomb.trace_type': 'otel'
-          },
-          kind: otel.SpanKind.SERVER
-        },
+        { kind: otel.SpanKind.SERVER },
         traceContext
       )
       traceContext = otel.trace.setSpan(traceContext, span)

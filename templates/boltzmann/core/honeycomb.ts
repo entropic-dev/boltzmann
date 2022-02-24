@@ -71,6 +71,44 @@ void `{% endif %}`
 class HoneycombError extends Error {
 }
 
+// There's a bug in the trace base library where the SimpleSpanExporter doesn't
+// actually conform to the SpanExporter interface! onStart in particular
+// doesn't take the context argument. This makes typescript extremely
+// cranky.
+//
+// We work around this by defining a new type which is the same as a
+// SimpleSpanProcessor, but without enforcing onStart and onEnd. Then, we
+// implement those methods as specified by the SpanProcessor interface.
+type _OtelSpanProcessorClass = new(_exporter: otelTraceBase.SpanExporter) => {
+  [P in Exclude<keyof otelTraceBase.SpanProcessor, 'onStart' | 'onEnd'>]: otelTraceBase.SpanProcessor[P]
+}
+
+const _OtelSpanProcessor: _OtelSpanProcessorClass = otelTraceBase.SimpleSpanProcessor
+
+class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase.SpanProcessor {
+  constructor(_exporter: otelTraceBase.SpanExporter) {
+    super(_exporter)
+  }
+
+  // We want every span in the process to contain a couple of extra attributes.
+  // Right now that's just service_name (for backwards compatibility with
+  // beeline) and a trace type (so we can detect whether a service is using
+  // beeline or otel). This could theoretically be extended to allow
+  // customization a la beeline.addTraceContext, but that problem is really
+  // hairy and there are a lot of good reasons to add most attributes to
+  // just the active span.
+  onStart(span: otelTraceBase.Span, _: otel.Context): void {
+    span.setAttribute('service_name', span.resource.attributes['service.name'])
+    span.setAttribute('boltzmann.honeycomb.trace_type', 'otel')
+
+    otelTraceBase.SimpleSpanProcessor.prototype.onStart.call(this, span)
+  }
+
+  onEnd(span: otelTraceBase.ReadableSpan): void {
+    otelTraceBase.SimpleSpanProcessor.prototype.onEnd.call(this, span)
+  }
+}
+
 // Arguments passed to Honeycomb's constructor
 interface HoneycombOptions {
   serviceName: string
@@ -162,10 +200,7 @@ const defaultOtelFactories: OtelFactories = {
   // Process spans, using the supplied trace exporter to
   // do the actual exporting.
   spanProcessor (traceExporter: OTLPTraceExporter): otelTraceBase.SpanProcessor {
-    // There's a bug in the types here - SimpleSpanProcessor doesn't
-    // take the optional Context argument in its signature and
-    // typescript is understandably cranky about that.
-    return <otelTraceBase.SpanProcessor>(new otelTraceBase.SimpleSpanProcessor(traceExporter) as unknown)
+    return new HoneycombSpanProcessor(traceExporter)
   },
 
   instrumentations () {
@@ -563,13 +598,14 @@ export {
   HoneycombError,
   HoneycombOptions,
   HoneycombFeatures,
+  HoneycombSpanProcessor,
   OtelFactories,
   OtelFactoryOverrides,
 }
 
 void `{% if selftest %}`
 
-class OtelTestSpanProcessor extends otelTraceBase.SimpleSpanProcessor {
+class OtelMockSpanProcessor extends HoneycombSpanProcessor {
   public _exporterCreatedSpans: otelTraceBase.ReadableSpan[] = []
 
   constructor(_exporter: otelTraceBase.SpanExporter) {
@@ -587,7 +623,7 @@ class OtelTestSpanProcessor extends otelTraceBase.SimpleSpanProcessor {
   }
 }
 
-function getOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): otelTraceBase.ReadableSpan[] {
+function getOtelMockSpans(spanProcessor: otelTraceBase.SpanProcessor | null): otelTraceBase.ReadableSpan[] {
   const processor: any = spanProcessor
 
   if (!processor) {
@@ -598,14 +634,14 @@ function getOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): ot
 
   if (!processor._exporterCreatedSpans) {
     throw new Error(
-      'Span processor is not an OtelTestSpanProcessor'
+      'Span processor is not an OtelMockSpanProcessor'
     )
   }
 
   return <otelTraceBase.ReadableSpan[]>(processor._exporterCreatedSpans)
 }
 
-function resetOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): void {
+function resetOtelMockSpans(spanProcessor: otelTraceBase.SpanProcessor | null): void {
   const processor: any = spanProcessor
 
   if (!processor) {
@@ -616,7 +652,7 @@ function resetOtelTestSpans(spanProcessor: otelTraceBase.SpanProcessor | null): 
 
   if (!processor._exporterCreatedSpans) {
     throw new Error(
-      'Span processor is not an OtelTestSpanProcessor'
+      'Span processor is not an OtelMockSpanProcessor'
     )
   }
 
@@ -636,7 +672,7 @@ function createMockHoneycomb(): Honeycomb {
     },
     {
       spanProcessor(traceExporter) {
-        return new OtelTestSpanProcessor(traceExporter)
+        return new OtelMockSpanProcessor(traceExporter)
       }
     }
   )
@@ -644,9 +680,9 @@ function createMockHoneycomb(): Honeycomb {
 
 export {
   createMockHoneycomb,
-  getOtelTestSpans,
-  OtelTestSpanProcessor,
-  resetOtelTestSpans
+  getOtelMockSpans,
+  OtelMockSpanProcessor,
+  resetOtelMockSpans
 }
 
 import tap from 'tap'
