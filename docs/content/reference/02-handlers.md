@@ -394,6 +394,8 @@ async function host(context) {
 ### `id`
 
 {{ changelog(version = "0.0.0") }}
+- **Changed in 0.6.0:** Use `traceparent` as the `id` when available.
+{% end %}
 
 A unique string identifier for the request for tracing purposes. The value is
 drawn from:

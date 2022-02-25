@@ -82,7 +82,7 @@
 =======
   },
   "boltzmann": {
-    "version": "0.5.3",
+    "version": "0.6.0",
     "csrf": true,
     "githubci": false,
     "honeycomb": true,

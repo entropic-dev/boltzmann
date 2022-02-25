@@ -475,6 +475,25 @@ OtelRedisInstrumentation,
  };
 module.exports = {...module.exports,  defaultOtelFactories, Honeycomb, HoneycombError, HoneycombSpanProcessor, };
 void ``;
+<<<<<<< HEAD
+=======
+
+'use strict';
+// Boltzmann v0.6.0
+/**/
+const serviceName = _getServiceName();
+function _getServiceName() {
+    try {
+        return process.env.SERVICE_NAME || require('./package.json').name.split('/').pop();
+    }
+    catch {
+        return 'boltzmann';
+    }
+}
+/**/
+void ``;
+void ``;
+>>>>>>> 421582c (Bump to 0.6.0 and fill out changelog fields)
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
     process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET;
 }
