@@ -74,6 +74,8 @@ void `{% endif %}`;
 
 honeycomb.init()
 
+export { honeycomb }
+
 import onHeaders from 'on-headers'
 void `{% endif %}`;
 
@@ -172,7 +174,7 @@ export { redis }
 void `{% endif %}`;
 
 void `{% if honeycomb %}`;
-export { onHeaders, honeycomb }
+export { onHeaders }
 void `{% endif %}`;
 
 void `{% if jwt or oauth %}`;
