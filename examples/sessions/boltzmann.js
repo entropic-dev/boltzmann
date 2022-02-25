@@ -508,9 +508,9 @@ async function handler(context) {
     else if (honeycomb.features.otel) {
         otelSpan = honeycomb.tracer.startSpan(handlerSpanName(handler), {
             attributes: {
-                [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
-                [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
-                'boltzmann.http.handler.name': handler.name || '<unknown>',
+                'boltzmann.http.handler.name': handler.name || '<anonymous>',
+                'boltzmann.handler.method': String(handler.method),
+                'boltzmann.handler.route': handler.route,
                 'boltzmann.http.handler.version': handler.version || '*',
                 'boltzmann.http.handler.decorators': String(handler.decorators)
             },

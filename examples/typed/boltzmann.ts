@@ -573,7 +573,7 @@ export {
 void ``
 
 'use strict'
-// Boltzmann v0.5.3
+// Boltzmann v0.6.0
 /**/
 
 const serviceName = _getServiceName()
@@ -845,6 +845,9 @@ class Context {
   public _loadSession: GetSession
 
   /**{{ changelog(version = "0.0.0") }}
+ * 
+ * * **Changed in 0.6.0:** Use `traceparent` as the `id` when available.
+ *   {% end %}
  * 
  * A unique string identifier for the request for tracing purposes. The value is
  * drawn from:

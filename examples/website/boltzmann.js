@@ -339,7 +339,7 @@ module.exports = {...module.exports,  defaultOtelFactories, Honeycomb, Honeycomb
 void ``;
 
 'use strict';
-// Boltzmann v0.5.3
+// Boltzmann v0.6.0
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -501,9 +501,9 @@ async function handler(context) {
     else if (honeycomb.features.otel) {
         otelSpan = honeycomb.tracer.startSpan(handlerSpanName(handler), {
             attributes: {
-                [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
-                [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
-                'boltzmann.http.handler.name': handler.name || '<unknown>',
+                'boltzmann.http.handler.name': handler.name || '<anonymous>',
+                'boltzmann.handler.method': String(handler.method),
+                'boltzmann.handler.route': handler.route,
                 'boltzmann.http.handler.version': handler.version || '*',
                 'boltzmann.http.handler.decorators': String(handler.decorators)
             },
@@ -1817,7 +1817,7 @@ function authenticateJWT({ scheme = 'Bearer', publicKey = process.env.AUTHENTICA
     if (!publicKey) {
         throw new Error(`To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-https://www.boltzmann.dev/en/docs/v0.5.3/reference/middleware/#authenticatejwt
+https://www.boltzmann.dev/en/docs/v0.6.0/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '));
     }
     return async (next) => {
@@ -1827,7 +1827,7 @@ https://www.boltzmann.dev/en/docs/v0.5.3/reference/middleware/#authenticatejwt
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
-          https://www.boltzmann.dev/en/docs/v0.5.3/reference/middleware/#authenticatejwt
+          https://www.boltzmann.dev/en/docs/v0.6.0/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '));
                 throw err;
             })
@@ -2163,7 +2163,7 @@ function handleStatus({ git = process.env.GIT_COMMIT, reachability = defaultReac
 // 
 
 void ``;
-const boltzmannVersion = `0.5.3`;
+const boltzmannVersion = `0.6.0`;
 // 
 const devErrorTemplateSource = `
 <!DOCTYPE html>
