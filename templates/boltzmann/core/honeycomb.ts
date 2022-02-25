@@ -497,21 +497,21 @@ class Honeycomb {
   // try/catches and honeycomb can basically never throw. Even
   // so, it saves a little bit of boilerplate.
   public get writeKey (): string {
-    if (this.features.honeycomb && this.options.writeKey) {
+    if (this.options.writeKey) {
       return this.options.writeKey
     }
     throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!')
   }
 
   public get dataset () {
-    if (this.features.honeycomb && this.options.dataset) {
+    if (this.options.dataset) {
       return this.options.dataset
     }
     throw new HoneycombError('HONEYCOMB_DATASET is undefined!')
   }
 
   public get apiHost () {
-    if (this.features.honeycomb && this.options.apiHost) {
+    if (this.options.apiHost) {
       return this.options.apiHost
     }
     throw new HoneycombError('HONEYCOMB_API_HOST is undefined!')
@@ -667,7 +667,7 @@ function createMockHoneycomb(): Honeycomb {
       otel: true,
       writeKey: 'SOME_WRITEKEY',
       dataset: 'SOME_DATASET',
-      apiHost: 'grpc://api-host.com',
+      apiHost: 'grpc://otel.website:9000',
       sampleRate: 1
     },
     {
@@ -813,20 +813,12 @@ if (require.main === module) {
     })
   })
   test('factories', async (t: Test) => {
-    const options = {
-      enabled: true,
-      otel: true,
-      writeKey: 'some write key',
-      dataset: 'some dataset',
-      apiHost: 'grpc://example.com',
-      sampleRate: 1,
-    }
-
     t.test('metadata', async (assert: Test) => {
       const metadata = defaultOtelFactories.metadata(
         'some write key',
         'some dataset'
       )
+
       assert.same(
         metadata.get('x-honeycomb-team'),
         ['some write key'],
@@ -868,15 +860,14 @@ if (require.main === module) {
     })
 
     test('traceExporter', async (assert: Test) => {
-      assert.doesNotThrow(() => {
-        const url = 'grpc://example.com'
-        const metadata = defaultOtelFactories.metadata(
-          'some write key',
-          'some dataset'
-        )
+      const url = 'grpc://otel.website:9000'
+      const metadata = defaultOtelFactories.metadata(
+        'some write key',
+        'some dataset'
+      )
 
-        defaultOtelFactories.traceExporter(url, metadata)
-      }, 'should create a trace exporter')
+      const exporter = defaultOtelFactories.traceExporter(url, metadata)
+      assert.equal(exporter.url, 'otel.website:9000')
     })
 
     test('spanProcessor', async (assert: Test) => {
@@ -916,6 +907,19 @@ if (require.main === module) {
         const instrumentations = defaultOtelFactories.instrumentations()
         defaultOtelFactories.sdk(resource, instrumentations, exporter)
       }, 'should create an sdk')
+    })
+  })
+
+  test('init and start', async (assert: Test) => {
+    const honeycomb = createMockHoneycomb()
+
+    honeycomb.init()
+
+    assert.same(honeycomb.traceExporter?.url, 'otel.website:9000')
+
+    assert.doesNotThrow(async () => {
+      await honeycomb.start()
+      await honeycomb.stop()
     })
   })
 }
