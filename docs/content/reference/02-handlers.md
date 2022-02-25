@@ -398,8 +398,9 @@ async function host(context) {
 A unique string identifier for the request for tracing purposes. The value is
 drawn from:
 
-1. `x-honeycomb-trace`
+1. `x-honeycomb-trace` (via Honeycomb beeline tracing)
 2. `x-request-id`
+3. `traceparent` (via Honeycomb OpenTelemetry tracing)
 3. A generated [ship name from Iain M Bank's Culture series][culture] (e.g.: `"ROU Frank Exchange Of Views"`)
 
 **Example use:**
@@ -594,14 +595,6 @@ async function logout(context) {
   })
 }
 ```
-
-### `span`
-
-{{ changelog(version = "0.6.0") }}
-
-**Requires the [`--honeycomb`] feature.**
-
-If using OpenTelemetry for tracing, the current OpenTelemetry span.
 
 ### `traceURL`
 
