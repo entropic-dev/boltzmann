@@ -744,9 +744,9 @@ Here is an example of the request logging:
 ```
 
 The `id` fields in logs is the value of the request-id, available on the context object as the `id`
-field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
-and `x-request-id` before falling back to generating a request id using a short randomly-selected
-string.
+field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`,
+`x-request-id` and `traceparent` before falling back to generating a request id using a short
+randomly-selected string.
 
 To log from your handlers, you might write code like this:
 
@@ -779,6 +779,7 @@ deep observability of the performance of your handlers.
 
 To configure this middleware, set the following environment variables:
 
+-   `HONEYCOMB_API_HOST`: the honeycomb API endpoint to use; `https://` URLs use [beeline](https://www.npmjs.com/package/honeycomb-beeline) and `grpc://` URLs use [OpenTelemetry](https://opentelemetry.io/docs/instrumentation/js/getting-started/nodejs/)
 -   `HONEYCOMB_WRITEKEY`: the honeycomb API key to use; required to enable tracing
 -   `HONEYCOMB_DATASET`: the name of the dataset to send trace data to; required to enable tracing
 -   `HONEYCOMB_TEAM`: optional; set this to enable links to traces from error reporting
