@@ -107,9 +107,9 @@ async function handler (context: Context) {
       handlerSpanName(handler),
       {
         attributes: {
-          [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
-          [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
-          'boltzmann.http.handler.name': handler.name || '<unknown>',
+          'boltzmann.http.handler.name': handler.name || '<anonymous>',
+          'boltzmann.handler.method': String(handler.method),
+          'boltzmann.handler.route': handler.route,
           'boltzmann.http.handler.version': handler.version || '*',
           'boltzmann.http.handler.decorators': String(handler.decorators)
         },
@@ -142,37 +142,41 @@ type Test = (typeof tap.Test)["prototype"]
 import { runserver } from '../bin/runserver'
 import { inject } from '@hapi/shot'
 
-// A simple test middleware that intercepts the request prior to any
-// handlers seeing it
-const helloMiddleware: Middleware = () => {
+const testMiddleware: Middleware = () => {
   return (next: Handler) => {
     return (context: Context) => {
-      return 'Hello!'
+      const span = otel.trace.getSpan(otel.context.active())
+      if (span) {
+        span.setAttribute('middleware_attribute', 'testing 123')
+      }
+      return next(context)
     }
   }
 }
 
-// A simple test handler which throws - useful for ensuring that the handler
-// isn't called
-const throwingHandler: Handler = (context: Context) => {
-  throw new Error('handler should not be called')
+const testHandler: Handler = (context: Context) => {
+  const span = otel.trace.getSpan(otel.context.active())
+  if (span) {
+    span.setAttribute('handler_attribute', 'testing 123')
+  }
+  return { ok: true }
 }
-throwingHandler.route = 'GET /'
+testHandler.route = 'GET /'
 
 /* c8 ignore next */
 if (require.main === module) {
   const { test } = tap
 
-  test('honeycomb-instrumented middlewares emit spans', async (assert: Test) => {
+  test('honeycomb-instrumented middlewares and handlers emit spans', async (assert: Test) => {
     const server = await runserver({
       middleware: [
         // The "trace" middleware is marked as doNotTrace, so we shouldn't
         // be creating pre-trace spans (but should get a trace span)
         trace,
         // This middleware *should* get auto-spanned
-        helloMiddleware
+        testMiddleware
       ],
-      handlers: { handler: throwingHandler }
+      handlers: { handler: testHandler }
     })
     const [onRequest] = server.listeners('request')
 
@@ -193,12 +197,9 @@ if (require.main === module) {
     })
 
     span.end()
-
-    assert.same(response.payload, 'Hello!')
+    assert.same(response.payload, '{"ok":true}')
 
     const spans = getOtelMockSpans(honeycomb.spanProcessor)
-
-    // assert.same(spans, [], 'un-comment this to render all spans')
 
     const boltzmannSpans = spans.map(span => {
       const context = span.spanContext()
@@ -212,22 +213,56 @@ if (require.main === module) {
         parentSpanId: span.parentSpanId,
         attributes: span.attributes
       }
- 
     })
 
     assert.same(
       boltzmannSpans,
       [
-        // The middleware span
+        // The handler span
         {
-          spanName: 'mw: helloMiddleware',
+          spanName: 'handler: testHandler',
           serviceName: 'test-app',
           library: 'boltzmann',
-          traceId: boltzmannSpans[1].traceId,
+          traceId: boltzmannSpans[3].traceId,
           spanId: boltzmannSpans[0].spanId,
           parentSpanId: boltzmannSpans[1].spanId,
           // TODO: There *should* be attributes here, no?
           attributes: {
+            "handler_attribute": "testing 123",
+            "service_name": "test-app",
+            "boltzmann.honeycomb.trace_type": "otel",
+            "boltzmann.http.handler.name": "testHandler",
+            "boltzmann.handler.method": "GET",
+            "boltzmann.handler.route": "/",
+            "boltzmann.http.handler.version": "*",
+            "boltzmann.http.handler.decorators": "",
+          }
+        },
+        // The route middleware span
+        {
+          spanName: 'mw: route',
+          serviceName: 'test-app',
+          library: 'boltzmann',
+          traceId: boltzmannSpans[3].traceId,
+          spanId: boltzmannSpans[1].spanId,
+          parentSpanId: boltzmannSpans[2].spanId,
+          // TODO: There *should* be attributes here, no?
+          attributes: {
+            "service_name": "test-app",
+            "boltzmann.honeycomb.trace_type": "otel",
+          }
+        },
+        // The test middleware span
+        {
+          spanName: 'mw: testMiddleware',
+          serviceName: 'test-app',
+          library: 'boltzmann',
+          traceId: boltzmannSpans[3].traceId,
+          spanId: boltzmannSpans[2].spanId,
+          parentSpanId: boltzmannSpans[3].spanId,
+          // TODO: There *should* be attributes here, no?
+          attributes: {
+            "middleware_attribute": "testing 123",
             "service_name": "test-app",
             "boltzmann.honeycomb.trace_type": "otel",
           }
@@ -237,8 +272,8 @@ if (require.main === module) {
           spanName: 'HTTP GET',
           serviceName: 'test-app',
           library: 'boltzmann',
-          traceId: boltzmannSpans[1].traceId,
-          spanId: boltzmannSpans[1].spanId,
+          traceId: boltzmannSpans[3].traceId,
+          spanId: boltzmannSpans[3].spanId,
           parentSpanId: undefined,
           attributes: {
             "boltzmann.http.query": "",
