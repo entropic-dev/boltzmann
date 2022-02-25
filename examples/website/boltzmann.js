@@ -2,19 +2,21 @@
 /* eslint-disable */
 /* c8 ignore file */
 'use strict';
-<<<<<<< HEAD
-=======
 /**/
-// Dependencies used downstream - it's worth your time to look at how these
-// are treated in prelude.ts!
+// Dependencies used outside of honeycomb
 const bole = require("@entropic/bole");
+const isDev = require("are-we-dev");
+module.exports = {...module.exports,  bole, isDev };
+void ``;
 // We continue to support beelines...
 const beeline = require("honeycomb-beeline");
 // ...but are migrating to OpenTelemetry:
 const grpc = require("@grpc/grpc-js");
 const otel = require("@opentelemetry/api");
 const otelCore = require("@opentelemetry/core");
-const { OTLPTraceExporter } = require("@opentelemetry/exporter-trace-otlp-grpc");
+const otlpHttp = require("@opentelemetry/exporter-trace-otlp-http");
+const otlpProto = require("@opentelemetry/exporter-trace-otlp-proto");
+const otlpGrpc = require("@opentelemetry/exporter-trace-otlp-grpc");
 const otelResources = require("@opentelemetry/resources");
 const { NodeSDK: OtelSDK } = require("@opentelemetry/sdk-node");
 const otelTraceBase = require("@opentelemetry/sdk-trace-base");
@@ -25,6 +27,90 @@ const { HttpInstrumentation: OtelHttpInstrumentation } = require("@opentelemetry
 void ``;
 void ``;
 class HoneycombError extends Error {
+}
+// A diagnostic logger for OpenTelemetry. To log at a sensible level,
+// call otel.diag.verbose.
+class HoneycombDiagLogger {
+    // Ideally we would log to a bole logger. However, logger setup happens
+    // relatively late - in the log middleware - and it's very likely that such
+    // a log won't be in-place when we stand up the middleware stack! Therefore,
+    // we do log to bole if it's set in the middleware but will fall back to
+    // good ol' fashioned JSON.stringify if need be.
+    constructor() {
+        this._stream = process.stdout;
+        // So log messages roughly match what's output by the bole in dev mode :^)
+        if (isDev()) {
+            const pretty = require('bistre')({ time: true });
+            this._stream = pretty.pipe(this._stream);
+        }
+    }
+    // OpenTelemetry's diagnostic logger has one more log level than bole - ie,
+    // verbose.
+    //
+    // For more details on how to treat each log level, see:
+    // https://github.com/open-telemetry/opentelemetry-js-api/blob/main/src/diag/consoleLogger.ts#L60
+    // Log errors that caused an unexpected failure
+    error(message, ...args) {
+        this._log('error', message, args);
+    }
+    // Log warnings that aren't show-stopping but should REALLY be looked at
+    warn(message, ...args) {
+        this._log('warn', message, args);
+    }
+    // Log info if you want to be REALLY LOUD for some reason - you probably
+    // don't want to use this!
+    info(message, ...args) {
+        this._log('info', message, args);
+    }
+    // Log details that could be useful for identifying what went wrong, but
+    // aren't the thing that went wrong itself - treat this as you would info
+    // logging normally
+    debug(message, ...args) {
+        this._log('debug', message, args);
+    }
+    // Log fine-grained details that are mostly going to be useful to those
+    // adding new OpenTelemetry related features to boltzmann - treat this like
+    // you would debug level logging normally
+    verbose(message, ...args) {
+        this._log('debug', `VERBOSE: ${message}`, args);
+    }
+    _log(level, message, args) {
+        let isSelfTest = false;
+        void ``;
+        if (isSelfTest) {
+            return;
+        }
+        // Log to bole if we have it
+        if (this.logger) {
+            this.logger[level](message, ...args);
+            return;
+        }
+        const line = {
+            time: (new Date()).toISOString(),
+            level,
+            name: 'boltzmann:honeycomb',
+            message,
+            args
+        };
+        try {
+            // are the args JSON-serializable?
+            this._writeLine(JSON.stringify(line));
+            // SURVEY SAYS...
+        }
+        catch (_) {
+            // ...ok, make it a string as a fallback
+            line.args = require('util').format('%o', line.args);
+            this._writeLine(JSON.stringify(line));
+        }
+    }
+    _writeLine(line) {
+        this._stream.write(Buffer.from(line + '\n'));
+    }
+}
+// We only do OpenTelemetry logging if boltzmann's main log level is debug
+const _diagLogger = new HoneycombDiagLogger();
+if (!process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug') {
+    otel.diag.setLogger(_diagLogger, otelCore.getEnv().OTEL_LOG_LEVEL);
 }
 const _OtelSpanProcessor = otelTraceBase.SimpleSpanProcessor;
 class HoneycombSpanProcessor extends _OtelSpanProcessor {
@@ -40,70 +126,91 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor {
     // just the active span.
     onStart(span, _) {
         span.setAttribute('service_name', span.resource.attributes['service.name']);
-        span.setAttribute('boltzmann.honeycomb.trace_type', 'otel');
+        span.setAttribute('honeycomb.trace_type', 'otel');
         otelTraceBase.SimpleSpanProcessor.prototype.onStart.call(this, span);
     }
     onEnd(span) {
         otelTraceBase.SimpleSpanProcessor.prototype.onEnd.call(this, span);
     }
 }
-class HoneycombTraceExporter extends OTLPTraceExporter {
-    constructor(config = {}) {
-        super(config);
-        this._honeycomb = config.honeycomb;
-    }
-    log(message) {
-        if (this._honeycomb) {
-            this._honeycomb.log(message);
-        }
-    }
-    send(objects, onSuccess, onError) {
-        this.log(`sending ${objects.length} spans to ${this.url}`);
-        super.send(objects, () => {
-            this.log(`successfully send ${objects.length} spans to ${this.url}`);
-            return onSuccess();
-        }, (error) => {
-            this.log(`error while sending ${objects.length} spans: ${error}`);
-            return onError(error);
-        });
-    }
-}
 const defaultOtelFactories = {
-    metadata(writeKey, dataset) {
-        const metadata = new grpc.Metadata();
-        metadata.set('x-honeycomb-team', writeKey);
-        metadata.set('x-honeycomb-dataset', dataset);
-        return metadata;
-    },
-    // create a Sampler object, which is used to tune
-    // the sampling rate
-    sampler(sampleRate) {
-        return new otelCore.ParentBasedSampler({
-            root: new otelCore.TraceIdRatioBasedSampler(sampleRate)
-        });
+    headers(writeKey, dataset) {
+        let headers = {};
+        if (writeKey) {
+            headers['x-honeycomb-team'] = writeKey;
+        }
+        if (dataset) {
+            headers['x-honeycomb-dataset'] = dataset;
+        }
+        return headers;
     },
     resource(serviceName) {
         return new otelResources.Resource({
             [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: serviceName
         });
     },
-    // It provides tracers!
-    tracerProvider(resource, sampler) {
-        return new NodeTracerProvider({ resource, sampler });
+    // A tracer provider is effectively a Tracer factory and is used to power
+    // the otel.getTrace API
+    tracerProvider(resource) {
+        return new NodeTracerProvider({ resource });
     },
-    // Export traces to an OTLP endpoint with GRPC
-    traceExporter(url, metadata, honeycomb) {
-        return new HoneycombTraceExporter({
-            url,
-            credentials: grpc.credentials.createSsl(),
-            metadata,
-            honeycomb
+    // There are three different OTLP span exporter classes - one for grpc, one
+    // for http/protobuf and one for http/json - this will return the appropriate
+    // one for the configured protocol.
+    spanExporter(protocol, headers) {
+        // Instead of subclassing each implementation, monkey patch the send
+        // method on whichever instance we create
+        function patchSend(exporter) {
+            const send = exporter.send;
+            exporter.send = function (objects, onSuccess, 
+            // This error is actually an Error subtype which corresponds 1:1 with
+            // the OTLPTraceExporter class being instrumented, but making this a
+            // proper generic type is hard - it's fine!
+            onError) {
+                otel.diag.debug(`sending ${objects.length} spans to ${this.url}`);
+                send.call(this, objects, () => {
+                    otel.diag.debug(`successfully send ${objects.length} spans to ${this.url}`);
+                    return onSuccess();
+                }, (error) => {
+                    otel.diag.debug(`error while sending ${objects.length} spans: ${error}`);
+                    return onError(error);
+                });
+            };
+        }
+        if (protocol === 'grpc') {
+            const metadata = new grpc.Metadata();
+            for (let [key, value] of Object.entries(headers)) {
+                metadata.set(key, value);
+            }
+            const credentials = grpc.credentials.createSsl();
+            const exporter = new otlpGrpc.OTLPTraceExporter({
+                credentials,
+                metadata
+            });
+            patchSend(exporter);
+            return exporter;
+        }
+        if (protocol === 'http/json') {
+            otel.diag.warn("Honeycomb doesn't support the http/json OTLP protocol - but if you say so");
+            const exporter = new otlpHttp.OTLPTraceExporter({
+                headers
+            });
+            patchSend(exporter);
+            return exporter;
+        }
+        if (protocol !== 'http/protobuf') {
+            otel.diag.warn(`Unknown OTLP protocol ${protocol} - using http/protobuf instead`);
+        }
+        const exporter = new otlpProto.OTLPTraceExporter({
+            headers
         });
+        patchSend(exporter);
+        return exporter;
     },
     // Process spans, using the supplied trace exporter to
     // do the actual exporting.
-    spanProcessor(traceExporter) {
-        return new HoneycombSpanProcessor(traceExporter);
+    spanProcessor(spanExporter) {
+        return new HoneycombSpanProcessor(spanExporter);
     },
     instrumentations() {
         // Any paths we add here will get no traces whatsoever. This is
@@ -146,10 +253,9 @@ const defaultOtelFactories = {
     // The SDK will take a service name, instrumentations
     // and a trace exporter and give us a stateful singleton.
     // This is that singleton!
-    sdk(resource, instrumentations, traceExporter) {
+    sdk(resource, instrumentations) {
         return new OtelSDK({
             resource,
-            traceExporter,
             instrumentations
         });
     }
@@ -166,7 +272,7 @@ class Honeycomb {
         this.initialized = false;
         this.started = false;
         this.tracerProvider = null;
-        this.traceExporter = null;
+        this.spanExporter = null;
         this.spanProcessor = null;
         this.instrumentations = null;
         this.sdk = null;
@@ -174,48 +280,85 @@ class Honeycomb {
             ...defaultOtelFactories,
             ...(overrides || {})
         };
-        this.logger = null;
+        this._logger = null;
     }
     get tracer() {
-        // TODO: Can we do better than hard-coding 1.0.0?
-        return otel.trace.getTracer('boltzmann', '1.0.0');
+        return otel.trace.getTracer('boltzmann', '0.6.0');
     }
     // We (usually) load options from the environment. Unlike with Options,
     // we do a lot of feature detection here.
-    static fromEnv(serviceName, env = process.env, overrides = {}) {
-        return new Honeycomb(Honeycomb.parseEnv(serviceName, env), overrides);
+    static fromEnv(env = process.env, overrides = {}) {
+        return new Honeycomb(Honeycomb.parseEnv(env), overrides);
     }
     // serviceName is defined in the prelude, so rather than doing the same
     // logic twice we let the prelude inject it when creating the honeycomb
     // object.
-    static parseEnv(serviceName, env = process.env) {
-        // If there's no write key we won't get very far anyway
-        const disable = !env.HONEYCOMB_WRITEKEY;
-        let otel = false;
+    static parseEnv(env = process.env) {
+        // For beelines, if we don't have HONEYCOMB_WRITEKEY there isn't much we
+        // can do...
+        let disable = !env.HONEYCOMB_WRITEKEY;
+        // Beelines should pick these up automatically, but we'll need them to
+        // configure default OTLP headers
         const writeKey = env.HONEYCOMB_WRITEKEY || null;
         const dataset = env.HONEYCOMB_DATASET || null;
-        const apiHost = env.HONEYCOMB_API_HOST || null;
-        let sampleRate = 1;
-        sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1);
+        // OpenTelemetry is configured with a huge pile of `OTEL_*` environment
+        // variables. If any of them are defined, we'll use OpenTelemetry instead
+        // of beelines. Typically one would configure OTEL_EXPORTER_OTLP_ENDPOINT
+        // to point to either api.honeycomb.io or your local refinery, but this
+        // will flag on OTEL_ENABLED=1 as well if you want to use all the
+        // defaults.
+        //
+        // For a broad overview of common variables, see:
+        // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
+        //
+        // For a list of variables the OTLP exporter respects, see:
+        // https://opentelemetry.io/docs/reference/specification/protocol/exporter/
+        const isOtel = Object.entries(env).some(([name, value]) => {
+            return name.startsWith('OTEL_') && value && value.length;
+        });
+        // OpenTelemetry can optionally load the honeycomb headers from the
+        // OTEL_EXPORTER_OTLP_HEADERS and/or OTEL_EXPORTER_OTLP_TRACE_HEADERS
+        // environment variables, so having HONEYCOMB_WRITEKEY be falsey is
+        // potentially OK. This strategy also allows people to use the
+        // honeycomb tracing for non-honeycomb use cases.
+        if (isOtel) {
+            disable = false;
+        }
+        // This sample rate is for beeline only - to set the OpenTelemetry sample
+        // rate, set OTEL_TRACES_SAMPLER=parentbased_traceidratio and
+        // OTEL_TRACES_SAMPLER_ARG=${SOME_NUMBER}. Note that beeline defines
+        // sample rate as total/sampled, but OpenTelemetry defines it as
+        // sampled/total!
+        let sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1);
         if (isNaN(sampleRate)) {
-            Honeycomb.log(`Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
-                + 'defaulting to 1');
             sampleRate = 1;
         }
-        // If the API host is a grpc:// endpoint, we feature switch to
-        // OpenTelemetry. There are prior uses of this variable here but
-        // they should've been using https://.
-        if (!disable && apiHost) {
-            otel = /^grpc:\/\//.test(apiHost);
-        }
+        // OTLP is supposed to be configured with this environment variable, but
+        // the OpenTelemetry SDKs leave this as a some-assembly-required job.
+        // We default to 'http/protobuf' because it's well-supported by both
+        // Honeycomb and AWS load balancers and because it's relatively snappy.
+        //
+        // For more information on how this is configured, see:
+        // https://opentelemetry.io/docs/reference/specification/protocol/exporter/#specify-protocol
+        const otlpProtocol = env.OTEL_EXPORTER_OTLP_PROTOCOL || env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL || 'http/protobuf';
+        // The service name logic is VERY similar to what's in prelude.ts,
+        // except that OTEL_SERVICE_NAME takes precedence if defined
+        const serviceName = (() => {
+            try {
+                return env.OTEL_SERVICE_NAME || env.SERVICE_NAME || require('./package.json').name.split('/').pop();
+            }
+            catch (err) {
+                return 'boltzmann';
+            }
+        })();
         return {
             serviceName,
             disable,
-            otel,
+            otel: isOtel,
             writeKey,
             dataset,
-            apiHost,
-            sampleRate
+            sampleRate,
+            otlpProtocol
         };
     }
     // Initialize Honeycomb! Stands up the otel node SDK if enabled,
@@ -231,26 +374,24 @@ class Honeycomb {
         try {
             const writeKey = this.writeKey;
             const dataset = this.dataset;
-            const sampleRate = this.options.sampleRate || 1;
-            const serviceName = this.options.serviceName;
-            if (!this.features.otel) {
+            const sampleRate = this.sampleRate;
+            const serviceName = this.serviceName;
+            if (this.features.beeline && writeKey) {
                 beeline({ writeKey, dataset, sampleRate, serviceName });
                 this.initialized = true;
                 return;
             }
             const f = this.factories;
-            const apiHost = this.apiHost;
-            const metadata = f.metadata(writeKey, dataset);
+            const headers = f.headers(writeKey, dataset);
             const resource = f.resource(serviceName);
-            const sampler = f.sampler(sampleRate);
-            const exporter = f.traceExporter(apiHost, metadata, this);
+            const exporter = f.spanExporter(this.options.otlpProtocol || 'http/protobuf', headers);
             const processor = f.spanProcessor(exporter);
             const instrumentations = f.instrumentations();
-            const provider = f.tracerProvider(resource, sampler);
+            const provider = f.tracerProvider(resource);
             provider.addSpanProcessor(processor);
             provider.register();
-            const sdk = f.sdk(resource, instrumentations, exporter);
-            this.traceExporter = exporter;
+            const sdk = f.sdk(resource, instrumentations);
+            this.spanExporter = exporter;
             this.spanProcessor = processor;
             this.instrumentations = instrumentations;
             this.tracerProvider = provider;
@@ -259,7 +400,7 @@ class Honeycomb {
         }
         catch (err) {
             if (err instanceof HoneycombError) {
-                this.log(err);
+                otel.diag.error(err.stack || String(err));
                 return;
             }
             throw err;
@@ -272,7 +413,7 @@ class Honeycomb {
         let exitCode = 0;
         const sdk = this.sdk;
         const die = async (err) => {
-            this.log(err);
+            otel.diag.error(err.stack || String(err));
             exitCode = 1;
             await shutdown();
         };
@@ -299,67 +440,35 @@ class Honeycomb {
             await sdk.shutdown();
         }
         catch (err) {
-            this.log(err);
+            otel.diag.error(err.stack || String(err));
         }
     }
-    // These accessors are type guards that ensure you're working
-    // with a defined/non-null property. It's a bit of 6-to-1 and
-    // half a dozen on the other, because you trade ifs for
-    // try/catches and honeycomb can basically never throw. Even
-    // so, it saves a little bit of boilerplate.
     get writeKey() {
-        if (this.options.writeKey) {
-            return this.options.writeKey;
-        }
-        throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!');
+        return this.options.writeKey || null;
     }
     get dataset() {
-        if (this.options.dataset) {
-            return this.options.dataset;
-        }
-        throw new HoneycombError('HONEYCOMB_DATASET is undefined!');
+        return this.options.dataset || null;
     }
-    get apiHost() {
-        if (this.options.apiHost) {
-            return this.options.apiHost;
-        }
-        throw new HoneycombError('HONEYCOMB_API_HOST is undefined!');
+    get sampleRate() {
+        return this.options.sampleRate || 1;
     }
-    // We *do* have a handful of logging use cases...
-    static log(message) {
-        void ``;
+    get serviceName() {
+        return this.options.serviceName || 'boltzmann';
     }
-    log(message) {
-        void ``;
+    get logger() {
+        return this._logger;
+    }
+    set logger(logger) {
+        this._logger = logger;
+        _diagLogger.logger = logger ? logger : undefined;
     }
 }
-module.exports = {...module.exports,  beeline, bole, grpc, otel, otelCore, OTLPTraceExporter, otelResources, OtelSDK, otelTraceBase, NodeTracerProvider, otelSemanticConventions, OtelDnsInstrumentation, OtelHttpInstrumentation, 
+module.exports = {...module.exports,  beeline, otel, otelCore, otelResources, OtelSDK, otelTraceBase, NodeTracerProvider, otelSemanticConventions, OtelDnsInstrumentation, OtelHttpInstrumentation, 
 // 
 // 
  };
 module.exports = {...module.exports,  defaultOtelFactories, Honeycomb, HoneycombError, HoneycombSpanProcessor, };
 void ``;
-
-'use strict';
->>>>>>> 18b8135 (Update examples to use current release build)
-// Boltzmann v0.5.3
-/**/
-const serviceName = _getServiceName();
-function _getServiceName() {
-    try {
-        return process.env.SERVICE_NAME || require('./package.json').name.split('/').pop();
-    }
-    catch {
-        return 'boltzmann';
-    }
-}
-/**/
-void ``;
-<<<<<<< HEAD
-const beeline = require("honeycomb-beeline");
-=======
-void ``;
->>>>>>> 18b8135 (Update examples to use current release build)
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
     process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET;
 }
@@ -372,19 +481,27 @@ if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
 if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
     process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM;
 }
-<<<<<<< HEAD
-beeline({
-    writeKey: process.env.HONEYCOMB_WRITEKEY,
-    dataset: process.env.HONEYCOMB_DATASET,
-    sampleRate: Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
-    serviceName,
-});
-=======
-let honeycomb = Honeycomb.fromEnv(serviceName, process.env);
+let honeycomb = Honeycomb.fromEnv(process.env);
 void ``;
 honeycomb.init();
 module.exports = {...module.exports,  honeycomb };
->>>>>>> 18b8135 (Update examples to use current release build)
+void ``;
+void ``;
+
+'use strict';
+// Boltzmann v0.6.0
+/**/
+const serviceName = _getServiceName();
+function _getServiceName() {
+    try {
+        return process.env.SERVICE_NAME || require('./package.json').name.split('/').pop();
+    }
+    catch {
+        return 'boltzmann';
+    }
+}
+/**/
+void ``;
 const onHeaders = require("on-headers");
 void ``;
 const ships = require("culture-ships");
@@ -415,7 +532,6 @@ void ``;
 const { Readable } = require("stream");
 const querystring = require("querystring");
 const { promisify } = require("util");
-const isDev = require("are-we-dev");
 const fmw = require("find-my-way");
 const accepts = require("accepts");
 const { promises: fs } = require("fs");
@@ -501,32 +617,27 @@ function handlerSpanName(handler) {
 async function handler(context) {
     const handler = context.handler;
     // 
-<<<<<<< HEAD
-    let span = null;
-    if (process.env.HONEYCOMB_WRITEKEY) {
-        span = beeline.startSpan({
-            name: `handler: ${handler.name}`,
-=======
     let beelineSpan = null;
     let otelSpan = null;
     let traceContext = otel.context.active();
     if (honeycomb.features.beeline) {
         beelineSpan = beeline.startSpan({
             name: handlerSpanName(handler),
->>>>>>> 18b8135 (Update examples to use current release build)
             'handler.name': handler.name,
             'handler.method': String(handler.method),
             'handler.route': handler.route,
             'handler.version': handler.version || '*',
             'handler.decorators': String(handler.decorators),
+            [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
+            'honeycomb.trace_type': 'beeline',
         });
     }
     else if (honeycomb.features.otel) {
         otelSpan = honeycomb.tracer.startSpan(handlerSpanName(handler), {
             attributes: {
-                [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
-                [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
-                'boltzmann.http.handler.name': handler.name || '<unknown>',
+                'boltzmann.http.handler.name': handler.name || '<anonymous>',
+                'boltzmann.handler.method': String(handler.method),
+                'boltzmann.handler.route': handler.route,
                 'boltzmann.http.handler.version': handler.version || '*',
                 'boltzmann.http.handler.decorators': String(handler.decorators)
             },
@@ -542,16 +653,11 @@ async function handler(context) {
         });
     }
     finally {
-<<<<<<< HEAD
-        if (process.env.HONEYCOMB_WRITEKEY && span !== null) {
-            beeline.finishSpan(span);
-=======
         if (beelineSpan !== null) {
             beeline.finishSpan(beelineSpan);
         }
         else if (otelSpan !== null) {
             otelSpan.end();
->>>>>>> 18b8135 (Update examples to use current release build)
         }
     }
     // 
@@ -804,10 +910,6 @@ class Context {
     /**[Docs]("https://www.boltzmann.dev/en/latest/docs/reference/02-handlers#traceURL")*/
     get traceURL() {
         const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`);
-<<<<<<< HEAD
-        url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id']);
-        url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime / 1000 - 1)));
-=======
         if (honeycomb.features.beeline) {
             url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id']);
             url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime / 1000 - 1)));
@@ -822,7 +924,6 @@ class Context {
             url.searchParams.set('trace_id', spanCtx.traceId);
             url.searchParams.set('trace_start_ts', String(startTime));
         }
->>>>>>> 18b8135 (Update examples to use current release build)
         return String(url);
     }
     // 
@@ -1557,18 +1658,28 @@ function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_OR
     const includesStar = originsArray.includes('*');
     return (next) => {
         return async function cors(context) {
-            const reflectedOrigin = (includesStar
-                ? '*'
-                : (originsArray.includes(String(context.headers.origin))
-                    ? context.headers.origin
-                    : false));
+            const spanAttributes = {
+                'boltzmann.http.origin': String(context.headers.origin)
+            };
+            if (honeycomb.features.beeline) {
+                beeline.addContext(spanAttributes);
+            }
+            const span = otel.trace.getSpan(otel.context.active());
+            if (span) {
+                span.setAttributes(spanAttributes);
+            }
+            if (!includesStar && !originsArray.includes(String(context.headers.origin))) {
+                throw Object.assign(new Error('Origin not allowed'), {
+                    [Symbol.for('status')]: 400
+                });
+            }
             const response = (context.method === 'OPTIONS'
                 ? Object.assign(Buffer.from(''), {
                     [Symbol.for('status')]: 204,
                 })
                 : await next(context));
             response[Symbol.for('headers')] = {
-                ...(reflectedOrigin ? { 'Access-Control-Allow-Origin': reflectedOrigin } : {}),
+                'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
                 'Access-Control-Allow-Methods': [].concat(methods).join(','),
                 'Access-Control-Allow-Headers': [].concat(headers).join(',')
             };
@@ -1637,12 +1748,6 @@ function enforceInvariants() {
 
 void ``;
 function traceName(method, pathname) {
-    // This is how OpenTelemetry names request-level spans by default, so we
-    // go with the grain
-    if (honeycomb.features.otel) {
-        return `HTTP ${method}`;
-    }
-    // This is what the beeline traces are named today
     return `${method} ${pathname}`;
 }
 function middlewareSpanName(name) {
@@ -1651,20 +1756,13 @@ function middlewareSpanName(name) {
 function paramSpanAttribute(param) {
     return `boltzmann.http.request.param.${param}`;
 }
-function traceAttribute(key) {
-    return `app.${key}`;
-}
 module.exports = {...module.exports,  traceName, middlewareSpanName, paramSpanAttribute };
 // The trace middleware creates a request-level span or trace. It delegates
 // to either a beeline or OpenTelemetry implementation depending on how
 // the honeycomb object is configured.
 trace.doNotTrace = true;
 function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) {
-<<<<<<< HEAD
-    if (!process.env.HONEYCOMB_WRITEKEY) {
-=======
     if (!honeycomb.features.honeycomb || !honeycomb.initialized) {
->>>>>>> 18b8135 (Update examples to use current release build)
         return (next) => (context) => next(context);
     }
     if (honeycomb.features.beeline) {
@@ -1707,7 +1805,7 @@ function beelineTrace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], }
                 'request.query': context.url.search,
                 // for forward compatibility with OpenTelemetry traces
                 [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
-                'boltzmann.honeycomb.trace_type': 'beeline'
+                'honeycomb.trace_type': 'beeline'
             }, traceContext.traceId, traceContext.parentSpanId, traceContext.dataset);
             if (isDev()) {
                 context._honeycombTrace = trace;
@@ -1758,18 +1856,15 @@ function beelineTrace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], }
         };
     }
 }
-<<<<<<< HEAD
-function honeycombMiddlewareSpans({ name } = {}) {
-    if (!process.env.HONEYCOMB_WRITEKEY) {
-        return (next) => (context) => next(context);
-    }
-=======
 function beelineMiddlewareSpans({ name } = {}) {
->>>>>>> 18b8135 (Update examples to use current release build)
     return function honeycombSpan(next) {
         return async (context) => {
             const span = beeline.startSpan({
                 name: middlewareSpanName(name)
+            });
+            beeline.addContext({
+                [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
+                'honeycomb.trace_type': 'beeline'
             });
             // Assumption: the invariant middleware between each layer
             // will ensure that no errors are thrown from next().
@@ -1800,20 +1895,20 @@ function otelTrace() {
             // concerned the span could still be undefined. We could assert that it
             // exists, but throwing instrumentation-related errors is poor form.
             if (span) {
-                // for backwards compatibility with beeline traces
                 span.setAttribute('boltzmann.http.query', context.url.search);
+                span.updateName(traceName(context.method, context.url.pathname));
                 traceContext = otel.trace.setSpan(traceContext, span);
                 if (isDev()) {
                     context._honeycombTrace = span;
                 }
             }
             else {
-                honeycomb.log(new assert.AssertionError({
+                otel.diag.error(String(new assert.AssertionError({
                     message: 'no parent span found or created',
                     actual: span,
                     expected: true,
                     operator: '=='
-                }));
+                }).stack));
             }
             onHeaders(context._response, function () {
                 const handler = context.handler;
@@ -1861,11 +1956,7 @@ function authenticateJWT({ scheme = 'Bearer', publicKey = process.env.AUTHENTICA
     if (!publicKey) {
         throw new Error(`To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-<<<<<<< HEAD
-https://www.boltzmann.dev/en/docs/0.5.3/reference/middleware/#authenticatejwt
-=======
-https://www.boltzmann.dev/en/docs/v0.5.3/reference/middleware/#authenticatejwt
->>>>>>> 18b8135 (Update examples to use current release build)
+https://www.boltzmann.dev/en/docs/v0.6.0/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '));
     }
     return async (next) => {
@@ -1875,11 +1966,7 @@ https://www.boltzmann.dev/en/docs/v0.5.3/reference/middleware/#authenticatejwt
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
-<<<<<<< HEAD
-          https://www.boltzmann.dev/en/docs/0.5.3/reference/middleware/#authenticatejwt
-=======
-          https://www.boltzmann.dev/en/docs/v0.5.3/reference/middleware/#authenticatejwt
->>>>>>> 18b8135 (Update examples to use current release build)
+          https://www.boltzmann.dev/en/docs/v0.6.0/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '));
                 throw err;
             })
@@ -1916,7 +2003,11 @@ void ``;
 
 
 void ``;
-function log({ logger = bole(process.env.SERVICE_NAME || 'boltzmann'), level = process.env.LOG_LEVEL || 'debug', stream = process.stdout } = {}) {
+function log({ logger = bole(serviceName), 
+// 
+honeycombLogger = bole(`${serviceName}:honeycomb`), 
+// 
+level = process.env.LOG_LEVEL || 'debug', stream = process.stdout, } = {}) {
     if (isDev()) {
         const pretty = require('bistre')({ time: true });
         pretty.pipe(stream);
@@ -1924,20 +2015,18 @@ function log({ logger = bole(process.env.SERVICE_NAME || 'boltzmann'), level = p
     }
     bole.output({ level, stream });
     void ``;
-    honeycomb.logger = bole('boltzmann:honeycomb');
-    if (honeycomb.features.beeline) {
-        honeycomb.logger.warn('Honeycomb beeline support is deprecated and will be removed in a future version. '
-            + 'To use OpenTelemetry, set HONEYCOMB_API_HOST to a grpc:// endpoint.');
-    }
-    honeycomb.log(`serviceName: ${honeycomb.options.serviceName}`);
-    for (let [key, value] of Object.entries(honeycomb.features)) {
-        honeycomb.log(`${key}: ${value}`);
-    }
+    honeycomb.logger = honeycombLogger;
     const hasWriteKey = Boolean(honeycomb.options.writeKey && honeycomb.options.writeKey.length);
-    honeycomb.log(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`);
-    honeycomb.log(`dataset: ${honeycomb.options.dataset}`);
-    honeycomb.log(`apiHost: ${honeycomb.options.apiHost}`);
-    honeycomb.log(`sampleRate: ${honeycomb.options.sampleRate}`);
+    let honeycombConfig = {
+        serviceName: honeycomb.options.serviceName,
+        writeKey: `${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`,
+        dataset: honeycomb.options.dataset
+    };
+    Object.assign(honeycombConfig, honeycomb.features);
+    honeycombLogger.debug({
+        message: 'Honeycomb tracing enabled',
+        ...honeycombConfig
+    });
     void ``;
     return function logMiddleware(next) {
         return async function inner(context) {
@@ -2215,7 +2304,7 @@ function handleStatus({ git = process.env.GIT_COMMIT, reachability = defaultReac
 // 
 
 void ``;
-const boltzmannVersion = `0.5.3`;
+const boltzmannVersion = `0.6.0`;
 // 
 const devErrorTemplateSource = `
 <!DOCTYPE html>
@@ -2920,7 +3009,7 @@ const validate = {
  * 
  * The `validate.body` middleware applies [JSON schema]( "https://json-schema.org/") validation to incoming
  * request bodies. It intercepts the body that would be returned by
- * \[`context.body`\] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
+ * \[`context.body`] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
  * passed through.
  * 
  * `Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In

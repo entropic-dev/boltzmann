@@ -1,18 +1,14 @@
 {
-  "name": "website",
-  "description": "",
-  "version": "1.0.0",
   "author": "",
-  "boltzmann": {
-    "version": "0.5.3",
-    "csrf": true,
-    "githubci": false,
-    "honeycomb": true,
-    "jwt": true,
-    "ping": true,
-    "status": true,
-    "templates": true
+  "description": "",
+  "directories": {
+    "test": "tests"
   },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "website",
+  "version": "1.0.0",
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@grpc/grpc-js": "^1.5.0",
@@ -20,6 +16,8 @@
     "@opentelemetry/api": "^1.0.4",
     "@opentelemetry/core": "^1.0.1",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.27.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.27.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.27.0",
     "@opentelemetry/instrumentation": "^0.27.0",
     "@opentelemetry/instrumentation-dns": "^0.27.0",
     "@opentelemetry/instrumentation-graphql": "^0.27.1",
@@ -67,9 +65,6 @@
     "supports-hyperlinks": "^2.1.0",
     "tap": "^15.1.5"
   },
-  "keywords": [],
-  "license": "ISC",
-  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
@@ -78,8 +73,6 @@
     "posttest": "npm run lint",
     "start": "nodemon ./boltzmann.js",
     "test": "c8 tap --no-cov tests"
-<<<<<<< HEAD
-=======
   },
   "boltzmann": {
     "version": "0.6.0",
@@ -89,8 +82,6 @@
     "jwt": true,
     "ping": true,
     "status": true,
-    "templates": true,
-    "debug": false
->>>>>>> 18b8135 (Update examples to use current release build)
+    "templates": true
   }
 }
