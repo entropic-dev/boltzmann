@@ -175,7 +175,24 @@ if (require.main === module) {
       handlers: { handler: throwingHandler }
     })
     const [onRequest] = server.listeners('request')
-    const response = await inject(<any>onRequest, { method: 'GET', url: '/' })
+
+    // HTTP instrumentation won't get triggered, so we need to mock the parent
+    // span
+
+    let traceContext = otel.context.active()
+    const span = honeycomb.tracer.startSpan(
+      'HTTP GET',
+      { kind: otel.SpanKind.SERVER, },
+      traceContext
+    )
+
+    traceContext = otel.trace.setSpan(traceContext, span)
+
+    const response = await otel.context.with(traceContext, async () => {
+      return await inject(<any>onRequest, { method: 'GET', url: '/' })
+    })
+
+    span.end()
 
     assert.same(response.payload, 'Hello!')
 
@@ -224,14 +241,7 @@ if (require.main === module) {
           spanId: boltzmannSpans[1].spanId,
           parentSpanId: undefined,
           attributes: {
-            "http.host": "localhost",
-            "http.url": "http://localhost/",
-            "http.client_ip": "",
-            "http.method": "GET",
-            "http.scheme": "http:",
-            "http.route": "/",
             "boltzmann.http.query": "",
-            "http.status_code": "200",
             "service_name": "test-app",
             "boltzmann.honeycomb.trace_type": "otel"
           }
