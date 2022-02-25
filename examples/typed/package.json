@@ -72,7 +72,7 @@
     "test": "cross-env TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov tests/"
   },
   "boltzmann": {
-    "version": "0.5.3",
+    "version": "0.6.0",
     "githubci": false,
     "ping": true,
     "status": true,

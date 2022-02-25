@@ -773,6 +773,10 @@ Boltzmann automatically attaches one instance of [`route`](#route).
 
 ### `trace`
 
+{% changelog(version="0.0.0") %}
+- **Changed in 0.6.0:** Tracing now uses OpenTelemetry if `HONEYCOMB_API_HOST` is a `grpc://` url
+{% end %}
+
 This middleware is added to your service if you have enabled the `honeycomb` feature.
 This feature sends trace data to the [Honeycomb](https://www.honeycomb.io) service for
 deep observability of the performance of your handlers.

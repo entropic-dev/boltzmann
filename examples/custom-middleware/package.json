@@ -53,7 +53,7 @@
     "test": "c8 tap --no-cov tests"
   },
   "boltzmann": {
-    "version": "0.5.3",
+    "version": "0.6.0",
     "githubci": false,
     "debug": false
   }

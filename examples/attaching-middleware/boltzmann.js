@@ -339,7 +339,7 @@ module.exports = {...module.exports,  defaultOtelFactories, Honeycomb, Honeycomb
 void ``;
 
 'use strict';
-// Boltzmann v0.5.3
+// Boltzmann v0.6.0
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {

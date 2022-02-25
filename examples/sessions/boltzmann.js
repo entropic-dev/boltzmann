@@ -345,7 +345,7 @@ module.exports = {...module.exports,  defaultOtelFactories, Honeycomb, Honeycomb
 void ``;
 
 'use strict';
-// Boltzmann v0.5.3
+// Boltzmann v0.6.0
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -2156,7 +2156,7 @@ async function redisReachability(context, _) {
 // 
 
 void ``;
-const boltzmannVersion = `0.5.3`;
+const boltzmannVersion = `0.6.0`;
 // 
 const devErrorTemplateSource = `
 <!DOCTYPE html>
