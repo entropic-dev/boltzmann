@@ -556,6 +556,7 @@ class Honeycomb {
   // We *do* have a handful of logging use cases...
 
   public static log(message: string | Error): void {
+    void `{% if debug %}`;
     // Honeycomb starts up very early in the process's lifetime and
     // can't count on bole being configured. In those cases, we fall
     // back to console.log and JSON.stringify. Only use this if you
@@ -565,11 +566,9 @@ class Honeycomb {
     // as possible while still being stdout-debuggable. We also mute them
     // during unit tests.
     let isDebug = !process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug'
-
     void `{% if selftest %}`
       isDebug = false
     void `{% endif %}`
-
     if (isDebug) {
       const line: any = {
         time: (new Date()).toISOString(),
@@ -589,18 +588,28 @@ class Honeycomb {
 
       console.log(JSON.stringify(line))
     }
+    void `{% endif %}`
   }
 
   public log(message: string | Error): void {
+    void `{% if debug %}`;
+    let enabled: boolean = true
+
+    void `{% if selftest %}`
+    enabled = false
+    void `{% endif %}`
     // The logger middleware creates a logger on the honeycomb object. If it's
     // in place, we'll gladly use it.
-    if (this.logger) {
-      this.logger.debug(message)
-      return
-    }
+    if (enabled) {
+      if (this.logger) {
+        this.logger.debug(message)
+        return
+      }
 
-    // Otherwise, fall back to console.log + JSON.stringify
-    Honeycomb.log(message)
+      // Otherwise, fall back to console.log + JSON.stringify
+      Honeycomb.log(message)
+    }
+    void `{% endif %}`;
   }
 }
 

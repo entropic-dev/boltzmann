@@ -8,7 +8,6 @@ import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import onHeaders from 'on-headers'
 import isDev from 'are-we-dev'
-import bole from '@entropic/bole'
 void `{% endif %}`;
 
 function traceName(method: string, pathname: string) {
@@ -199,7 +198,6 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
  * ▔▏┗┻┛┃┃┗┻┛▕▔
  */
 function otelTrace () {
-  const logger = bole('boltzmann:honeycomb:trace')
   return function honeycombTrace (next: Handler) {
     return (context: Context) => {
       let traceContext = otel.context.active()
@@ -219,7 +217,7 @@ function otelTrace () {
           context._honeycombTrace = span
         }
       } else {
-        logger.debug(new assert.AssertionError({
+        honeycomb.log(new assert.AssertionError({
           message: 'no parent span found or created',
           actual: span,
           expected: true,
