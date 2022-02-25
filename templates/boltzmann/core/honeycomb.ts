@@ -24,7 +24,6 @@ Good luck!
 
 // Dependencies used downstream - it's worth your time to look at how these
 // are treated in prelude.ts!
-import isDev from 'are-we-dev'
 import bole from '@entropic/bole'
 
 // We continue to support beelines...
@@ -609,7 +608,6 @@ export {
   beeline,
   bole,
   grpc,
-  isDev,
   otel,
   otelCore,
   OTLPTraceExporter,

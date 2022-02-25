@@ -28,8 +28,6 @@ function _getServiceName() {
   }
 }
 
-import assert from 'assert'
-
 /*{#
 
 /!\ ACHTUNG! /!\
@@ -47,11 +45,10 @@ HOWEVER, in cases where a honeycomb.ts dependency is also required by other
 code, it must *also* be imported in a self-test scenario only.
 
 #}*/
-void `{% if honeycomb %}`
-void `{% if selftest %}`
+void `{% if honeycomb %}`;
+void `{% if selftest %}`;
 import { Honeycomb } from './honeycomb'
-import isDev from 'are-we-dev'
-void `{% endif %}`
+void `{% endif %}`;
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -67,10 +64,6 @@ if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
 
 if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
   process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
-}
-
-if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
-  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
 }
 
 let honeycomb: Honeycomb = Honeycomb.fromEnv(serviceName, process.env);
@@ -96,8 +89,8 @@ import { seal, unseal, defaults as ironDefaults } from '@hapi/iron'
 import { Accepts } from 'accepts'
 import { RouteOptions, Handler as FMWHandler, HTTPVersion, HTTPMethod } from 'find-my-way'
 import Ajv from 'ajv'
+import assert from 'assert'
 import * as cookie from 'cookie'
-import type tap from 'tap'
 void `{% if redis %}`;
 import { WrappedNodeRedisClient } from 'handy-redis'
 void `{% endif %}`;
@@ -136,9 +129,11 @@ void `{% endif %}`;
 import { Readable } from 'stream'
 
 import type { RequestOptions as ShotRequestOptions, Listener, ResponseObject } from '@hapi/shot'
+import type tap from 'tap'
 
 import querystring from 'querystring'
 import { promisify } from 'util'
+import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
 import accepts from 'accepts'
 import { promises as fs } from 'fs'
@@ -165,6 +160,8 @@ type HttpMetadata = (
   { [THREW]: boolean } |
   { [TEMPLATE]: string }
 )
+
+void `{% if selftest %}`
 
 void `{% if postgres %}`;
 export { pg, PGPool, PGPoolClient, PGClient }
@@ -233,7 +230,9 @@ export {
   fs,
   accepts,
   fmw,
+  isDev,
   promisify,
   querystring,
   ships,
 }
+void `{% endif %}`
