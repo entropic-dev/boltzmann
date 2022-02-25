@@ -109,14 +109,14 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase
   }
 }
 
-type HoneycombConfigNode = OTLPExporterConfigNode & { _honeycomb?: Honeycomb }
+type HoneycombConfigNode = OTLPExporterConfigNode & { honeycomb?: Honeycomb }
 
 class HoneycombTraceExporter extends OTLPTraceExporter {
   private _honeycomb?: Honeycomb
 
   constructor(config: HoneycombConfigNode = {}) {
     super(config)
-    this._honeycomb = config._honeycomb
+    this._honeycomb = config.honeycomb
   }
 
   log(message: string | Error): void {
@@ -187,7 +187,7 @@ interface OtelFactories {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
+  traceExporter: (url: string, metadata: grpc.Metadata, honeycomb?: Honeycomb) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
   sdk: (
@@ -225,11 +225,12 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   // Export traces to an OTLP endpoint with GRPC
-  traceExporter (url: string, metadata: grpc.Metadata): OTLPTraceExporter {
+  traceExporter (url: string, metadata: grpc.Metadata, honeycomb?: Honeycomb): OTLPTraceExporter {
     return new HoneycombTraceExporter({
       url,
       credentials: grpc.credentials.createSsl(),
-      metadata
+      metadata,
+      honeycomb
     })
   },
 
@@ -315,7 +316,7 @@ interface OtelFactoryOverrides {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter?: (url: string, metadata: grpc.Metadata) => OTLPTraceExporter
+  traceExporter?: (url: string, metadata: grpc.Metadata, honeycomb?: Honeycomb) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations?: () => OtelInstrumentation[];
   sdk?: (
@@ -456,7 +457,7 @@ class Honeycomb {
       const resource: otelResources.Resource = f.resource(serviceName)
 
       const sampler: otel.Sampler = f.sampler(sampleRate)
-      const exporter = f.traceExporter(apiHost, metadata)
+      const exporter = f.traceExporter(apiHost, metadata, this)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 

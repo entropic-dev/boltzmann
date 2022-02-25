@@ -31,21 +31,20 @@ function log ({
     )
   }
 
-  honeycomb.logger.debug(`serviceName: ${honeycomb.options.serviceName}`)
+  honeycomb.log(`serviceName: ${honeycomb.options.serviceName}`)
 
   for (let [key, value] of Object.entries(honeycomb.features)) {
-    honeycomb.logger.debug(`${key}: ${value}`)
+    honeycomb.log(`${key}: ${value}`)
   }
 
   const hasWriteKey: boolean = Boolean(
     honeycomb.options.writeKey && honeycomb.options.writeKey.length
   )
 
-  honeycomb.logger.debug(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`)
-  honeycomb.logger.debug(`dataset: ${honeycomb.options.dataset}`)
-  honeycomb.logger.debug(`apiHost: ${honeycomb.options.apiHost}`)
-  honeycomb.logger.debug(`sampleRate: ${honeycomb.options.sampleRate}`)
-
+  honeycomb.log(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`)
+  honeycomb.log(`dataset: ${honeycomb.options.dataset}`)
+  honeycomb.log(`apiHost: ${honeycomb.options.apiHost}`)
+  honeycomb.log(`sampleRate: ${honeycomb.options.sampleRate}`)
   void `{% endif %}`
 
   return function logMiddleware (next: Handler) {
