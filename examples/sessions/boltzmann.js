@@ -2,7 +2,350 @@
 /* eslint-disable */
 /* c8 ignore file */
 'use strict';
-// Boltzmann v0.5.2
+/**/
+// Dependencies used downstream - it's worth your time to look at how these
+// are treated in prelude.ts!
+const bole = require("@entropic/bole");
+// We continue to support beelines...
+const beeline = require("honeycomb-beeline");
+// ...but are migrating to OpenTelemetry:
+const grpc = require("@grpc/grpc-js");
+const otel = require("@opentelemetry/api");
+const otelCore = require("@opentelemetry/core");
+const { OTLPTraceExporter } = require("@opentelemetry/exporter-trace-otlp-grpc");
+const otelResources = require("@opentelemetry/resources");
+const { NodeSDK: OtelSDK } = require("@opentelemetry/sdk-node");
+const otelTraceBase = require("@opentelemetry/sdk-trace-base");
+const { NodeTracerProvider } = require("@opentelemetry/sdk-trace-node");
+const otelSemanticConventions = require("@opentelemetry/semantic-conventions");
+const { DnsInstrumentation: OtelDnsInstrumentation } = require("@opentelemetry/instrumentation-dns");
+const { HttpInstrumentation: OtelHttpInstrumentation } = require("@opentelemetry/instrumentation-http");
+void ``;
+const { RedisInstrumentation: OtelRedisInstrumentation } = require("@opentelemetry/instrumentation-redis");
+void ``;
+void ``;
+class HoneycombError extends Error {
+}
+const _OtelSpanProcessor = otelTraceBase.SimpleSpanProcessor;
+class HoneycombSpanProcessor extends _OtelSpanProcessor {
+    constructor(_exporter) {
+        super(_exporter);
+    }
+    // We want every span in the process to contain a couple of extra attributes.
+    // Right now that's just service_name (for backwards compatibility with
+    // beeline) and a trace type (so we can detect whether a service is using
+    // beeline or otel). This could theoretically be extended to allow
+    // customization a la beeline.addTraceContext, but that problem is really
+    // hairy and there are a lot of good reasons to add most attributes to
+    // just the active span.
+    onStart(span, _) {
+        span.setAttribute('service_name', span.resource.attributes['service.name']);
+        span.setAttribute('boltzmann.honeycomb.trace_type', 'otel');
+        otelTraceBase.SimpleSpanProcessor.prototype.onStart.call(this, span);
+    }
+    onEnd(span) {
+        otelTraceBase.SimpleSpanProcessor.prototype.onEnd.call(this, span);
+    }
+}
+class HoneycombTraceExporter extends OTLPTraceExporter {
+    constructor(config = {}) {
+        super(config);
+        this._honeycomb = config.honeycomb;
+    }
+    log(message) {
+        if (this._honeycomb) {
+            this._honeycomb.log(message);
+        }
+    }
+    send(objects, onSuccess, onError) {
+        this.log(`sending ${objects.length} spans to ${this.url}`);
+        super.send(objects, () => {
+            this.log(`successfully send ${objects.length} spans to ${this.url}`);
+            return onSuccess();
+        }, (error) => {
+            this.log(`error while sending ${objects.length} spans: ${error}`);
+            return onError(error);
+        });
+    }
+}
+const defaultOtelFactories = {
+    metadata(writeKey, dataset) {
+        const metadata = new grpc.Metadata();
+        metadata.set('x-honeycomb-team', writeKey);
+        metadata.set('x-honeycomb-dataset', dataset);
+        return metadata;
+    },
+    // create a Sampler object, which is used to tune
+    // the sampling rate
+    sampler(sampleRate) {
+        return new otelCore.ParentBasedSampler({
+            root: new otelCore.TraceIdRatioBasedSampler(sampleRate)
+        });
+    },
+    resource(serviceName) {
+        return new otelResources.Resource({
+            [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: serviceName
+        });
+    },
+    // It provides tracers!
+    tracerProvider(resource, sampler) {
+        return new NodeTracerProvider({ resource, sampler });
+    },
+    // Export traces to an OTLP endpoint with GRPC
+    traceExporter(url, metadata, honeycomb) {
+        return new HoneycombTraceExporter({
+            url,
+            credentials: grpc.credentials.createSsl(),
+            metadata,
+            honeycomb
+        });
+    },
+    // Process spans, using the supplied trace exporter to
+    // do the actual exporting.
+    spanProcessor(traceExporter) {
+        return new HoneycombSpanProcessor(traceExporter);
+    },
+    instrumentations() {
+        // Any paths we add here will get no traces whatsoever. This is
+        // appropriate for the ping route, which should never trace.
+        const ignoreIncomingPaths = [
+            '/monitor/ping'
+        ];
+        // OpenTelemetry attempts to auto-collect GCE metadata, causing traces
+        // we don't care about. We do our best to ignore them by independently
+        // calculating which endpoints it's going to try to call.
+        //
+        // See: https://github.com/googleapis/gcp-metadata/blob/main/src/index.ts#L26-L44
+        const ignoreOutgoingUrls = [
+            /^https?:\/\/169\.254\.169\.254/,
+            /^https?:\/\/metadata\.google\.internal/,
+        ];
+        let gceBase = process.env.GCE_METADATA_IP || process.env.GCE_METADATA_HOST || null;
+        if (gceBase) {
+            if (!/^https?:\/\//.test(gceBase)) {
+                gceBase = `http://${gceBase}`;
+            }
+            ignoreOutgoingUrls.push(new RegExp(`^${gceBase}`));
+        }
+        let is = [
+            new OtelDnsInstrumentation({}),
+            // NOTE: This instrumentation creates the default "trace" span and manages
+            // header propagation! See the honeycomb trace middleware for more
+            // details.
+            new OtelHttpInstrumentation({
+                // TODO: These fields are expected to become deprecated in the
+                // near future...
+                ignoreIncomingPaths,
+                ignoreOutgoingUrls
+            }),
+        ];
+        void ``;
+        is.push(new OtelRedisInstrumentation({}));
+        void ``;
+        void ``;
+        return is;
+    },
+    // The SDK will take a service name, instrumentations
+    // and a trace exporter and give us a stateful singleton.
+    // This is that singleton!
+    sdk(resource, instrumentations, traceExporter) {
+        return new OtelSDK({
+            resource,
+            traceExporter,
+            instrumentations
+        });
+    }
+};
+// Let's GOOOOOOO
+class Honeycomb {
+    constructor(options, overrides = {}) {
+        this.options = options;
+        this.features = {
+            honeycomb: !options.disable,
+            beeline: !options.disable && !options.otel,
+            otel: options.otel || false
+        };
+        this.initialized = false;
+        this.started = false;
+        this.tracerProvider = null;
+        this.traceExporter = null;
+        this.spanProcessor = null;
+        this.instrumentations = null;
+        this.sdk = null;
+        this.factories = {
+            ...defaultOtelFactories,
+            ...(overrides || {})
+        };
+        this.logger = null;
+    }
+    get tracer() {
+        // TODO: Can we do better than hard-coding 1.0.0?
+        return otel.trace.getTracer('boltzmann', '1.0.0');
+    }
+    // We (usually) load options from the environment. Unlike with Options,
+    // we do a lot of feature detection here.
+    static fromEnv(serviceName, env = process.env, overrides = {}) {
+        return new Honeycomb(Honeycomb.parseEnv(serviceName, env), overrides);
+    }
+    // serviceName is defined in the prelude, so rather than doing the same
+    // logic twice we let the prelude inject it when creating the honeycomb
+    // object.
+    static parseEnv(serviceName, env = process.env) {
+        // If there's no write key we won't get very far anyway
+        const disable = !env.HONEYCOMB_WRITEKEY;
+        let otel = false;
+        const writeKey = env.HONEYCOMB_WRITEKEY || null;
+        const dataset = env.HONEYCOMB_DATASET || null;
+        const apiHost = env.HONEYCOMB_API_HOST || null;
+        let sampleRate = 1;
+        sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1);
+        if (isNaN(sampleRate)) {
+            Honeycomb.log(`Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
+                + 'defaulting to 1');
+            sampleRate = 1;
+        }
+        // If the API host is a grpc:// endpoint, we feature switch to
+        // OpenTelemetry. There are prior uses of this variable here but
+        // they should've been using https://.
+        if (!disable && apiHost) {
+            otel = /^grpc:\/\//.test(apiHost);
+        }
+        return {
+            serviceName,
+            disable,
+            otel,
+            writeKey,
+            dataset,
+            apiHost,
+            sampleRate
+        };
+    }
+    // Initialize Honeycomb! Stands up the otel node SDK if enabled,
+    // otherwise sets up the beeline library.
+    // This needs to occur before any imports you want instrumentation
+    // to be aware of. This step is separated from the constructor if only because
+    // there are irreversible side effects galore.
+    init() {
+        if (!this.features.honeycomb) {
+            this.initialized = true;
+            return;
+        }
+        try {
+            const writeKey = this.writeKey;
+            const dataset = this.dataset;
+            const sampleRate = this.options.sampleRate || 1;
+            const serviceName = this.options.serviceName;
+            if (!this.features.otel) {
+                beeline({ writeKey, dataset, sampleRate, serviceName });
+                this.initialized = true;
+                return;
+            }
+            const f = this.factories;
+            const apiHost = this.apiHost;
+            const metadata = f.metadata(writeKey, dataset);
+            const resource = f.resource(serviceName);
+            const sampler = f.sampler(sampleRate);
+            const exporter = f.traceExporter(apiHost, metadata, this);
+            const processor = f.spanProcessor(exporter);
+            const instrumentations = f.instrumentations();
+            const provider = f.tracerProvider(resource, sampler);
+            provider.addSpanProcessor(processor);
+            provider.register();
+            const sdk = f.sdk(resource, instrumentations, exporter);
+            this.traceExporter = exporter;
+            this.spanProcessor = processor;
+            this.instrumentations = instrumentations;
+            this.tracerProvider = provider;
+            this.sdk = sdk;
+            this.initialized = true;
+        }
+        catch (err) {
+            if (err instanceof HoneycombError) {
+                this.log(err);
+                return;
+            }
+            throw err;
+        }
+    }
+    // Start the OpenTelemetry SDK. If using beelines, this is
+    // a no-op. This needs to happen before anything happens in
+    // the entrypoint and is an async operation.
+    async start() {
+        let exitCode = 0;
+        const sdk = this.sdk;
+        const die = async (err) => {
+            this.log(err);
+            exitCode = 1;
+            await shutdown();
+        };
+        const shutdown = async () => {
+            await this.stop();
+            process.exit(exitCode);
+        };
+        if (sdk) {
+            process.once('SIGTERM', shutdown);
+            process.once('beforeExit', shutdown);
+            process.once('uncaughtException', die);
+            process.once('unhandledRejection', async (reason, _) => {
+                await die(reason);
+            });
+            await sdk.start();
+        }
+        this.started = true;
+    }
+    async stop() {
+        const sdk = this.sdk;
+        if (!sdk)
+            return;
+        try {
+            await sdk.shutdown();
+        }
+        catch (err) {
+            this.log(err);
+        }
+    }
+    // These accessors are type guards that ensure you're working
+    // with a defined/non-null property. It's a bit of 6-to-1 and
+    // half a dozen on the other, because you trade ifs for
+    // try/catches and honeycomb can basically never throw. Even
+    // so, it saves a little bit of boilerplate.
+    get writeKey() {
+        if (this.options.writeKey) {
+            return this.options.writeKey;
+        }
+        throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!');
+    }
+    get dataset() {
+        if (this.options.dataset) {
+            return this.options.dataset;
+        }
+        throw new HoneycombError('HONEYCOMB_DATASET is undefined!');
+    }
+    get apiHost() {
+        if (this.options.apiHost) {
+            return this.options.apiHost;
+        }
+        throw new HoneycombError('HONEYCOMB_API_HOST is undefined!');
+    }
+    // We *do* have a handful of logging use cases...
+    static log(message) {
+        void ``;
+    }
+    log(message) {
+        void ``;
+    }
+}
+module.exports = {...module.exports,  beeline, bole, grpc, otel, otelCore, OTLPTraceExporter, otelResources, OtelSDK, otelTraceBase, NodeTracerProvider, otelSemanticConventions, OtelDnsInstrumentation, OtelHttpInstrumentation, 
+// 
+OtelRedisInstrumentation, 
+// 
+// 
+ };
+module.exports = {...module.exports,  defaultOtelFactories, Honeycomb, HoneycombError, HoneycombSpanProcessor, };
+void ``;
+
+'use strict';
+// Boltzmann v0.5.3
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -13,14 +356,25 @@ function _getServiceName() {
         return 'boltzmann';
     }
 }
+/**/
 void ``;
-const beeline = require("honeycomb-beeline");
-beeline({
-    writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
-    dataset: process.env.HONEYCOMBIO_DATASET,
-    sampleRate: Number(process.env.HONEYCOMBIO_SAMPLE_RATE) || Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
-    serviceName,
-});
+void ``;
+if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
+    process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET;
+}
+if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
+    process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY;
+}
+if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
+    process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE;
+}
+if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
+    process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM;
+}
+let honeycomb = Honeycomb.fromEnv(serviceName, process.env);
+void ``;
+honeycomb.init();
+module.exports = {...module.exports,  honeycomb };
 const onHeaders = require("on-headers");
 void ``;
 const ships = require("culture-ships");
@@ -56,7 +410,6 @@ const accepts = require("accepts");
 const { promises: fs } = require("fs");
 const crypto = require("crypto");
 const http = require("http");
-const bole = require("@entropic/bole");
 const path = require("path");
 const os = require("os");
 void ``;
@@ -133,32 +486,56 @@ async function buildMiddleware(middleware, router) {
         return rhs(await lhs);
     }, Promise.resolve(router));
 }
+function handlerSpanName(handler) {
+    return `handler: ${handler.name || '<unknown>'}`;
+}
 async function handler(context) {
     const handler = context.handler;
     // 
-    let span = null;
-    if (process.env.HONEYCOMBIO_WRITE_KEY) {
-        span = beeline.startSpan({
-            name: `handler: ${handler.name}`,
+    let beelineSpan = null;
+    let otelSpan = null;
+    let traceContext = otel.context.active();
+    if (honeycomb.features.beeline) {
+        beelineSpan = beeline.startSpan({
+            name: handlerSpanName(handler),
             'handler.name': handler.name,
             'handler.method': String(handler.method),
             'handler.route': handler.route,
             'handler.version': handler.version || '*',
-            'handler.decorators': String(handler.decorators)
+            'handler.decorators': String(handler.decorators),
         });
     }
+    else if (honeycomb.features.otel) {
+        otelSpan = honeycomb.tracer.startSpan(handlerSpanName(handler), {
+            attributes: {
+                [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: String(handler.method),
+                [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: handler.route,
+                'boltzmann.http.handler.name': handler.name || '<unknown>',
+                'boltzmann.http.handler.version': handler.version || '*',
+                'boltzmann.http.handler.decorators': String(handler.decorators)
+            },
+            kind: otel.SpanKind.SERVER
+        }, traceContext);
+        traceContext = otel.trace.setSpan(traceContext, otelSpan);
+    }
     try {
-        // 
-        return await handler(context);
-        // 
+        return await otel.context.with(traceContext, async () => {
+            // 
+            return await handler(context);
+            // 
+        });
     }
     finally {
-        if (process.env.HONEYCOMBIO_WRITE_KEY && span !== null) {
-            beeline.finishSpan(span);
+        if (beelineSpan !== null) {
+            beeline.finishSpan(beelineSpan);
+        }
+        else if (otelSpan !== null) {
+            otelSpan.end();
         }
     }
     // 
 }
+void ``;
 
 void ``;
 async function routes(handlers) {
@@ -217,6 +594,7 @@ class Context {
         this.params = {};
         this.id = String(request.headers['x-honeycomb-trace'] ||
             request.headers['x-request-id'] ||
+            request.headers['traceparent'] ||
             uuid.v4());
         this._loadSession = async () => {
             throw new Error('To use context.session, attach session middleware to your app');
@@ -412,9 +790,21 @@ class Context {
     // 
     /**[Docs]("https://www.boltzmann.dev/en/latest/docs/reference/02-handlers#traceURL")*/
     get traceURL() {
-        const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace`);
-        url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id']);
-        url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime / 1000 - 1)));
+        const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`);
+        if (honeycomb.features.beeline) {
+            url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id']);
+            url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime / 1000 - 1)));
+        }
+        else if (honeycomb.features.otel) {
+            const spanCtx = this._honeycombTrace.spanContext();
+            let startTime = Date.now() - 60000;
+            if (this._honeycombTrace.startTime) {
+                const [startSeconds, startNanos] = this._honeycombTrace.startTime;
+                startTime = startSeconds * 1000 + startNanos / 1000;
+            }
+            url.searchParams.set('trace_id', spanCtx.traceId);
+            url.searchParams.set('trace_start_ts', String(startTime));
+        }
         return String(url);
     }
     // 
@@ -1228,10 +1618,54 @@ function enforceInvariants() {
 
 
 void ``;
+function traceName(method, pathname) {
+    // This is how OpenTelemetry names request-level spans by default, so we
+    // go with the grain
+    if (honeycomb.features.otel) {
+        return `HTTP ${method}`;
+    }
+    // This is what the beeline traces are named today
+    return `${method} ${pathname}`;
+}
+function middlewareSpanName(name) {
+    return `mw: ${name || '<unknown>'}`;
+}
+function paramSpanAttribute(param) {
+    return `boltzmann.http.request.param.${param}`;
+}
+function traceAttribute(key) {
+    return `app.${key}`;
+}
+module.exports = {...module.exports,  traceName, middlewareSpanName, paramSpanAttribute };
+// The trace middleware creates a request-level span or trace. It delegates
+// to either a beeline or OpenTelemetry implementation depending on how
+// the honeycomb object is configured.
+trace.doNotTrace = true;
 function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) {
-    if (!process.env.HONEYCOMBIO_WRITE_KEY) {
+    if (!honeycomb.features.honeycomb || !honeycomb.initialized) {
         return (next) => (context) => next(context);
     }
+    if (honeycomb.features.beeline) {
+        return beelineTrace({ headerSources });
+    }
+    // Note: headerSources is not respected by otel tracing!
+    return otelTrace();
+}
+// The spans middleware creates a span on top of nested middleware, injected
+// between middlewares in the core buildMiddleware step. It delegates to
+// either a beeline or OpenTelemetry implementation depending on how the
+// honeycomb object is configured.
+function honeycombMiddlewareSpans({ name, doNotTrace } = {}) {
+    if (!honeycomb.features.honeycomb || doNotTrace) {
+        return (next) => (context) => next(context);
+    }
+    if (honeycomb.features.beeline) {
+        return beelineMiddlewareSpans({ name });
+    }
+    return otelMiddlewareSpans({ name });
+}
+// Beeline implementations of trace and span, respectively.
+function beelineTrace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) {
     const schema = require('honeycomb-beeline/lib/schema');
     const tracker = require('honeycomb-beeline/lib/async_tracker');
     return function honeycombTrace(next) {
@@ -1240,7 +1674,7 @@ function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) 
             const trace = beeline.startTrace({
                 [schema.EVENT_TYPE]: 'boltzmann',
                 [schema.PACKAGE_VERSION]: '1.0.0',
-                [schema.TRACE_SPAN_NAME]: `${context.method} ${context.url.pathname}${context.url.search}`,
+                [schema.TRACE_SPAN_NAME]: traceName(context.method, context.url.pathname),
                 [schema.TRACE_ID_SOURCE]: traceContext.source,
                 'request.host': context.host,
                 'request.original_url': context.url.href,
@@ -1248,7 +1682,10 @@ function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) 
                 'request.method': context.method,
                 'request.scheme': context.url.protocol,
                 'request.path': context.url.pathname,
-                'request.query': context.url.search
+                'request.query': context.url.search,
+                // for forward compatibility with OpenTelemetry traces
+                [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
+                'boltzmann.honeycomb.trace_type': 'beeline'
             }, traceContext.traceId, traceContext.parentSpanId, traceContext.dataset);
             if (isDev()) {
                 context._honeycombTrace = trace;
@@ -1299,14 +1736,11 @@ function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) 
         };
     }
 }
-function honeycombMiddlewareSpans({ name } = {}) {
-    if (!process.env.HONEYCOMBIO_WRITE_KEY) {
-        return (next) => (context) => next(context);
-    }
+function beelineMiddlewareSpans({ name } = {}) {
     return function honeycombSpan(next) {
         return async (context) => {
             const span = beeline.startSpan({
-                name: `mw: ${name}`
+                name: middlewareSpanName(name)
             });
             // Assumption: the invariant middleware between each layer
             // will ensure that no errors are thrown from next().
@@ -1316,6 +1750,75 @@ function honeycombMiddlewareSpans({ name } = {}) {
         };
     };
 }
+/*
+ * ┏┓
+ * ┃┃╱╲ in
+ * ┃╱╱╲╲ this
+ * ╱╱╭╮╲╲house
+ * ▔▏┗┛▕▔ we
+ * ╱▔▔▔▔▔▔▔▔▔▔╲
+ * trace with opentelemetry
+ * ╱╱┏┳┓╭╮┏┳┓ ╲╲
+ * ▔▏┗┻┛┃┃┗┻┛▕▔
+ */
+function otelTrace() {
+    return function honeycombTrace(next) {
+        return (context) => {
+            let traceContext = otel.context.active();
+            // Typically, HTTP auto-instrumentation will create a parent span for us
+            let span = otel.trace.getSpan(traceContext);
+            // startSpan should always return a span, but as far as typescript is
+            // concerned the span could still be undefined. We could assert that it
+            // exists, but throwing instrumentation-related errors is poor form.
+            if (span) {
+                // for backwards compatibility with beeline traces
+                span.setAttribute('boltzmann.http.query', context.url.search);
+                traceContext = otel.trace.setSpan(traceContext, span);
+                if (isDev()) {
+                    context._honeycombTrace = span;
+                }
+            }
+            else {
+                honeycomb.log(new assert.AssertionError({
+                    message: 'no parent span found or created',
+                    actual: span,
+                    expected: true,
+                    operator: '=='
+                }));
+            }
+            onHeaders(context._response, function () {
+                const handler = context.handler;
+                if (!span) {
+                    return;
+                }
+                span.setAttribute(otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION, handler.version);
+                Object.entries(context.params).forEach(([key, value]) => {
+                    if (span) {
+                        span.setAttribute(paramSpanAttribute(key), value);
+                    }
+                });
+            });
+            return otel.context.with(traceContext, () => {
+                return next(context);
+            });
+        };
+    };
+}
+function otelMiddlewareSpans({ name } = {}) {
+    return function honeycombSpan(next) {
+        return async (context) => {
+            let traceContext = otel.context.active();
+            const span = honeycomb.tracer.startSpan(middlewareSpanName(name), { kind: otel.SpanKind.SERVER }, traceContext);
+            traceContext = otel.trace.setSpan(traceContext, span);
+            const result = await otel.context.with(traceContext, () => {
+                return next(context);
+            });
+            span.end();
+            return result;
+        };
+    };
+}
+void ``;
 
 
 
@@ -1327,6 +1830,22 @@ function log({ logger = bole(process.env.SERVICE_NAME || 'boltzmann'), level = p
         stream = pretty;
     }
     bole.output({ level, stream });
+    void ``;
+    honeycomb.logger = bole('boltzmann:honeycomb');
+    if (honeycomb.features.beeline) {
+        honeycomb.logger.warn('Honeycomb beeline support is deprecated and will be removed in a future version. '
+            + 'To use OpenTelemetry, set HONEYCOMB_API_HOST to a grpc:// endpoint.');
+    }
+    honeycomb.log(`serviceName: ${honeycomb.options.serviceName}`);
+    for (let [key, value] of Object.entries(honeycomb.features)) {
+        honeycomb.log(`${key}: ${value}`);
+    }
+    const hasWriteKey = Boolean(honeycomb.options.writeKey && honeycomb.options.writeKey.length);
+    honeycomb.log(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`);
+    honeycomb.log(`dataset: ${honeycomb.options.dataset}`);
+    honeycomb.log(`apiHost: ${honeycomb.options.apiHost}`);
+    honeycomb.log(`sampleRate: ${honeycomb.options.sampleRate}`);
+    void ``;
     return function logMiddleware(next) {
         return async function inner(context) {
             const result = await next(context);
@@ -1354,6 +1873,7 @@ void ``;
 
 
 void ``;
+handlePing.doNotTrace = true;
 function handlePing() {
     return (next) => (context) => {
         if (context.url.pathname === '/monitor/ping') {
@@ -1636,7 +2156,7 @@ async function redisReachability(context, _) {
 // 
 
 void ``;
-const boltzmannVersion = `0.5.2`;
+const boltzmannVersion = `0.5.3`;
 // 
 const devErrorTemplateSource = `
 <!DOCTYPE html>
@@ -1748,9 +2268,9 @@ const devErrorTemplateSource = `
               {% else %}
               <details>
                 <summary>Not available.</summary>
-                Make sure the <code>HONEYCOMBIO_DATASET</code>,
-                <code>HONEYCOMBIO_WRITE_KEY</code>, and
-                <code>HONEYCOMBIO_TEAM</code> environment variables are set,
+                Make sure the <code>HONEYCOMB_DATASET</code>,
+                <code>HONEYCOMB_WRITEKEY</code>, and
+                <code>HONEYCOMB_TEAM</code> environment variables are set,
                 then restart boltzmann.
               </details>
               {% endif %}
@@ -2643,9 +3163,9 @@ const middleware = {
  * ````
  * 
  * The `id` fields in logs is the value of the request-id, available on the context object as the `id`
- * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
- * and `x-request-id` before falling back to generating a request id using a short randomly-selected
- * string.
+ * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`,
+ * `x-request-id` and `traceparent` before falling back to generating a request id using a short
+ * randomly-selected string.
  * 
  * To log from your handlers, you might write code like this:
  * 
@@ -2911,48 +3431,52 @@ module.exports = {...module.exports,  Context, main: runserver, middleware, body
   void ``;
 /* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
-    function passthrough() {
-        return (next) => (context) => next(context);
-    }
-    runserver({
-        middleware: _requireOr('./middleware', [])
-            .then(_processMiddleware)
-            .then((mw) => {
-            // 
-            // 
-            const acc = [];
-            // 
-            acc.push(trace);
-            // 
-            // 
-            acc.push(handlePing);
-            // 
-            // 
-            acc.push(log);
-            // 
-            acc.push(attachRedis);
-            // 
-            // 
-            acc.push(...mw);
-            // 
-            acc.push(handleStatus);
-            // 
-            return acc.filter(Boolean);
-        }),
-    })
-        .then((server) => {
-        server.listen(Number(process.env.PORT) || 5000, () => {
-            const addrinfo = server.address();
-            if (!addrinfo) {
-                return;
-            }
-            bole('boltzmann:server').info(`now listening on port ${typeof addrinfo == 'string' ? addrinfo : addrinfo.port}`);
+    // 
+    honeycomb.start().then(run);
+    function run() {
+        // 
+        runserver({
+            middleware: _requireOr('./middleware', [])
+                .then(_processMiddleware)
+                .then((mw) => {
+                // 
+                // 
+                const acc = [];
+                // 
+                acc.push(handlePing);
+                // 
+                // 
+                acc.push(trace);
+                // 
+                // 
+                acc.push(log);
+                // 
+                acc.push(attachRedis);
+                // 
+                // 
+                acc.push(...mw);
+                // 
+                acc.push(handleStatus);
+                // 
+                return acc.filter(Boolean);
+            }),
+        })
+            .then((server) => {
+            server.listen(Number(process.env.PORT) || 8000, () => {
+                const addrinfo = server.address();
+                if (!addrinfo) {
+                    return;
+                }
+                bole('boltzmann:server').info(`now listening on port ${typeof addrinfo == 'string' ? addrinfo : addrinfo.port}`);
+            });
+        })
+            .catch((err) => {
+            console.error(err.stack);
+            process.exit(1);
         });
-    })
-        .catch((err) => {
-        console.error(err.stack);
-        process.exit(1);
-    });
+        // 
+    }
+    // 
 }
 
 

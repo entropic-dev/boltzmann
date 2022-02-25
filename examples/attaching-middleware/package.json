@@ -25,8 +25,8 @@
   "devDependencies": {
     "@hapi/shot": "^5.0.4",
     "@types/uuid": "^8.3.0",
-    "@typescript-eslint/eslint-plugin": "^4.11.0",
-    "@typescript-eslint/parser": "^4.11.0",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.1",
     "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
     "c8": "^7.7.1",
@@ -38,7 +38,7 @@
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
     "supports-hyperlinks": "^2.1.0",
-    "tap": "^15.0.2"
+    "tap": "^15.1.5"
   },
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
@@ -51,9 +51,10 @@
     "test": "c8 tap --no-cov tests"
   },
   "boltzmann": {
-    "version": "0.5.2",
+    "version": "0.5.3",
     "githubci": false,
     "ping": true,
-    "status": true
+    "status": true,
+    "debug": false
   }
 }
