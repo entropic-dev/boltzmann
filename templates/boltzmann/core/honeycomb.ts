@@ -34,7 +34,8 @@ import beeline from 'honeycomb-beeline'
 import * as grpc from '@grpc/grpc-js'
 import * as otel from '@opentelemetry/api'
 import * as otelCore from '@opentelemetry/core'
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
+import { OTLPExporterConfigNode, OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
+import { otlpTypes } from '@opentelemetry/exporter-trace-otlp-http'
 import * as otelResources from '@opentelemetry/resources'
 import { NodeSDK as OtelSDK } from '@opentelemetry/sdk-node'
 import * as otelTraceBase from '@opentelemetry/sdk-trace-base'
@@ -106,6 +107,42 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase
 
   onEnd(span: otelTraceBase.ReadableSpan): void {
     otelTraceBase.SimpleSpanProcessor.prototype.onEnd.call(this, span)
+  }
+}
+
+type HoneycombConfigNode = OTLPExporterConfigNode & { _honeycomb?: Honeycomb }
+
+class HoneycombTraceExporter extends OTLPTraceExporter {
+  private _honeycomb?: Honeycomb
+
+  constructor(config: HoneycombConfigNode = {}) {
+    super(config)
+    this._honeycomb = config._honeycomb
+  }
+
+  log(message: string | Error): void {
+    if (this._honeycomb) {
+      this._honeycomb.log(message)
+    }
+  }
+
+  send(
+    objects: otelTraceBase.ReadableSpan[],
+    onSuccess: () => void,
+    onError: (error: otlpTypes.OTLPExporterError) => void
+  ): void {
+    this.log(`sending ${objects.length} spans to ${this.url}`)
+    super.send(
+      objects,
+      () => {
+        this.log(`successfully send ${objects.length} spans to ${this.url}`)
+        return onSuccess()
+      },
+      (error: otlpTypes.OTLPExporterError) => {
+        this.log(`error while sending ${objects.length} spans: ${error}`)
+        return onError(error)
+      }
+    )
   }
 }
 
@@ -190,7 +227,7 @@ const defaultOtelFactories: OtelFactories = {
 
   // Export traces to an OTLP endpoint with GRPC
   traceExporter (url: string, metadata: grpc.Metadata): OTLPTraceExporter {
-    return new OTLPTraceExporter({
+    return new HoneycombTraceExporter({
       url,
       credentials: grpc.credentials.createSsl(),
       metadata
