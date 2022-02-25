@@ -206,35 +206,6 @@ function otelTrace () {
 
       // Typically, HTTP auto-instrumentation will create a parent span for us
       let span: otel.Span | undefined = otel.trace.getSpan(traceContext)
-      let createdSpan = false
-
-      // In shot testing (and other scenarios that don't touch HTTP
-      // auto-instrumentation, we'll need to create one
-      if (!span) {
-        traceContext = otel.propagation.extract(
-          traceContext,
-          context.headers,
-          otel.defaultTextMapGetter
-        )
-
-        span = honeycomb.tracer.startSpan(
-          traceName(context.method, context.url.pathname),
-          {
-            attributes: {
-              [otelSemanticConventions.SemanticAttributes.HTTP_HOST]: context.host,
-              [otelSemanticConventions.SemanticAttributes.HTTP_URL]: context.url.href,
-              [otelSemanticConventions.SemanticAttributes.HTTP_CLIENT_IP]: context.remote,
-              [otelSemanticConventions.SemanticAttributes.HTTP_METHOD]: context.method,
-              [otelSemanticConventions.SemanticAttributes.HTTP_SCHEME]: context.url.protocol,
-              [otelSemanticConventions.SemanticAttributes.HTTP_ROUTE]: context.url.pathname,
-           },
-            kind: otel.SpanKind.SERVER,
-          },
-          traceContext
-        )
-        // We need to clean up this span later - put a pin in it
-        createdSpan = true
-      }
 
       // startSpan should always return a span, but as far as typescript is
       // concerned the span could still be undefined. We could assert that it
@@ -263,23 +234,6 @@ function otelTrace () {
           return
         }
 
-        // If we don't have an automatic span, we need to fill in some basic
-        // response properties.
-        if (createdSpan) {
-          span.setAttribute(
-            otelSemanticConventions.SemanticAttributes.HTTP_STATUS_CODE,
-            String(context._response.statusCode)
-          )
-          span.setAttribute(
-            otelSemanticConventions.SemanticAttributes.HTTP_ROUTE,
-            <string>handler.route
-          )
-          span.setAttribute(
-            otelSemanticConventions.SemanticAttributes.HTTP_METHOD,
-            <string>handler.method
-          )
-        }
-
         span.setAttribute(
           otelSemanticConventions.SemanticResourceAttributes.SERVICE_VERSION,
           <string>handler.version
@@ -290,11 +244,6 @@ function otelTrace () {
             span.setAttribute(paramSpanAttribute(key), value)
           }
         })
-       
-        // If we created the span, we also need to close it
-        if (createdSpan) {
-          span.end()
-        }
       })
 
       return otel.context.with(traceContext, () => {
