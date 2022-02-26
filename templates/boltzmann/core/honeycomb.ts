@@ -398,7 +398,7 @@ class Honeycomb {
     const writeKey = env.HONEYCOMB_WRITEKEY || null
     const dataset = env.HONEYCOMB_DATASET || null
     const apiHost = env.HONEYCOMB_API_HOST || null
-    let sampleRate = 1
+    let sampleRate: number = 1
 
     sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
 
@@ -438,15 +438,15 @@ class Honeycomb {
       this.initialized = true
       return
     }
+
     try {
       const writeKey = this.writeKey
       const dataset = this.dataset
-      const sampleRate = this.options.sampleRate || 1
-      const serviceName = this.options.serviceName
+      const sampleRate = this.sampleRate
+      const serviceName = this.serviceName
 
-      if (!this.features.otel) {
+      if (this.features.beeline) {
         beeline({ writeKey, dataset, sampleRate, serviceName })
-        this.initialized = true
         return
       }
 
@@ -528,11 +528,6 @@ class Honeycomb {
     }
   }
 
-  // These accessors are type guards that ensure you're working
-  // with a defined/non-null property. It's a bit of 6-to-1 and
-  // half a dozen on the other, because you trade ifs for
-  // try/catches and honeycomb can basically never throw. Even
-  // so, it saves a little bit of boilerplate.
   public get writeKey (): string {
     if (this.options.writeKey) {
       return this.options.writeKey
@@ -540,18 +535,25 @@ class Honeycomb {
     throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!')
   }
 
-  public get dataset () {
-    if (this.options.dataset) {
-      return this.options.dataset
-    }
-    throw new HoneycombError('HONEYCOMB_DATASET is undefined!')
+  public get dataset (): string {
+    // The beeline default, here for OpenTelemetry's benefit
+    return this.options.dataset || "nodejs"
   }
 
-  public get apiHost () {
-    if (this.options.apiHost) {
-      return this.options.apiHost
-    }
-    throw new HoneycombError('HONEYCOMB_API_HOST is undefined!')
+  public get apiHost (): string {
+    return this.options.apiHost || (
+      this.features.beeline
+        ? "https://api.honeycomb.io"
+        : "grpc://api.honeycomb.io:443"
+      )
+  }
+
+  public get sampleRate (): number {
+    return this.options.sampleRate || 1
+  }
+
+  public get serviceName (): string {
+    return this.options.serviceName || 'boltzmann'
   }
 
   // We *do* have a handful of logging use cases...
