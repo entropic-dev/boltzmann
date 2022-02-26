@@ -87,6 +87,9 @@ pub struct Flags {
     #[structopt(long, help = "Enable asset bundling via ESBuild")]
     esbuild: Option<Option<Flipper>>,
 
+    #[structopt(long, help = "Enable node version management via Volta")]
+    volta: Option<Option<Flipper>>,
+
     // Convenient option groups next. These aren't saved individually.
     #[structopt(
         long,
@@ -143,6 +146,11 @@ struct RunScriptSpec {
     versions: Vec<VersionedScript>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct VoltaSpec {
+    node: String,
+}
+
 #[derive(Debug, Default, Deserialize, Serialize)]
 struct PackageJson {
     #[serde(flatten)]
@@ -159,6 +167,9 @@ struct PackageJson {
 
     scripts: Option<serde_json::Map<String, Value>>,
     boltzmann: Option<Settings>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    volta: Option<Option<VoltaSpec>>,
 }
 
 fn load_package_json(flags: &Flags, default_settings: Settings) -> Option<PackageJson> {
@@ -172,6 +183,7 @@ fn load_package_json(flags: &Flags, default_settings: Settings) -> Option<Packag
 
     let mut package_json = serde_json::from_slice::<PackageJson>(&contents[..]).ok()?;
     package_json.boltzmann = package_json.boltzmann.or(Some(default_settings));
+    package_json.volta = None;
     Some(package_json)
 }
 
@@ -475,6 +487,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     package_json.dependencies.replace(dependencies);
     package_json.dev_dependencies.replace(devdeps);
     package_json.boltzmann.replace(updated_settings.clone());
+
+    package_json.volta.replace(match updated_settings.volta {
+        Some(true) => Some(VoltaSpec { node: "^16.14.0".to_string() }),
+        _ => None
+    });
 
     // Update package.json run scripts.
     // We manage run scripts that meet the following criteria:

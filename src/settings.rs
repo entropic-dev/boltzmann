@@ -106,6 +106,9 @@ pub struct Settings {
     #[serde(skip_serializing)]
     pub(crate) debug: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) volta: Option<bool>,
+
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
 }
