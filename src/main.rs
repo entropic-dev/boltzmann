@@ -26,6 +26,9 @@ static NPM: &str = "npm";
 #[cfg(target_os = "windows")]
 static NPM: &str = "npm.cmd";
 
+static VOLTA: &str = "volta";
+static NODE_VERSION: &str = "16";
+
 #[derive(Clone, Serialize, StructOpt)]
 #[structopt(
     name = "boltzmann",
@@ -183,7 +186,6 @@ fn load_package_json(flags: &Flags, default_settings: Settings) -> Option<Packag
 
     let mut package_json = serde_json::from_slice::<PackageJson>(&contents[..]).ok()?;
     package_json.boltzmann = package_json.boltzmann.or(Some(default_settings));
-    package_json.volta = None;
     Some(package_json)
 }
 
@@ -385,7 +387,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     }
 
     let settings = package_json.boltzmann.take().unwrap();
-    let updated_settings = settings.merge_flags(version.clone(), &flags);
+    let updated_settings = settings.merge_flags(version.clone(), NODE_VERSION.to_string(), &flags);
 
     render::scaffold(&mut target, &updated_settings).context("Failed to render Boltzmann files")?;
 
@@ -488,10 +490,12 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     package_json.dev_dependencies.replace(devdeps);
     package_json.boltzmann.replace(updated_settings.clone());
 
-    package_json.volta.replace(match updated_settings.volta {
-        Some(true) => Some(VoltaSpec { node: "^16.14.0".to_string() }),
-        _ => None
-    });
+    match updated_settings.volta {
+        Some(true) => (),
+        _ => {
+            package_json.volta.replace(None);
+        },
+    }
 
     // Update package.json run scripts.
     // We manage run scripts that meet the following criteria:
@@ -587,6 +591,30 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         .with_context(|| format!("Failed to update {:?}", target))?;
     serde_json::to_writer_pretty(&mut fd, &package_json)?;
     target.pop();
+
+    if let Some(true) = updated_settings.volta {
+        let mut subproc = Exec::cmd(VOLTA).arg("pin").arg(format!("node@{}", NODE_VERSION)).cwd(&target);
+
+        subproc = if verbosity < 2 {
+            subproc.stdout(NullFile).stderr(NullFile)
+        } else {
+            subproc
+        };
+
+        info!("    running volta pin...");
+        let exit_status = subproc.join()?;
+
+        // if let ExitStatus::Exited(0) = exit_status {
+        // } else {
+        //     return Err(anyhow!("volta pin exited with non-zero status").into());
+        // }
+        match exit_status {
+            ExitStatus::Exited(0) => {},
+            _ => {
+                return Err(anyhow!("volta pin exited with non-zero status").into());
+            }
+        }
+    };
 
     let mut subproc = Exec::cmd(NPM).arg("i").cwd(&target);
 

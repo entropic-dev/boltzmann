@@ -58,6 +58,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) version: Option<String>,
 
+    #[serde(skip_serializing)]
+    pub(crate) node_version: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) csrf: Option<bool>,
 
@@ -114,7 +117,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn merge_flags(&self, version: String, flags: &Flags) -> Settings {
+    pub fn merge_flags(&self, version: String, node_version: String, flags: &Flags) -> Settings {
         // TODO: This is becoming horrifying.
         let cast = |xs: &Option<Option<Flipper>>,
                     default: &Option<bool>,
@@ -171,6 +174,7 @@ impl Settings {
             // oddballs:
             typescript: if is_typescript { Some(true) } else { None },
             version: Some(version),
+            node_version: Some(node_version),
             volta: cast(&flags.volta, &self.volta, flags.all),
 
             #[cfg(debug_assertions)]
@@ -276,6 +280,7 @@ impl Into<Context> for Settings {
                 .version
                 .unwrap_or_else(|| "<unknown version>".to_string())[..],
         );
+        ctxt.insert("node_version", &self.node_version.unwrap());
 
         ctxt
     }
