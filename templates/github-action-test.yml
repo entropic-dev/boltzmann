@@ -25,10 +25,10 @@ jobs:
 {% endif %}
     steps:
     - uses: actions/checkout@v2
-    - name: Use Node.js 16.x
+    - name: Use Node.js {{ node_version }}.x
       uses: actions/setup-node@v2
       with:
-        node-version: '16.x'
+        node-version: '{{ node_version }}.x'
 
     - name: npm ci
       run: npm ci
