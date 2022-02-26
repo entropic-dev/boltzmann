@@ -103,7 +103,7 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) typescript: Option<bool>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing)]
     pub(crate) debug: Option<bool>,
 
     #[serde(flatten)]
@@ -168,6 +168,7 @@ impl Settings {
             // oddballs:
             typescript: if is_typescript { Some(true) } else { None },
             version: Some(version),
+            volta: cast(&flags.volta, &self.volta, flags.all),
 
             #[cfg(debug_assertions)]
             debug: Some(true),
