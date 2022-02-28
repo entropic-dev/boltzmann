@@ -162,9 +162,6 @@ interface HoneycombOptions {
   writeKey?: string | null
   dataset?: string | null
 
-  // If using OpenTelemetry, this is a grpc:// address
-  apiHost?: string | null
-
   // Tunables, etc.
   sampleRate?: number
 }
@@ -190,7 +187,7 @@ interface OtelFactories {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter: (url: string, headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
+  traceExporter: (headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
   sdk: (
@@ -228,9 +225,8 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   // Export traces to an OTLP endpoint with HTTP
-  traceExporter (url: string, headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb): OTLPTraceExporter {
+  traceExporter (headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb): OTLPTraceExporter {
     return new HoneycombTraceExporter({
-      url,
       headers,
       honeycomb
     })
@@ -318,7 +314,7 @@ interface OtelFactoryOverrides {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter?: (url: string, headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
+  traceExporter?: (headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations?: () => OtelInstrumentation[];
   sdk?: (
@@ -394,15 +390,29 @@ class Honeycomb {
   // logic twice we let the prelude inject it when creating the honeycomb
   // object.
   public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
-    // If there's no write key we won't get very far anyway
+    // The bare minimum requirement for honeycomb tracing is the write key
     const disable = !env.HONEYCOMB_WRITEKEY
-    let otel: boolean = false
+
+    // Beelines should pick these up automatically, but we'll need them to
+    // configure OTLP headers
     const writeKey = env.HONEYCOMB_WRITEKEY || null
     const dataset = env.HONEYCOMB_DATASET || null
-    const apiHost = env.HONEYCOMB_API_HOST || null
-    let sampleRate: number = 1
 
-    sampleRate = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
+    // OpenTelemetry is configured with a huge pile of `OTEL_*` environment
+    // variables. If any of them are defined, we'll use OpenTelemetry instead
+    // of beelines.
+    //
+    // For a broad overview of most of these variables, see:
+    // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
+    const otel: boolean = Object.entries(env).some(([name, value]) => {
+      return name.startsWith('OTEL_') && value && value.length;
+    });
+
+    // beelines don't have a standard environment variable for configuring
+    // the sample rate. OpenTelemetry has *some* mechanisms for configuring
+    // samplers but are "involved." Therefore, this variable gets passed to
+    // both beelines and the OpenTelemetry Sampler.
+    let sampleRate: number = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
 
     if (isNaN(sampleRate)) {
       Honeycomb.log(
@@ -412,20 +422,12 @@ class Honeycomb {
       sampleRate = 1
     }
 
-    // If the API host is a grpc:// endpoint, we feature switch to
-    // OpenTelemetry. There are prior uses of this variable here but
-    // they should've been using https://.
-    if (!disable && apiHost) {
-      otel = /^grpc:\/\//.test(apiHost)
-    }
-
     return {
       serviceName,
       disable,
       otel,
       writeKey,
       dataset,
-      apiHost,
       sampleRate
     }
   }
@@ -453,13 +455,12 @@ class Honeycomb {
       }
 
       const f = this.factories
-      const apiHost: string = this.apiHost
 
       const headers: HoneycombOTLPHeaders = f.headers(writeKey, dataset)
       const resource: otelResources.Resource = f.resource(serviceName)
 
       const sampler: otel.Sampler = f.sampler(sampleRate)
-      const exporter = f.traceExporter(apiHost, headers, this)
+      const exporter = f.traceExporter(headers, this)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 
@@ -540,14 +541,6 @@ class Honeycomb {
   public get dataset (): string {
     // The beeline default, here for OpenTelemetry's benefit
     return this.options.dataset || "nodejs"
-  }
-
-  public get apiHost (): string {
-    return this.options.apiHost || (
-      this.features.beeline
-        ? "https://api.honeycomb.io"
-        : "grpc://api.honeycomb.io:443"
-      )
   }
 
   public get sampleRate (): number {
@@ -716,7 +709,6 @@ function createMockHoneycomb(): Honeycomb {
       otel: true,
       writeKey: 'SOME_WRITEKEY',
       dataset: 'SOME_DATASET',
-      apiHost: 'grpc://otel.website:9000',
       sampleRate: 1
     },
     {
@@ -767,47 +759,26 @@ if (require.main === module) {
         'should not use otel when no env vars'
       )
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: ''}).otel,
-        false,
-        'should not use otel when env vars are blank'
-      )
-      assert.equal(
-        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: 'some write key'}).otel,
-        false,
-        'should not use otel when only write key is defined'
-      )
-      assert.equal(
-        Honeycomb.parseEnv(
-          'boltzmann', 
-          {
-            HONEYCOMB_WRITEKEY: 'some write key',
-            HONEYCOMB_API_HOST: 'https://refinery.website'
-          }
-        ).otel,
-        false,
-        'should not use otel when API host is not grpc://'
-      )
-      assert.equal(
-        Honeycomb.parseEnv(
-          'boltzmann',
-          {
-            HONEYCOMB_WRITEKEY: 'some write key',
-            HONEYCOMB_API_HOST: 'grpc://otel.website'
-          }
-        ).otel,
-        true,
-        '*should* use otel when API host is grpc://'
-      )
-      assert.equal(
         Honeycomb.parseEnv(
           'boltzmann',
           {
             HONEYCOMB_WRITEKEY: '',
-            HONEYCOMB_API_HOST: 'grpc://otel.website'
+            HONEYCOMB_API_HOST: 'https://refinery.tech'
           }
         ).otel,
         false,
-        'should not use otel when write key is empty, even if API host is grpc://'
+        'should not use otel when only beeline variables are set'
+      )
+      assert.equal(
+        Honeycomb.parseEnv(
+          'boltzmann',
+          {
+            HONEYCOMB_WRITEKEY: 'some write key',
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'https://refinery.website'
+          }
+        ).otel,
+        true,
+        'should use otel when OTEL_EXPORTER_OTLP_ENDPOINT is defined'
       )
     })
 
@@ -842,22 +813,6 @@ if (require.main === module) {
         ).sampleRate,
         1,
         'should be 1 if not parseable'
-      )
-    })
-
-    t.test('options.apiHost', async (assert: Test) => {
-      assert.equal(
-        Honeycomb.parseEnv('boltzmann', {}).apiHost,
-        null,
-        'should be null when no env var'
-      )
-      assert.equal(
-        Honeycomb.parseEnv(
-          'boltzmann',{
-          HONEYCOMB_API_HOST: 'https://example.com'
-        }).apiHost,
-        'https://example.com',
-        'should be url if url'
       )
     })
   })
@@ -907,20 +862,19 @@ if (require.main === module) {
     })
 
     test('traceExporter', async (assert: Test) => {
-      const url = 'grpc://otel.website:9000'
       const headers = defaultOtelFactories.headers(
         'some write key',
         'some dataset'
       )
 
-      const exporter = defaultOtelFactories.traceExporter(url, headers)
-      assert.equal(exporter.url, 'grpc://otel.website:9000')
+      assert.doesNotThrow(() => {
+        defaultOtelFactories.traceExporter(headers)
+      })
     })
 
     test('spanProcessor', async (assert: Test) => {
       assert.doesNotThrow(() => {
         const exporter = defaultOtelFactories.traceExporter(
-          'grpc://example.com',
           defaultOtelFactories.headers(
             'some write key',
             'some dataset'
@@ -945,7 +899,6 @@ if (require.main === module) {
       assert.doesNotThrow(() => {
         const resource = defaultOtelFactories.resource('test-service')
         const exporter = defaultOtelFactories.traceExporter(
-          'grpc://example.com',
           defaultOtelFactories.headers(
             'some write key',
             'some dataset'
@@ -961,8 +914,6 @@ if (require.main === module) {
     const honeycomb = createMockHoneycomb()
 
     honeycomb.init()
-
-    assert.same(honeycomb.traceExporter?.url, 'grpc://otel.website:9000')
 
     assert.doesNotThrow(async () => {
       await honeycomb.start()

@@ -43,7 +43,6 @@ function log ({
 
   honeycomb.log(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`)
   honeycomb.log(`dataset: ${honeycomb.options.dataset}`)
-  honeycomb.log(`apiHost: ${honeycomb.options.apiHost}`)
   honeycomb.log(`sampleRate: ${honeycomb.options.sampleRate}`)
   void `{% endif %}`
 
