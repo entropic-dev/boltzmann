@@ -30,11 +30,9 @@ import bole from '@entropic/bole'
 import beeline from 'honeycomb-beeline'
 
 // ...but are migrating to OpenTelemetry:
-import * as grpc from '@grpc/grpc-js'
 import * as otel from '@opentelemetry/api'
 import * as otelCore from '@opentelemetry/core'
-import { OTLPExporterConfigNode, OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { otlpTypes } from '@opentelemetry/exporter-trace-otlp-http'
+import { OTLPTraceExporter, otlpTypes } from '@opentelemetry/exporter-trace-otlp-http'
 import * as otelResources from '@opentelemetry/resources'
 import { NodeSDK as OtelSDK } from '@opentelemetry/sdk-node'
 import * as otelTraceBase from '@opentelemetry/sdk-trace-base'
@@ -109,7 +107,12 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase
   }
 }
 
-type HoneycombConfigNode = OTLPExporterConfigNode & { honeycomb?: Honeycomb }
+type HoneycombOTLPHeaders = {
+  'x-honeycomb-team': string,
+  'x-honeycomb-dataset': string
+}
+
+type HoneycombConfigNode = otlpTypes.OTLPExporterConfigBase & { honeycomb?: Honeycomb }
 
 class HoneycombTraceExporter extends OTLPTraceExporter {
   private _honeycomb?: Honeycomb
@@ -180,14 +183,14 @@ interface HoneycombFeatures {
 // They're exposed on the Honeycomb class but in a nested
 // namespace.
 interface OtelFactories {
-  metadata: (writeKey: string, dataset: string) => grpc.Metadata
+  headers: (writeKey: string, dataset: string) => HoneycombOTLPHeaders
   sampler: (sampleRate: number) => otel.Sampler
   resource: (serviceName: string) => otelResources.Resource
   tracerProvider: (
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter: (url: string, metadata: grpc.Metadata, honeycomb?: Honeycomb) => OTLPTraceExporter
+  traceExporter: (url: string, headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
   sdk: (
@@ -198,11 +201,11 @@ interface OtelFactories {
 }
 
 const defaultOtelFactories: OtelFactories = {
-  metadata (writeKey: string, dataset: string): grpc.Metadata {
-    const metadata = new grpc.Metadata()
-    metadata.set('x-honeycomb-team', writeKey)
-    metadata.set('x-honeycomb-dataset', dataset)
-    return metadata
+  headers (writeKey: string, dataset: string): HoneycombOTLPHeaders {
+    return {
+      'x-honeycomb-team': writeKey,
+      'x-honeycomb-dataset': dataset
+    }
   },
 
   // create a Sampler object, which is used to tune
@@ -224,12 +227,11 @@ const defaultOtelFactories: OtelFactories = {
     return new NodeTracerProvider({ resource, sampler })
   },
 
-  // Export traces to an OTLP endpoint with GRPC
-  traceExporter (url: string, metadata: grpc.Metadata, honeycomb?: Honeycomb): OTLPTraceExporter {
+  // Export traces to an OTLP endpoint with HTTP
+  traceExporter (url: string, headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb): OTLPTraceExporter {
     return new HoneycombTraceExporter({
       url,
-      credentials: grpc.credentials.createSsl(),
-      metadata,
+      headers,
       honeycomb
     })
   },
@@ -309,14 +311,14 @@ const defaultOtelFactories: OtelFactories = {
 // are created. The Honeycomb class allows for
 // passing overrides into its constructor.
 interface OtelFactoryOverrides {
-  metadata?: (writeKey: string, dataset: string) => grpc.Metadata
+  headers?: (writeKey: string, dataset: string) => HoneycombOTLPHeaders
   sampler?: (sampleRate: Number) => otel.Sampler
   resource?: (serviceName: string) => otelResources.Resource
   tracerProvider?: (
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter?: (url: string, metadata: grpc.Metadata, honeycomb?: Honeycomb) => OTLPTraceExporter
+  traceExporter?: (url: string, headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations?: () => OtelInstrumentation[];
   sdk?: (
@@ -453,11 +455,11 @@ class Honeycomb {
       const f = this.factories
       const apiHost: string = this.apiHost
 
-      const metadata: grpc.Metadata = f.metadata(writeKey, dataset)
+      const headers: HoneycombOTLPHeaders = f.headers(writeKey, dataset)
       const resource: otelResources.Resource = f.resource(serviceName)
 
       const sampler: otel.Sampler = f.sampler(sampleRate)
-      const exporter = f.traceExporter(apiHost, metadata, this)
+      const exporter = f.traceExporter(apiHost, headers, this)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 
@@ -619,7 +621,6 @@ class Honeycomb {
 export {
   beeline,
   bole,
-  grpc,
   otel,
   otelCore,
   OTLPTraceExporter,
@@ -643,8 +644,9 @@ export {
   defaultOtelFactories,
   Honeycomb,
   HoneycombError,
-  HoneycombOptions,
   HoneycombFeatures,
+  HoneycombOptions,
+  HoneycombOTLPHeaders,
   HoneycombSpanProcessor,
   OtelFactories,
   OtelFactoryOverrides,
@@ -860,21 +862,19 @@ if (require.main === module) {
     })
   })
   test('factories', async (t: Test) => {
-    t.test('metadata', async (assert: Test) => {
-      const metadata = defaultOtelFactories.metadata(
+    t.test('headers', async (assert: Test) => {
+      const headers = defaultOtelFactories.headers(
         'some write key',
         'some dataset'
       )
 
       assert.same(
-        metadata.get('x-honeycomb-team'),
-        ['some write key'],
-        'should have the write key set'
-      )
-      assert.same(
-        metadata.get('x-honeycomb-dataset'),
-        ['some dataset'],
-        'shoupld have the dataset set'
+        headers,
+        {
+          'x-honeycomb-team': 'some write key',
+          'x-honeycomb-dataset': 'some dataset'
+        },
+        'should have the expected headers'
       )
     })
 
@@ -908,20 +908,20 @@ if (require.main === module) {
 
     test('traceExporter', async (assert: Test) => {
       const url = 'grpc://otel.website:9000'
-      const metadata = defaultOtelFactories.metadata(
+      const headers = defaultOtelFactories.headers(
         'some write key',
         'some dataset'
       )
 
-      const exporter = defaultOtelFactories.traceExporter(url, metadata)
-      assert.equal(exporter.url, 'otel.website:9000')
+      const exporter = defaultOtelFactories.traceExporter(url, headers)
+      assert.equal(exporter.url, 'grpc://otel.website:9000')
     })
 
     test('spanProcessor', async (assert: Test) => {
       assert.doesNotThrow(() => {
         const exporter = defaultOtelFactories.traceExporter(
           'grpc://example.com',
-          defaultOtelFactories.metadata(
+          defaultOtelFactories.headers(
             'some write key',
             'some dataset'
           )
@@ -946,7 +946,7 @@ if (require.main === module) {
         const resource = defaultOtelFactories.resource('test-service')
         const exporter = defaultOtelFactories.traceExporter(
           'grpc://example.com',
-          defaultOtelFactories.metadata(
+          defaultOtelFactories.headers(
             'some write key',
             'some dataset'
           )
@@ -962,7 +962,7 @@ if (require.main === module) {
 
     honeycomb.init()
 
-    assert.same(honeycomb.traceExporter?.url, 'otel.website:9000')
+    assert.same(honeycomb.traceExporter?.url, 'grpc://otel.website:9000')
 
     assert.doesNotThrow(async () => {
       await honeycomb.start()
