@@ -167,9 +167,12 @@ class HoneycombDiagLogger implements otel.DiagLogger {
 
 }
 
+// We only do OpenTelemetry logging if boltzmann's main log level is debug
 const _diagLogger = new HoneycombDiagLogger()
 
-otel.diag.setLogger(_diagLogger, otelCore.getEnv().OTEL_LOG_LEVEL)
+if (!process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug') {
+  otel.diag.setLogger(_diagLogger, otelCore.getEnv().OTEL_LOG_LEVEL)
+}
 
 // There's a bug in the trace base library where the SimpleSpanProcessor doesn't
 // actually conform to the SpanProcessor interface! onStart in particular
