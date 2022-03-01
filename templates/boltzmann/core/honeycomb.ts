@@ -535,13 +535,16 @@ class Honeycomb {
 
     // OpenTelemetry is configured with a huge pile of `OTEL_*` environment
     // variables. If any of them are defined, we'll use OpenTelemetry instead
-    // of beelines.
+    // of beelines. Typically one would configure OTEL_EXPORTER_OTLP_ENDPOINT
+    // to point to either api.honeycomb.io or your local refinery, but this
+    // will flag on OTEL_ENABLED=1 as well if you want to use all the
+    // defaults.
     //
     // For a broad overview of common variables, see:
     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
     //
     // For a list of variables the OTLP exporter respects, see:
-    // https://github.com/open-telemetry/opentelemetry-js/blob/main/packages/opentelemetry-core/src/utils/environment.ts#L117-L122
+    // https://opentelemetry.io/docs/reference/specification/protocol/exporter/
     const isOtel: boolean = Object.entries(env).some(([name, value]) => {
       return name.startsWith('OTEL_') && value && value.length;
     });
