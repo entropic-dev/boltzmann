@@ -237,8 +237,7 @@ interface OtelFactories {
   instrumentations: () => OtelInstrumentation[]
   sdk: (
     resource: otelResources.Resource,
-    instrumentations: OtelInstrumentation[],
-    traceExporter: OTLPTraceExporter
+    instrumentations: OtelInstrumentation[]
   ) => OtelSDK
 }
 
@@ -335,25 +334,10 @@ const defaultOtelFactories: OtelFactories = {
   // This is that singleton!
   sdk (
     resource: otelResources.Resource,
-    // sampler: otel.Sampler,
-    // spanProcessor: otelTraceBase.SpanProcessor,
-    instrumentations: OtelInstrumentation[],
-    traceExporter: OTLPTraceExporter
+    instrumentations: OtelInstrumentation[]
   ): OtelSDK {
-
-    /*
-    const defaultAttributes = {
-      'service_name': resource.attributes['service.name']),
-      'boltzmann.honeycomb.trace_type': 'otel'
-    }
-    */
-
     return new OtelSDK({
       resource,
-      // sampler,
-      // spanProcessor,
-      // defaultAttributes,
-      traceExporter,
       instrumentations
     })
   }
@@ -373,11 +357,10 @@ interface OtelFactoryOverrides {
   ) => NodeTracerProvider
   traceExporter?: (headers: HoneycombOTLPHeaders) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
-  instrumentations?: () => OtelInstrumentation[];
+  instrumentations?: () => OtelInstrumentation[]
   sdk?: (
     resource: otelResources.Resource,
     instrumentations: OtelInstrumentation[],
-    traceExporter: OTLPTraceExporter
   ) => OtelSDK;
 }
 
@@ -531,7 +514,6 @@ class Honeycomb {
       const sdk = f.sdk(
         resource,
         instrumentations,
-        exporter
       )
 
       this.traceExporter = exporter
@@ -909,14 +891,12 @@ if (require.main === module) {
       // run the init function
       assert.doesNotThrow(() => {
         const resource = defaultOtelFactories.resource('test-service')
-        const exporter = defaultOtelFactories.traceExporter(
-          defaultOtelFactories.headers(
-            'some write key',
-            'some dataset'
-          )
-        )
         const instrumentations = defaultOtelFactories.instrumentations()
-        defaultOtelFactories.sdk(resource, instrumentations, exporter)
+
+        defaultOtelFactories.sdk(
+          resource, 
+          instrumentations,
+        )
       }, 'should create an sdk')
     })
   })
