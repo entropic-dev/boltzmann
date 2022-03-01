@@ -1,7 +1,7 @@
 void `{% if selftest %}`;
 export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
 import { honeycomb } from '../core/prelude'
-import { beeline, getOtelMockSpans, otel, otelSemanticConventions } from '../core/honeycomb'
+import { beeline, getOtelMockSpans, otel } from '../core/honeycomb'
 import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'

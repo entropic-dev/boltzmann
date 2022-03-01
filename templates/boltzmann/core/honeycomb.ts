@@ -22,12 +22,15 @@ to and different from that one:
 Good luck!
 #}*/
 
-// Dependencies used downstream - it's worth your time to look at how these
-// are treated in prelude.ts!
-import { Writable } from 'stream'
+// Dependencies used outside of honeycomb
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
+export { bole, isDev }
+
+void `{% if honeycomb %}`
+
+import { Writable } from 'stream'
 // We continue to support beelines...
 import beeline from 'honeycomb-beeline'
 
@@ -503,12 +506,11 @@ class Honeycomb {
   // We (usually) load options from the environment. Unlike with Options,
   // we do a lot of feature detection here.
   public static fromEnv(
-    serviceName: string,
     env: typeof process.env = process.env,
     overrides: OtelFactoryOverrides = {}
   ): Honeycomb {
     return new Honeycomb(
-      Honeycomb.parseEnv(serviceName, env),
+      Honeycomb.parseEnv(env),
       overrides
     )
   }
@@ -516,7 +518,7 @@ class Honeycomb {
   // serviceName is defined in the prelude, so rather than doing the same
   // logic twice we let the prelude inject it when creating the honeycomb
   // object.
-  public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
+  public static parseEnv(env: typeof process.env = process.env): HoneycombOptions {
     // For beelines, if we don't have HONEYCOMB_WRITEKEY there isn't much we
     // can do...
     let disable = !env.HONEYCOMB_WRITEKEY
@@ -570,6 +572,16 @@ class Honeycomb {
     // For more information on how this is configured, see:
     // https://opentelemetry.io/docs/reference/specification/protocol/exporter/#specify-protocol
     const otlpProtocol = env.OTEL_EXPORTER_OTLP_PROTOCOL || env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL || 'http/protobuf'
+
+    // The service name logic is VERY similar to what's in prelude.ts,
+    // except that OTEL_SERVICE_NAME takes precedence if defined
+    const serviceName: string = ((): string => {
+      try {
+        return env.OTEL_SERVICE_NAME || env.SERVICE_NAME || require('./package.json').name.split('/').pop()
+      } catch (err) {
+        return 'boltzmann'
+      }
+    })()
 
     return {
       serviceName,
@@ -707,7 +719,6 @@ class Honeycomb {
 
 export {
   beeline,
-  bole,
   otel,
   otelCore,
   otelResources,
@@ -830,22 +841,22 @@ if (require.main === module) {
   test('Honeycomb.parseEnv', async (t: Test) => {
     t.test('options.disable', async (assert: Test) => {
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {}).disable,
+        Honeycomb.parseEnv({}).disable,
         true,
         'should be disabled when no env vars'
       )
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: ''}).disable,
+        Honeycomb.parseEnv({HONEYCOMB_WRITEKEY: ''}).disable,
         true,
         'should be disabled when env vars are blank'
       )
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {HONEYCOMB_WRITEKEY: 'some write key'}).disable,
+        Honeycomb.parseEnv({HONEYCOMB_WRITEKEY: 'some write key'}).disable,
         false,
         'should be enabled when write key is defined'
       )
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {OTEL_ENABLED: '1'}).disable,
+        Honeycomb.parseEnv({OTEL_ENABLED: '1'}).disable,
         false,
         'should be enabled if any otel env var is set'
       )
@@ -853,13 +864,12 @@ if (require.main === module) {
 
     t.test('options.otel', async (assert: Test) => {
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {}).otel,
+        Honeycomb.parseEnv({}).otel,
         false,
         'should not use otel when no env vars'
       )
       assert.equal(
         Honeycomb.parseEnv(
-          'boltzmann',
           {
             HONEYCOMB_WRITEKEY: '',
             HONEYCOMB_API_HOST: 'https://refinery.tech'
@@ -870,7 +880,6 @@ if (require.main === module) {
       )
       assert.equal(
         Honeycomb.parseEnv(
-          'boltzmann',
           {
             HONEYCOMB_WRITEKEY: 'some write key',
             OTEL_EXPORTER_OTLP_ENDPOINT: 'https://refinery.website'
@@ -881,7 +890,6 @@ if (require.main === module) {
       )
       assert.equal(
         Honeycomb.parseEnv(
-          'boltzmann',
           {
             OTEL_ENABLED: '1'
           }
@@ -894,13 +902,12 @@ if (require.main === module) {
 
     t.test('options.sampleRate', async (assert: Test) => {
       assert.equal(
-        Honeycomb.parseEnv('boltzmann', {}).sampleRate,
+        Honeycomb.parseEnv({}).sampleRate,
         1,
         'should be 1 by default'
       )
       assert.equal(
         Honeycomb.parseEnv(
-          'boltzmann', 
           { HONEYCOMB_SAMPLE_RATE: '1' }
         ).sampleRate,
         1,
@@ -908,7 +915,6 @@ if (require.main === module) {
       )
       assert.equal(
         Honeycomb.parseEnv(
-          'boltzmann',
           {
             HONEYCOMB_SAMPLE_RATE: '0.5'
           }
@@ -918,11 +924,36 @@ if (require.main === module) {
       )
       assert.equal(
         Honeycomb.parseEnv(
-          'boltzmann', 
           { HONEYCOMB_SAMPLE_RATE: 'pony' }
         ).sampleRate,
         1,
         'should be 1 if not parseable'
+      )
+    })
+
+    t.test('options.serviceName', async (assert: Test) => {
+      assert.equal(
+        Honeycomb.parseEnv({}).serviceName,
+        'boltzmann',
+        'should fall back to "boltzmann" when no env vars (nor package.json)'
+      )
+      assert.equal(
+        Honeycomb.parseEnv({ SERVICE_NAME: 'test-app' }).serviceName,
+        'test-app',
+        'should use SERVICE_NAME when defined'
+      )
+      assert.equal(
+        Honeycomb.parseEnv({ OTEL_SERVICE_NAME: 'test-app' }).serviceName,
+        'test-app',
+        'should use OTEL_SERVICE_NAME when defined'
+      )
+      assert.equal(
+        Honeycomb.parseEnv({
+          SERVICE_NAME: 'test-app',
+          OTEL_SERVICE_NAME: 'otel-test-app'
+        }).serviceName,
+        'otel-test-app',
+        'OTEL_SERVICE_NAME should take precedence over SERVICE_NAME'
       )
     })
   })
@@ -1019,4 +1050,5 @@ if (require.main === module) {
   })
 }
 
+void `{% endif %}`
 void `{% endif %}`

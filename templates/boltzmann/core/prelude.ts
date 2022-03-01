@@ -36,19 +36,19 @@ Honeycomb instrumentation is in index.tera *before* the prelude.
 This is because instrumentation needs to be installed prior to
 instrumented modules being imported.
 
-In production, honeycomb.ts defines a class called Honeycomb, so we can
-simply reach for it. In self-test mode, we need to import it, as is typical
-for non-prelude files.
+In production, honeycomb.ts defines a class called Honeycomb and a singleton
+instance, so we can simply reach for it. In self-test mode, we need to import
+it, as is typical for non-prelude files.
 
-For the most part, dependencies should be contained within honeycomb.ts.
-HOWEVER, in cases where a honeycomb.ts dependency is also required by other
-code, it must *also* be imported in a self-test scenario only.
-
+For the most part, dependencies used by honeycomb core should be properly
+exported even when honeycomb is disabled. However, dependencies used by
+honeycomb middlewares, etc., should still be imported and exported here.
 #}*/
 void `{% if honeycomb %}`;
+import onHeaders from 'on-headers'
+
 void `{% if selftest %}`;
 import { Honeycomb } from './honeycomb'
-import isDev from 'are-we-dev'
 void `{% endif %}`;
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
@@ -67,7 +67,8 @@ if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
   process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
 }
 
-let honeycomb: Honeycomb = Honeycomb.fromEnv(serviceName, process.env);
+let honeycomb: Honeycomb = Honeycomb.fromEnv(process.env);
+
 void `{% if selftest %}`;
 import { createMockHoneycomb } from './honeycomb'
 honeycomb = createMockHoneycomb()
@@ -76,8 +77,6 @@ void `{% endif %}`;
 honeycomb.init()
 
 export { honeycomb }
-
-import onHeaders from 'on-headers'
 void `{% endif %}`;
 
 import ships from 'culture-ships'
@@ -232,7 +231,6 @@ export {
   fs,
   accepts,
   fmw,
-  isDev,
   promisify,
   querystring,
   ships,
