@@ -32,9 +32,12 @@ import isDev from 'are-we-dev'
 import beeline from 'honeycomb-beeline'
 
 // ...but are migrating to OpenTelemetry:
+import * as grpc from '@grpc/grpc-js'
 import * as otel from '@opentelemetry/api'
 import * as otelCore from '@opentelemetry/core'
-import { OTLPTraceExporter, otlpTypes } from '@opentelemetry/exporter-trace-otlp-http'
+import * as otlpHttp from '@opentelemetry/exporter-trace-otlp-http'
+import * as otlpProto from '@opentelemetry/exporter-trace-otlp-proto'
+import * as otlpGrpc from '@opentelemetry/exporter-trace-otlp-grpc'
 import * as otelResources from '@opentelemetry/resources'
 import { NodeSDK as OtelSDK } from '@opentelemetry/sdk-node'
 import * as otelTraceBase from '@opentelemetry/sdk-trace-base'
@@ -125,6 +128,14 @@ class HoneycombDiagLogger implements otel.DiagLogger {
   }
 
   private _log(level: 'error' | 'warn' | 'info' | 'debug', message: string, args: unknown[]): void {
+    let isSelfTest = false
+    void `{% if selftest %}`
+    isSelfTest = true
+    void `{% endif %}`
+    if (isSelfTest) {
+      return
+    }
+
     // Log to bole if we have it
     if (this.logger) {
       this.logger[level](message, ...args)
@@ -203,33 +214,6 @@ type HoneycombOTLPHeaders = {
   'x-honeycomb-dataset': string
 }
 
-type HoneycombConfigNode = otlpTypes.OTLPExporterConfigBase & { honeycomb?: Honeycomb }
-
-class HoneycombTraceExporter extends OTLPTraceExporter {
-  constructor(config: HoneycombConfigNode = {}) {
-    super(config)
-  }
-
-  send(
-    objects: otelTraceBase.ReadableSpan[],
-    onSuccess: () => void,
-    onError: (error: otlpTypes.OTLPExporterError) => void
-  ): void {
-    otel.diag.debug(`sending ${objects.length} spans to ${this.url}`)
-    super.send(
-      objects,
-      () => {
-        otel.diag.debug(`successfully send ${objects.length} spans to ${this.url}`)
-        return onSuccess()
-      },
-      (error: otlpTypes.OTLPExporterError) => {
-        otel.diag.debug(`error while sending ${objects.length} spans: ${error}`)
-        return onError(error)
-      }
-    )
-  }
-}
-
 // Arguments passed to Honeycomb's constructor
 interface HoneycombOptions {
   serviceName: string
@@ -246,6 +230,7 @@ interface HoneycombOptions {
 
   // Tunables, etc.
   sampleRate?: number
+  otlpProtocol?: string
 }
 
 // Whether or not otel, beelines and honeycomb are enabled
@@ -269,8 +254,8 @@ interface OtelFactories {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter: (headers: HoneycombOTLPHeaders) => OTLPTraceExporter
-  spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
+  spanExporter: (protocol: string, headers: HoneycombOTLPHeaders) => otelTraceBase.SpanExporter
+  spanProcessor: (spanExporter: otelTraceBase.SpanExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
   sdk: (
     resource: otelResources.Resource,
@@ -306,16 +291,81 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   // Export traces to an OTLP endpoint with HTTP
-  traceExporter (headers: HoneycombOTLPHeaders): OTLPTraceExporter {
-    return new HoneycombTraceExporter({
+  spanExporter (protocol: string, headers: HoneycombOTLPHeaders): otelTraceBase.SpanExporter {
+    // We want to log exporter sends and their success/error status, but there
+    // are three different classes to take care of! So instead of subclassing
+    // all of them, we'll patch the method.
+    function patchSend(exporter: any) {
+      const send = exporter.send
+
+      exporter.send = function(
+        objects: otelTraceBase.ReadableSpan[],
+        onSuccess: () => void,
+        onError: (error: any) => void
+      ) {
+        otel.diag.debug(`sending ${objects.length} spans to ${this.url}`)
+        send.call(this,
+          objects,
+          () => {
+            otel.diag.debug(`successfully send ${objects.length} spans to ${this.url}`)
+            return onSuccess()
+          },
+          (error: any) => {
+            otel.diag.debug(`error while sending ${objects.length} spans: ${error}`)
+            return onError(error)
+          }
+        )
+      }
+    }
+
+    if (protocol === 'grpc') {
+      const metadata = new grpc.Metadata()
+      metadata.set('x-honeycomb-team', headers['x-honeycomb-team'])
+      metadata.set('x-honeycomb-dataset', headers['x-honeycomb-dataset'])
+      const credentials = grpc.credentials.createSsl()
+
+      const exporter = new otlpGrpc.OTLPTraceExporter({
+        credentials,
+        metadata
+      })
+
+      patchSend(exporter)
+
+      return exporter
+    }
+
+    if (protocol === 'http/json') {
+      otel.diag.warn(
+        "Honeycomb doesn't support the http/json OTLP protocol - but if you say so"
+      )
+      const exporter = new otlpHttp.OTLPTraceExporter({
+        headers
+      })
+
+      patchSend(exporter)
+
+      return exporter
+    }
+
+    if (protocol !== 'http/protobuf') {
+      otel.diag.warn(
+        `Unknown OTLP protocol ${protocol} - using http/protobuf instead`
+      )
+    }
+
+    const exporter = new otlpHttp.OTLPTraceExporter({
       headers
     })
+
+    patchSend(exporter)
+
+    return exporter
   },
 
   // Process spans, using the supplied trace exporter to
   // do the actual exporting.
-  spanProcessor (traceExporter: OTLPTraceExporter): otelTraceBase.SpanProcessor {
-    return new HoneycombSpanProcessor(traceExporter)
+  spanProcessor (spanExporter: otelTraceBase.SpanExporter): otelTraceBase.SpanProcessor {
+    return new HoneycombSpanProcessor(spanExporter)
   },
 
   instrumentations () {
@@ -392,8 +442,8 @@ interface OtelFactoryOverrides {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter?: (headers: HoneycombOTLPHeaders) => OTLPTraceExporter
-  spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
+  spanExporter?: (protocol: string, headers: HoneycombOTLPHeaders) => otelTraceBase.SpanExporter
+  spanProcessor?: (spanExporter: otelTraceBase.SpanExporter) => otelTraceBase.SpanProcessor
   instrumentations?: () => OtelInstrumentation[]
   sdk?: (
     resource: otelResources.Resource,
@@ -408,7 +458,7 @@ class Honeycomb {
   public factories: OtelFactories
 
   public tracerProvider: NodeTracerProvider | null
-  public traceExporter: OTLPTraceExporter | null
+  public spanExporter: otelTraceBase.SpanExporter | null
   public spanProcessor: otelTraceBase.SpanProcessor | null
   public instrumentations: OtelInstrumentation[] | null
   public sdk: OtelSDK | null
@@ -432,7 +482,7 @@ class Honeycomb {
     this.started = false
 
     this.tracerProvider = null
-    this.traceExporter = null
+    this.spanExporter = null
     this.spanProcessor = null
     this.instrumentations = null
     this.sdk = null
@@ -502,13 +552,16 @@ class Honeycomb {
       sampleRate = 1
     }
 
+    const otlpProtocol = env.OTEL_EXPORTER_OTLP_PROTOCOL || env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL || 'http/protobuf'
+
     return {
       serviceName,
       disable,
       otel: isOtel,
       writeKey,
       dataset,
-      sampleRate
+      sampleRate,
+      otlpProtocol
     }
   }
 
@@ -540,7 +593,7 @@ class Honeycomb {
       const resource: otelResources.Resource = f.resource(serviceName)
 
       const sampler: otel.Sampler = f.sampler(sampleRate)
-      const exporter = f.traceExporter(headers)
+      const exporter = f.spanExporter(this.options.otlpProtocol || 'http/protobuf', headers)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 
@@ -553,7 +606,7 @@ class Honeycomb {
         instrumentations,
       )
 
-      this.traceExporter = exporter
+      this.spanExporter = exporter
       this.spanProcessor = processor
       this.instrumentations = instrumentations
       this.tracerProvider = provider
@@ -645,7 +698,6 @@ export {
   bole,
   otel,
   otelCore,
-  OTLPTraceExporter,
   otelResources,
   OtelSDK,
   otelTraceBase,
@@ -742,8 +794,8 @@ function createMockHoneycomb(): Honeycomb {
       sampleRate: 1
     },
     {
-      spanProcessor(traceExporter) {
-        return new OtelMockSpanProcessor(traceExporter)
+      spanProcessor(spanExporter) {
+        return new OtelMockSpanProcessor(spanExporter)
       }
     }
   )
@@ -891,20 +943,25 @@ if (require.main === module) {
       )
     })
 
-    test('traceExporter', async (assert: Test) => {
+    test('spanExporter', async (assert: Test) => {
       const headers = defaultOtelFactories.headers(
         'some write key',
         'some dataset'
       )
 
-      assert.doesNotThrow(() => {
-        defaultOtelFactories.traceExporter(headers)
-      })
+      process.env.OTEL_LOG_LEVEL = 'error'
+
+      for (let protocol of ['grpc', 'http/protobuf', 'http/json']) {
+        assert.doesNotThrow(() => {
+          defaultOtelFactories.spanExporter(protocol, headers)
+        })
+      }
     })
 
     test('spanProcessor', async (assert: Test) => {
       assert.doesNotThrow(() => {
-        const exporter = defaultOtelFactories.traceExporter(
+        const exporter = defaultOtelFactories.spanExporter(
+          'http/protobuf',
           defaultOtelFactories.headers(
             'some write key',
             'some dataset'

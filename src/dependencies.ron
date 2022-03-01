@@ -56,6 +56,20 @@
   ),
 
   DependencySpec(
+    name: "@opentelemetry/exporter-trace-otlp-http",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
+    name: "@opentelemetry/exporter-trace-otlp-proto",
+    version: "^0.27.0",
+    kind: Normal,
+    preconditions: Some(When(all_of: ["honeycomb"]))
+  ),
+
+  DependencySpec(
     name: "@opentelemetry/instrumentation",
     version: "^0.27.0",
     kind: Normal,
