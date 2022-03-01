@@ -278,7 +278,9 @@ const defaultOtelFactories: OtelFactories = {
   // the sampling rate
   sampler (sampleRate: number): otel.Sampler {
     return new otelCore.ParentBasedSampler({
-      root: new otelCore.TraceIdRatioBasedSampler(sampleRate)
+      // Honeycomb's sample rate is defined as total / sampled, but otel's
+      // is defined as sampled / total
+      root: new otelCore.TraceIdRatioBasedSampler(1/sampleRate)
     })
   },
 
