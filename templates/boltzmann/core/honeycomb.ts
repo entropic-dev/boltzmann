@@ -831,6 +831,7 @@ export {
   resetOtelMockSpans
 }
 
+void `{% endif %}`;
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
   process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
@@ -857,6 +858,8 @@ void `{% endif %}`;
 honeycomb.init()
 
 export { honeycomb }
+
+void `{% if selftest %}`;
 
 import tap from 'tap'
 type Test = (typeof tap.Test)["prototype"]
