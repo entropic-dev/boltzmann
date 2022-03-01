@@ -24,26 +24,19 @@ function log ({
 
   void `{% if honeycomb %}`
   honeycomb.logger = bole('boltzmann:honeycomb')
-  if (honeycomb.features.beeline) {
-    honeycomb.logger.warn(
-      'Honeycomb beeline support is deprecated and will be removed in a future version. '
-      + 'To use OpenTelemetry, set HONEYCOMB_API_HOST to a grpc:// endpoint.'
-    )
-  }
-
-  honeycomb.log(`serviceName: ${honeycomb.options.serviceName}`)
+  honeycomb.logger.debug(`serviceName: ${honeycomb.options.serviceName}`)
 
   for (let [key, value] of Object.entries(honeycomb.features)) {
-    honeycomb.log(`${key}: ${value}`)
+    honeycomb.logger.debug(`${key}: ${value}`)
   }
 
   const hasWriteKey: boolean = Boolean(
     honeycomb.options.writeKey && honeycomb.options.writeKey.length
   )
 
-  honeycomb.log(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`)
-  honeycomb.log(`dataset: ${honeycomb.options.dataset}`)
-  honeycomb.log(`sampleRate: ${honeycomb.options.sampleRate}`)
+  honeycomb.logger.debug(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`)
+  honeycomb.logger.debug(`dataset: ${honeycomb.options.dataset}`)
+  honeycomb.logger.debug(`sampleRate: ${honeycomb.options.sampleRate}`)
   void `{% endif %}`
 
   return function logMiddleware (next: Handler) {

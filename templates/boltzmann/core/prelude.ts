@@ -48,6 +48,7 @@ code, it must *also* be imported in a self-test scenario only.
 void `{% if honeycomb %}`;
 void `{% if selftest %}`;
 import { Honeycomb } from './honeycomb'
+import isDev from 'are-we-dev'
 void `{% endif %}`;
 
 if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
@@ -135,7 +136,6 @@ import type tap from 'tap'
 
 import querystring from 'querystring'
 import { promisify } from 'util'
-import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
 import accepts from 'accepts'
 import { promises as fs } from 'fs'

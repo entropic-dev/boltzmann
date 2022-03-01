@@ -217,12 +217,12 @@ function otelTrace () {
           context._honeycombTrace = span
         }
       } else {
-        honeycomb.log(new assert.AssertionError({
+        otel.diag.error(String(new assert.AssertionError({
           message: 'no parent span found or created',
           actual: span,
           expected: true,
           operator: '=='
-        }))
+        }).stack))
       }
 
       onHeaders(context._response, function () {

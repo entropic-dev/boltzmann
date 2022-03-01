@@ -25,6 +25,7 @@ Good luck!
 // Dependencies used downstream - it's worth your time to look at how these
 // are treated in prelude.ts!
 import bole from '@entropic/bole'
+import isDev from 'are-we-dev'
 
 // We continue to support beelines...
 import beeline from 'honeycomb-beeline'
@@ -68,6 +69,59 @@ void `{% endif %}`
 
 class HoneycombError extends Error {
 }
+
+class HoneycombDiagLogger implements otel.DiagLogger {
+  public logger?: typeof bole
+
+  private _log(level: 'error' | 'warn' | 'info' | 'debug', message: string, args: unknown[]): void {
+    if (this.logger) {
+      this.logger[level](message, ...args)
+      return
+    }
+
+    if (isDev()) {
+      console.log(message)
+      return
+    }
+
+    const line: any = {
+      time: (new Date()).toISOString(),
+      level,
+      name: 'boltzmann:honeycomb',
+      message,
+      args
+    }
+
+    try {
+      // are the args JSON-serializable?
+      console.log(JSON.stringify(line))
+      // SURVEY SAYS...
+    } catch (_) {
+      // ...ok, make it a string as a fallback
+      line.args = require('util').format('%o', line.args)
+      console.log(JSON.stringify(line))
+    }
+  }
+  error(message: string, ...args: unknown[]): void {
+    this._log('error', message, args)
+  }
+  warn(message: string, ...args: unknown[]): void {
+    this._log('warn', message, args)
+  }
+  info(message: string, ...args: unknown[]): void {
+    this._log('info', message, args)
+  }
+  debug(message: string, ...args: unknown[]): void {
+    this._log('debug', message, args)
+  }
+  verbose(message: string, ...args: unknown[]): void {
+    this._log('debug', message, args)
+  }
+}
+
+const _diagLogger = new HoneycombDiagLogger()
+
+otel.diag.setLogger(_diagLogger, otelCore.getEnv().OTEL_LOG_LEVEL)
 
 // There's a bug in the trace base library where the SimpleSpanExporter doesn't
 // actually conform to the SpanExporter interface! onStart in particular
@@ -115,17 +169,8 @@ type HoneycombOTLPHeaders = {
 type HoneycombConfigNode = otlpTypes.OTLPExporterConfigBase & { honeycomb?: Honeycomb }
 
 class HoneycombTraceExporter extends OTLPTraceExporter {
-  private _honeycomb?: Honeycomb
-
   constructor(config: HoneycombConfigNode = {}) {
     super(config)
-    this._honeycomb = config.honeycomb
-  }
-
-  log(message: string | Error): void {
-    if (this._honeycomb) {
-      this._honeycomb.log(message)
-    }
   }
 
   send(
@@ -133,15 +178,15 @@ class HoneycombTraceExporter extends OTLPTraceExporter {
     onSuccess: () => void,
     onError: (error: otlpTypes.OTLPExporterError) => void
   ): void {
-    this.log(`sending ${objects.length} spans to ${this.url}`)
+    otel.diag.debug(`sending ${objects.length} spans to ${this.url}`)
     super.send(
       objects,
       () => {
-        this.log(`successfully send ${objects.length} spans to ${this.url}`)
+        otel.diag.debug(`successfully send ${objects.length} spans to ${this.url}`)
         return onSuccess()
       },
       (error: otlpTypes.OTLPExporterError) => {
-        this.log(`error while sending ${objects.length} spans: ${error}`)
+        otel.diag.debug(`error while sending ${objects.length} spans: ${error}`)
         return onError(error)
       }
     )
@@ -187,7 +232,7 @@ interface OtelFactories {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter: (headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
+  traceExporter: (headers: HoneycombOTLPHeaders) => OTLPTraceExporter
   spanProcessor: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations: () => OtelInstrumentation[]
   sdk: (
@@ -225,10 +270,9 @@ const defaultOtelFactories: OtelFactories = {
   },
 
   // Export traces to an OTLP endpoint with HTTP
-  traceExporter (headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb): OTLPTraceExporter {
+  traceExporter (headers: HoneycombOTLPHeaders): OTLPTraceExporter {
     return new HoneycombTraceExporter({
-      headers,
-      honeycomb
+      headers
     })
   },
 
@@ -291,11 +335,24 @@ const defaultOtelFactories: OtelFactories = {
   // This is that singleton!
   sdk (
     resource: otelResources.Resource,
+    // sampler: otel.Sampler,
+    // spanProcessor: otelTraceBase.SpanProcessor,
     instrumentations: OtelInstrumentation[],
     traceExporter: OTLPTraceExporter
   ): OtelSDK {
+
+    /*
+    const defaultAttributes = {
+      'service_name': resource.attributes['service.name']),
+      'boltzmann.honeycomb.trace_type': 'otel'
+    }
+    */
+
     return new OtelSDK({
       resource,
+      // sampler,
+      // spanProcessor,
+      // defaultAttributes,
       traceExporter,
       instrumentations
     })
@@ -314,7 +371,7 @@ interface OtelFactoryOverrides {
     resource: otelResources.Resource,
     sampler: otel.Sampler
   ) => NodeTracerProvider
-  traceExporter?: (headers: HoneycombOTLPHeaders, honeycomb?: Honeycomb) => OTLPTraceExporter
+  traceExporter?: (headers: HoneycombOTLPHeaders) => OTLPTraceExporter
   spanProcessor?: (traceExporter: OTLPTraceExporter) => otelTraceBase.SpanProcessor
   instrumentations?: () => OtelInstrumentation[];
   sdk?: (
@@ -339,7 +396,7 @@ class Honeycomb {
   public initialized: boolean
   public started: boolean
 
-  public logger: typeof bole | null
+  private _logger: typeof bole | null
 
   constructor(
     options: HoneycombOptions,
@@ -365,7 +422,7 @@ class Honeycomb {
       ...(overrides || {})
     }
 
-    this.logger = null
+    this._logger = null
   }
 
   get tracer (): otel.Tracer {
@@ -402,9 +459,12 @@ class Honeycomb {
     // variables. If any of them are defined, we'll use OpenTelemetry instead
     // of beelines.
     //
-    // For a broad overview of most of these variables, see:
+    // For a broad overview of common variables, see:
     // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/sdk-environment-variables.md
-    const otel: boolean = Object.entries(env).some(([name, value]) => {
+    //
+    // For a list of variables the OTLP exporter respects, see:
+    // https://github.com/open-telemetry/opentelemetry-js/blob/main/packages/opentelemetry-core/src/utils/environment.ts#L117-L122
+    const isOtel: boolean = Object.entries(env).some(([name, value]) => {
       return name.startsWith('OTEL_') && value && value.length;
     });
 
@@ -415,7 +475,7 @@ class Honeycomb {
     let sampleRate: number = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
 
     if (isNaN(sampleRate)) {
-      Honeycomb.log(
+      otel.diag.verbose(
         `Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
         + 'defaulting to 1'
       )
@@ -425,7 +485,7 @@ class Honeycomb {
     return {
       serviceName,
       disable,
-      otel,
+      otel: isOtel,
       writeKey,
       dataset,
       sampleRate
@@ -460,7 +520,7 @@ class Honeycomb {
       const resource: otelResources.Resource = f.resource(serviceName)
 
       const sampler: otel.Sampler = f.sampler(sampleRate)
-      const exporter = f.traceExporter(headers, this)
+      const exporter = f.traceExporter(headers)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 
@@ -484,7 +544,7 @@ class Honeycomb {
       this.initialized = true
     } catch (err) {
       if (err instanceof HoneycombError) {
-        this.log(err);
+        otel.diag.error(err.stack || String(err));
         return;
       }
       throw err;
@@ -499,7 +559,7 @@ class Honeycomb {
     const sdk = this.sdk
 
     const die = async (err: Error) => {
-      this.log(err);
+      otel.diag.error(err.stack || String(err));
       exitCode = 1
       await shutdown()
     }
@@ -527,7 +587,7 @@ class Honeycomb {
     try {
       await sdk.shutdown()
     } catch (err) {
-      this.log(err)
+      otel.diag.error(err.stack || String(err))
     }
   }
 
@@ -551,63 +611,13 @@ class Honeycomb {
     return this.options.serviceName || 'boltzmann'
   }
 
-  // We *do* have a handful of logging use cases...
-
-  public static log(message: string | Error): void {
-    void `{% if debug %}`;
-    // Honeycomb starts up very early in the process's lifetime and
-    // can't count on bole being configured. In those cases, we fall
-    // back to console.log and JSON.stringify. Only use this if you
-    // can't use a bole logger!
-
-    // We always log at the debug level, in an effort to make tracing as quiet
-    // as possible while still being stdout-debuggable. We also mute them
-    // during unit tests.
-    let isDebug = !process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug'
-    void `{% if selftest %}`
-      isDebug = false
-    void `{% endif %}`
-    if (isDebug) {
-      const line: any = {
-        time: (new Date()).toISOString(),
-        level: 'debug',
-        name: 'boltzmann:honeycomb'
-      }
-
-      if (message instanceof Error) {
-        line.err = {
-          name: message.name,
-          message: message.message,
-          stack: String(message.stack)
-        }
-      } else {
-        line.message = message
-      }
-
-      console.log(JSON.stringify(line))
-    }
-    void `{% endif %}`
+  public get logger (): typeof bole | null {
+    return this._logger
   }
 
-  public log(message: string | Error): void {
-    void `{% if debug %}`;
-    let enabled: boolean = true
-
-    void `{% if selftest %}`
-    enabled = false
-    void `{% endif %}`
-    // The logger middleware creates a logger on the honeycomb object. If it's
-    // in place, we'll gladly use it.
-    if (enabled) {
-      if (this.logger) {
-        this.logger.debug(message)
-        return
-      }
-
-      // Otherwise, fall back to console.log + JSON.stringify
-      Honeycomb.log(message)
-    }
-    void `{% endif %}`;
+  public set logger (logger: typeof bole | null) {
+    this._logger = logger
+    _diagLogger.logger = logger ? logger : undefined
   }
 }
 
@@ -702,6 +712,7 @@ function resetOtelMockSpans(spanProcessor: otelTraceBase.SpanProcessor | null): 
 }
 
 function createMockHoneycomb(): Honeycomb {
+  process.env.OTEL_LOG_LEVEL = 'error'
   return new Honeycomb(
     {
       serviceName: 'test-app',
