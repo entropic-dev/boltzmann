@@ -1,6 +1,5 @@
 void `{% if selftest %}`;
-import { honeycomb } from '../core/prelude'
-import { beeline, otel } from '../core/honeycomb'
+import { honeycomb } from '../core/honeycomb'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Accepts } from 'accepts'
 import accepts from 'accepts'

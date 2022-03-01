@@ -831,6 +831,33 @@ export {
   resetOtelMockSpans
 }
 
+
+if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
+  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
+}
+
+if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
+  process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY
+}
+
+if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
+  process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE
+}
+
+if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
+  process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
+}
+
+let honeycomb: Honeycomb = Honeycomb.fromEnv(process.env);
+
+void `{% if selftest %}`;
+honeycomb = createMockHoneycomb()
+void `{% endif %}`;
+
+honeycomb.init()
+
+export { honeycomb }
+
 import tap from 'tap'
 type Test = (typeof tap.Test)["prototype"]
 

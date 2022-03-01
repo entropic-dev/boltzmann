@@ -46,37 +46,6 @@ honeycomb middlewares, etc., should still be imported and exported here.
 #}*/
 void `{% if honeycomb %}`;
 import onHeaders from 'on-headers'
-
-void `{% if selftest %}`;
-import { Honeycomb } from './honeycomb'
-void `{% endif %}`;
-
-if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
-  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
-}
-
-if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
-  process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY
-}
-
-if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
-  process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE
-}
-
-if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
-  process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
-}
-
-let honeycomb: Honeycomb = Honeycomb.fromEnv(process.env);
-
-void `{% if selftest %}`;
-import { createMockHoneycomb } from './honeycomb'
-honeycomb = createMockHoneycomb()
-void `{% endif %}`;
-
-honeycomb.init()
-
-export { honeycomb }
 void `{% endif %}`;
 
 import ships from 'culture-ships'

@@ -1,8 +1,7 @@
 void `{% if selftest %}`;
-import { honeycomb } from '../core/prelude'
+import { beeline, honeycomb, otel, otelSemanticConventions } from '../core/honeycomb'
 import assert from 'assert'
 export { trace, honeycombMiddlewareSpans }
-import { beeline, otel, otelSemanticConventions } from '../core/honeycomb'
 import { ServerResponse } from 'http'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
@@ -26,10 +25,6 @@ function middlewareSpanName(name?: string) {
 
 function paramSpanAttribute(param: string): string {
   return `boltzmann.http.request.param.${param}`
-}
-
-function traceAttribute(key: string) {
-  return `app.${key}`
 }
 
 export {

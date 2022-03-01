@@ -4,8 +4,8 @@ export { log }
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { otel } from '../core/honeycomb'
-import { honeycomb, serviceName } from '../core/prelude'
+import { honeycomb, otel } from '../core/honeycomb'
+import { serviceName } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'

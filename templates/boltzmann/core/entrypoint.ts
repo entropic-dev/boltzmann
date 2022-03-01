@@ -2,6 +2,7 @@ void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
+import { honeycomb } from '../core/honeycomb'
 import { MiddlewareConfig } from '../core/middleware'
 import { _processMiddleware, _requireOr } from '../core/utils'
 import { attachPostgres } from '../middleware/postgres'
@@ -12,7 +13,6 @@ import { handlePing } from '../middleware/ping'
 import { trace } from '../middleware/honeycomb'
 import { runserver } from '../bin/runserver'
 import { log } from '../middleware/log'
-import { honeycomb } from '../core/prelude'
 void `{% endif %}`;
 
 /* c8 ignore next */
