@@ -897,7 +897,15 @@ if (require.main === module) {
         true,
         'should use otel when any OTEL_* variable is defined, even if HONEYCOMB_WRITEKEY is missing'
       )
-
+      assert.equal(
+        Honeycomb.parseEnv(
+          {
+            OTEL_ENABLED: ''
+          }
+        ).otel,
+        false,
+        'should NOT use otel when all OTEL_* variables are defined as empty strings'
+      )
     })
 
     t.test('options.sampleRate', async (assert: Test) => {
@@ -954,6 +962,14 @@ if (require.main === module) {
         }).serviceName,
         'otel-test-app',
         'OTEL_SERVICE_NAME should take precedence over SERVICE_NAME'
+      )
+      assert.equal(
+        Honeycomb.parseEnv({
+          SERVICE_NAME: 'test-app',
+          OTEL_SERVICE_NAME: ''
+        }).serviceName,
+        'test-app',
+        "OTEL_SERVICE_NAME should be ignored when it's a blank string"
       )
     })
   })
