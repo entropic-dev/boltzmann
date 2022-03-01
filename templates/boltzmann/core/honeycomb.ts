@@ -171,8 +171,8 @@ const _diagLogger = new HoneycombDiagLogger()
 
 otel.diag.setLogger(_diagLogger, otelCore.getEnv().OTEL_LOG_LEVEL)
 
-// There's a bug in the trace base library where the SimpleSpanExporter doesn't
-// actually conform to the SpanExporter interface! onStart in particular
+// There's a bug in the trace base library where the SimpleSpanProcessor doesn't
+// actually conform to the SpanProcessor interface! onStart in particular
 // doesn't take the context argument. This makes typescript extremely
 // cranky.
 //
@@ -293,7 +293,7 @@ const defaultOtelFactories: OtelFactories = {
 
   // There are three different OTLP span exporter classes - one for grpc, one
   // for http/protobuf and one for http/json - this will return the appropriate
-  // one for the configured protocol
+  // one for the configured protocol.
   spanExporter (protocol: string, headers: HoneycombOTLPHeaders): otelTraceBase.SpanExporter {
     // Instead of subclassing each implementation, monkey patch the send
     // method on whichever instance we create
@@ -557,6 +557,13 @@ class Honeycomb {
       sampleRate = 1
     }
 
+    // OTLP is supposed to be configured with this environment variable, but
+    // the OpenTelemetry SDKs leave this as a some-assembly-required job.
+    // We default to 'http/protobuf' because it's well-supported by both
+    // Honeycomb and AWS load balancers and because it's relatively snappy.
+    //
+    // For more information on how this is configured, see:
+    // https://opentelemetry.io/docs/reference/specification/protocol/exporter/#specify-protocol
     const otlpProtocol = env.OTEL_EXPORTER_OTLP_PROTOCOL || env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL || 'http/protobuf'
 
     return {
