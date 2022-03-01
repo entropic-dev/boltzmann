@@ -213,8 +213,7 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase
 }
 
 type HoneycombOTLPHeaders = {
-  'x-honeycomb-team': string,
-  'x-honeycomb-dataset': string
+  [s: string]: string
 }
 
 // Arguments passed to Honeycomb's constructor
@@ -250,7 +249,7 @@ interface HoneycombFeatures {
 // They're exposed on the Honeycomb class but in a nested
 // namespace.
 interface OtelFactories {
-  headers: (writeKey: string, dataset: string) => HoneycombOTLPHeaders
+  headers: (writeKey: string | null, dataset: string | null) => HoneycombOTLPHeaders
   resource: (serviceName: string) => otelResources.Resource
   tracerProvider: (
     resource: otelResources.Resource,
@@ -265,11 +264,15 @@ interface OtelFactories {
 }
 
 const defaultOtelFactories: OtelFactories = {
-  headers (writeKey: string, dataset: string): HoneycombOTLPHeaders {
-    return {
-      'x-honeycomb-team': writeKey,
-      'x-honeycomb-dataset': dataset
+  headers (writeKey: string | null, dataset: string | null): HoneycombOTLPHeaders {
+    let headers: HoneycombOTLPHeaders = {}
+    if (writeKey) {
+      headers['x-honeycomb-team'] = writeKey
     }
+    if (dataset) {
+      headers['x-honeycomb-dataset'] = dataset
+    }
+    return headers
   },
 
   resource (serviceName: string): otelResources.Resource {
@@ -318,8 +321,9 @@ const defaultOtelFactories: OtelFactories = {
 
     if (protocol === 'grpc') {
       const metadata = new grpc.Metadata()
-      metadata.set('x-honeycomb-team', headers['x-honeycomb-team'])
-      metadata.set('x-honeycomb-dataset', headers['x-honeycomb-dataset'])
+      for (let [key, value] of Object.entries(headers)) {
+        metadata.set(key, value)
+      }
       const credentials = grpc.credentials.createSsl()
 
       const exporter = new otlpGrpc.OTLPTraceExporter({
@@ -433,7 +437,7 @@ const defaultOtelFactories: OtelFactories = {
 // are created. The Honeycomb class allows for
 // passing overrides into its constructor.
 interface OtelFactoryOverrides {
-  headers?: (writeKey: string, dataset: string) => HoneycombOTLPHeaders
+  headers?: (writeKey: string | null, dataset: string | null) => HoneycombOTLPHeaders
   resource?: (serviceName: string) => otelResources.Resource
   tracerProvider?: (
     resource: otelResources.Resource,
@@ -513,11 +517,12 @@ class Honeycomb {
   // logic twice we let the prelude inject it when creating the honeycomb
   // object.
   public static parseEnv(serviceName: string, env: typeof process.env = process.env): HoneycombOptions {
-    // The bare minimum requirement for honeycomb tracing is the write key
-    const disable = !env.HONEYCOMB_WRITEKEY
+    // For beelines, if we don't have HONEYCOMB_WRITEKEY there isn't much we
+    // can do...
+    let disable = !env.HONEYCOMB_WRITEKEY
 
     // Beelines should pick these up automatically, but we'll need them to
-    // configure OTLP headers
+    // configure default OTLP headers
     const writeKey = env.HONEYCOMB_WRITEKEY || null
     const dataset = env.HONEYCOMB_DATASET || null
 
@@ -537,6 +542,15 @@ class Honeycomb {
       return name.startsWith('OTEL_') && value && value.length;
     });
 
+    // OpenTelemetry can optionally load the honeycomb headers from the
+    // OTEL_EXPORTER_OTLP_HEADERS and/or OTEL_EXPORTER_OTLP_TRACE_HEADERS
+    // environment variables, so having HONEYCOMB_WRITEKEY be falsey is
+    // potentially OK. This strategy also allows people to use the
+    // honeycomb tracing for non-honeycomb use cases.
+    if (isOtel) {
+      disable = false
+    }
+
     // This sample rate is for beeline only - to set the OpenTelemetry sample
     // rate, set OTEL_TRACES_SAMPLER=parentbased_traceidratio and
     // OTEL_TRACES_SAMPLER_ARG=${SOME_NUMBER}. Note that beeline defines
@@ -545,10 +559,6 @@ class Honeycomb {
     let sampleRate: number = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
 
     if (isNaN(sampleRate)) {
-      otel.diag.verbose(
-        `Unable to parse HONEYCOMB_SAMPLE_RATE=${env.HONEYCOMB_SAMPLE_RATE}, `
-        + 'defaulting to 1'
-      )
       sampleRate = 1
     }
 
@@ -584,12 +594,12 @@ class Honeycomb {
     }
 
     try {
-      const writeKey = this.writeKey
-      const dataset = this.dataset
-      const sampleRate = this.sampleRate
-      const serviceName = this.serviceName
+      const writeKey: string | null = this.writeKey
+      const dataset: string | null = this.dataset
+      const sampleRate: number = this.sampleRate
+      const serviceName: string = this.serviceName
 
-      if (this.features.beeline) {
+      if (this.features.beeline && writeKey) {
         beeline({ writeKey, dataset, sampleRate, serviceName })
         return
       }
@@ -669,16 +679,12 @@ class Honeycomb {
     }
   }
 
-  public get writeKey (): string {
-    if (this.options.writeKey) {
-      return this.options.writeKey
-    }
-    throw new HoneycombError('HONEYCOMB_WRITEKEY is undefined!')
+  public get writeKey (): string | null {
+    return this.options.writeKey || null
   }
 
-  public get dataset (): string {
-    // The beeline default, here for OpenTelemetry's benefit
-    return this.options.dataset || "nodejs"
+  public get dataset (): string | null {
+    return this.options.dataset || null
   }
 
   public get sampleRate (): number {
@@ -838,6 +844,11 @@ if (require.main === module) {
         false,
         'should be enabled when write key is defined'
       )
+      assert.equal(
+        Honeycomb.parseEnv('boltzmann', {OTEL_ENABLED: '1'}).disable,
+        false,
+        'should be enabled if any otel env var is set'
+      )
     })
 
     t.test('options.otel', async (assert: Test) => {
@@ -868,6 +879,17 @@ if (require.main === module) {
         true,
         'should use otel when OTEL_EXPORTER_OTLP_ENDPOINT is defined'
       )
+      assert.equal(
+        Honeycomb.parseEnv(
+          'boltzmann',
+          {
+            OTEL_ENABLED: '1'
+          }
+        ).otel,
+        true,
+        'should use otel when any OTEL_* variable is defined, even if HONEYCOMB_WRITEKEY is missing'
+      )
+
     })
 
     t.test('options.sampleRate', async (assert: Test) => {
