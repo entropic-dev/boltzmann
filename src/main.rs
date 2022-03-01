@@ -515,7 +515,7 @@ fn main() -> anyhow::Result<(), anyhow::Error> {
     match updated_settings.volta {
         Some(true) => (),
         _ => {
-            package_json.volta.replace(None);
+            package_json.volta = None;
         },
     }
 
