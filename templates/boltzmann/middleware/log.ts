@@ -4,16 +4,17 @@ export { log }
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { honeycomb } from '../core/prelude'
+import { otel } from '../core/honeycomb'
+import { honeycomb, serviceName } from '../core/prelude'
 import { Handler } from '../core/middleware'
 import { Context } from '../data/context'
 import { STATUS, THREW } from '../core/prelude'
 void `{% endif %}`;
 
 function log ({
-  logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
+  logger = bole(serviceName),
   level = process.env.LOG_LEVEL || 'debug',
-  stream = process.stdout
+  stream = process.stdout,
 } = {}) {
   if (isDev()) {
     const pretty = require('bistre')({ time: true })
@@ -24,19 +25,21 @@ function log ({
 
   void `{% if honeycomb %}`
   honeycomb.logger = bole('boltzmann:honeycomb')
-  honeycomb.logger.debug(`serviceName: ${honeycomb.options.serviceName}`)
-
-  for (let [key, value] of Object.entries(honeycomb.features)) {
-    honeycomb.logger.debug(`${key}: ${value}`)
-  }
 
   const hasWriteKey: boolean = Boolean(
     honeycomb.options.writeKey && honeycomb.options.writeKey.length
   )
 
-  honeycomb.logger.debug(`writeKey: ${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`)
-  honeycomb.logger.debug(`dataset: ${honeycomb.options.dataset}`)
-  honeycomb.logger.debug(`sampleRate: ${honeycomb.options.sampleRate}`)
+  let otelConfig: Record<string, unknown> = {
+    serviceName: honeycomb.options.serviceName,
+    writeKey: `${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`,
+    dataset: honeycomb.options.dataset
+  }
+
+  Object.assign(otelConfig, honeycomb.features)
+
+  otel.diag.verbose('OpenTelemetry config:', otelConfig)
+
   void `{% endif %}`
 
   return function logMiddleware (next: Handler) {

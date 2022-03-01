@@ -24,6 +24,7 @@ Good luck!
 
 // Dependencies used downstream - it's worth your time to look at how these
 // are treated in prelude.ts!
+import { Writable } from 'stream'
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
@@ -70,17 +71,63 @@ void `{% endif %}`
 class HoneycombError extends Error {
 }
 
+// A diagnostic logger for OpenTelemetry. To log at a sensible level,
+// call otel.diag.verbose.
 class HoneycombDiagLogger implements otel.DiagLogger {
   public logger?: typeof bole
+  private _stream: Writable
+
+  // OpenTelemetry's diagnostic logger has one more log level than bole - ie,
+  // verbose.
+  //
+  // For more details on how to treat each log level, see:
+  // https://github.com/open-telemetry/opentelemetry-js-api/blob/main/src/diag/consoleLogger.ts#L60
+
+  // Log errors that caused an unexpected failure
+  error(message: string, ...args: unknown[]): void {
+    this._log('error', message, args)
+  }
+  // Log warnings that aren't show-stopping but should REALLY be looked at
+  warn(message: string, ...args: unknown[]): void {
+    this._log('warn', message, args)
+  }
+  // Log info if you want to be REALLY LOUD for some reason - you probably
+  // don't want to use this!
+  info(message: string, ...args: unknown[]): void {
+    this._log('info', message, args)
+  }
+  // Log details that could be useful for identifying what went wrong, but
+  // aren't the thing that went wrong itself - treat this as you would info
+  // logging normally
+  debug(message: string, ...args: unknown[]): void {
+    this._log('debug', message, args)
+  }
+  // Log fine-grained details that are mostly going to be useful to those
+  // adding new OpenTelemetry related features to boltzmann - treat this like
+  // you would debug level logging normally
+  verbose(message: string, ...args: unknown[]): void {
+    this._log('debug', `VERBOSE: ${message}`, args)
+  }
+
+  // Ideally we would log to a bole logger. However, logger setup happens
+  // relatively late - in the log middleware - and it's very likely that such
+  // a log won't be in-place when we stand up the middleware stack! Therefore,
+  // we do log to bole if it's set in the middleware but will fall back to
+  // good ol' fashioned JSON.stringify if need be.
+  constructor() {
+    this._stream = process.stdout
+
+    // So log messages roughly match what's output by the bole in dev mode :^)
+    if (isDev()) {
+      const pretty = require('bistre')({ time: true })
+      this._stream = pretty.pipe(this._stream)
+    }
+  }
 
   private _log(level: 'error' | 'warn' | 'info' | 'debug', message: string, args: unknown[]): void {
+    // Log to bole if we have it
     if (this.logger) {
       this.logger[level](message, ...args)
-      return
-    }
-
-    if (isDev()) {
-      console.log(message)
       return
     }
 
@@ -94,29 +141,19 @@ class HoneycombDiagLogger implements otel.DiagLogger {
 
     try {
       // are the args JSON-serializable?
-      console.log(JSON.stringify(line))
+      this._writeLine(JSON.stringify(line))
       // SURVEY SAYS...
     } catch (_) {
       // ...ok, make it a string as a fallback
       line.args = require('util').format('%o', line.args)
-      console.log(JSON.stringify(line))
+      this._writeLine(JSON.stringify(line))
     }
   }
-  error(message: string, ...args: unknown[]): void {
-    this._log('error', message, args)
+
+  private _writeLine(line: string): void {
+      this._stream.write(Buffer.from(line + '\n'))
   }
-  warn(message: string, ...args: unknown[]): void {
-    this._log('warn', message, args)
-  }
-  info(message: string, ...args: unknown[]): void {
-    this._log('info', message, args)
-  }
-  debug(message: string, ...args: unknown[]): void {
-    this._log('debug', message, args)
-  }
-  verbose(message: string, ...args: unknown[]): void {
-    this._log('debug', message, args)
-  }
+
 }
 
 const _diagLogger = new HoneycombDiagLogger()
