@@ -363,7 +363,7 @@ const defaultOtelFactories: OtelFactories = {
       )
     }
 
-    const exporter = new otlpHttp.OTLPTraceExporter({
+    const exporter = new otlpProto.OTLPTraceExporter({
       headers
     })
 
