@@ -251,11 +251,9 @@ interface HoneycombFeatures {
 // namespace.
 interface OtelFactories {
   headers: (writeKey: string, dataset: string) => HoneycombOTLPHeaders
-  sampler: (sampleRate: number) => otel.Sampler
   resource: (serviceName: string) => otelResources.Resource
   tracerProvider: (
     resource: otelResources.Resource,
-    sampler: otel.Sampler
   ) => NodeTracerProvider
   spanExporter: (protocol: string, headers: HoneycombOTLPHeaders) => otelTraceBase.SpanExporter
   spanProcessor: (spanExporter: otelTraceBase.SpanExporter) => otelTraceBase.SpanProcessor
@@ -274,16 +272,6 @@ const defaultOtelFactories: OtelFactories = {
     }
   },
 
-  // Create a Sampler object, which is used to tune
-  // the sampling rate
-  sampler (sampleRate: number): otel.Sampler {
-    return new otelCore.ParentBasedSampler({
-      // Honeycomb's sample rate is defined as total / sampled, but otel's
-      // is defined as sampled / total
-      root: new otelCore.TraceIdRatioBasedSampler(1/sampleRate)
-    })
-  },
-
   resource (serviceName: string): otelResources.Resource {
     return new otelResources.Resource({
       [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: serviceName
@@ -292,8 +280,8 @@ const defaultOtelFactories: OtelFactories = {
 
   // A tracer provider is effectively a Tracer factory and is used to power
   // the otel.getTrace API
-  tracerProvider (resource: otelResources.Resource, sampler: otel.Sampler): NodeTracerProvider {
-    return new NodeTracerProvider({ resource, sampler })
+  tracerProvider (resource: otelResources.Resource): NodeTracerProvider {
+    return new NodeTracerProvider({ resource })
   },
 
   // There are three different OTLP span exporter classes - one for grpc, one
@@ -446,11 +434,9 @@ const defaultOtelFactories: OtelFactories = {
 // passing overrides into its constructor.
 interface OtelFactoryOverrides {
   headers?: (writeKey: string, dataset: string) => HoneycombOTLPHeaders
-  sampler?: (sampleRate: Number) => otel.Sampler
   resource?: (serviceName: string) => otelResources.Resource
   tracerProvider?: (
     resource: otelResources.Resource,
-    sampler: otel.Sampler
   ) => NodeTracerProvider
   spanExporter?: (protocol: string, headers: HoneycombOTLPHeaders) => otelTraceBase.SpanExporter
   spanProcessor?: (spanExporter: otelTraceBase.SpanExporter) => otelTraceBase.SpanProcessor
@@ -551,10 +537,11 @@ class Honeycomb {
       return name.startsWith('OTEL_') && value && value.length;
     });
 
-    // beelines don't have a standard environment variable for configuring
-    // the sample rate. OpenTelemetry has *some* mechanisms for configuring
-    // samplers but are "involved." Therefore, this variable gets passed to
-    // both beelines and the OpenTelemetry Sampler.
+    // This sample rate is for beeline only - to set the OpenTelemetry sample
+    // rate, set OTEL_TRACES_SAMPLER=parentbased_traceidratio and
+    // OTEL_TRACES_SAMPLER_ARG=${SOME_NUMBER}. Note that beeline defines
+    // sample rate as total/sampled, but OpenTelemetry defines it as
+    // sampled/total!
     let sampleRate: number = Number(env.HONEYCOMB_SAMPLE_RATE || 1)
 
     if (isNaN(sampleRate)) {
@@ -612,12 +599,11 @@ class Honeycomb {
       const headers: HoneycombOTLPHeaders = f.headers(writeKey, dataset)
       const resource: otelResources.Resource = f.resource(serviceName)
 
-      const sampler: otel.Sampler = f.sampler(sampleRate)
       const exporter = f.spanExporter(this.options.otlpProtocol || 'http/protobuf', headers)
       const processor = f.spanProcessor(exporter)
       const instrumentations = f.instrumentations()
 
-      const provider: NodeTracerProvider = f.tracerProvider(resource, sampler)
+      const provider: NodeTracerProvider = f.tracerProvider(resource)
       provider.addSpanProcessor(processor)
       provider.register()
 
@@ -939,26 +925,10 @@ if (require.main === module) {
       assert.doesNotThrow(() => defaultOtelFactories.resource('test-service'))
     })
 
-    t.test('sampler', async (assert: Test) => {
-      assert.ok(
-        defaultOtelFactories.sampler(1) instanceof otelCore.ParentBasedSampler,
-        'sampler(1) should be a otelCore.ParentBasedSampler'
-      )
-      assert.ok(
-        defaultOtelFactories.sampler(0) instanceof otelCore.ParentBasedSampler,
-        'sampler(0) should be a otelCore.ParentBasedSampler'
-      )
-      assert.ok(
-        defaultOtelFactories.sampler(0.5) instanceof otelCore.ParentBasedSampler,
-        'sampler(0.5) should be a otelCore.ParentBasedSampler'
-      )
-    })
-
     test('tracerProvider', async (assert: Test) => {
-      const sampler = defaultOtelFactories.sampler(1)
       const resource = defaultOtelFactories.resource('test-service')
       assert.doesNotThrow(
-        () => defaultOtelFactories.tracerProvider(resource, sampler),
+        () => defaultOtelFactories.tracerProvider(resource),
         'should create a tracer provider'
       )
     })
