@@ -106,9 +106,6 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) typescript: Option<bool>,
 
-    #[serde(skip_serializing)]
-    pub(crate) debug: Option<bool>,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) volta: Option<bool>,
 
@@ -177,12 +174,6 @@ impl Settings {
             node_version: Some(node_version),
             volta: cast(&flags.volta, &self.volta, flags.all),
 
-            #[cfg(debug_assertions)]
-            debug: Some(true),
-
-            #[cfg(not(debug_assertions))]
-            debug: Some(false),
-
             selftest: if flags.selftest { Some(true) } else { None },
             rest: HashMap::new(),
         }
@@ -233,9 +224,6 @@ impl Settings {
         if self.typescript.unwrap_or(false) {
             features.push("typescript");
         }
-        if self.debug.unwrap_or(false) {
-            features.push("debug");
-        }
         // In case we have some bad people who don't alphabetize the above.
         features.sort_unstable();
 
@@ -272,7 +260,6 @@ impl From<Settings> for Context {
         ctxt.insert("status", &settings.status.unwrap_or(false));
         ctxt.insert("templates", &settings.templates.unwrap_or(false));
         ctxt.insert("typescript", &settings.typescript.unwrap_or(false));
-        ctxt.insert("debug", &settings.debug.unwrap_or(false));
         ctxt.insert("selftest", &settings.selftest.unwrap_or(false));
         ctxt.insert(
             "version",
