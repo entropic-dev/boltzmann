@@ -271,7 +271,7 @@ const defaultOtelFactories: OtelFactories = {
     }
   },
 
-  // create a Sampler object, which is used to tune
+  // Create a Sampler object, which is used to tune
   // the sampling rate
   sampler (sampleRate: number): otel.Sampler {
     return new otelCore.ParentBasedSampler({
@@ -285,22 +285,27 @@ const defaultOtelFactories: OtelFactories = {
     })
   },
 
-  // It provides tracers!
+  // A tracer provider is effectively a Tracer factory and is used to power
+  // the otel.getTrace API
   tracerProvider (resource: otelResources.Resource, sampler: otel.Sampler): NodeTracerProvider {
     return new NodeTracerProvider({ resource, sampler })
   },
 
-  // Export traces to an OTLP endpoint with HTTP
+  // There are three different OTLP span exporter classes - one for grpc, one
+  // for http/protobuf and one for http/json - this will return the appropriate
+  // one for the configured protocol
   spanExporter (protocol: string, headers: HoneycombOTLPHeaders): otelTraceBase.SpanExporter {
-    // We want to log exporter sends and their success/error status, but there
-    // are three different classes to take care of! So instead of subclassing
-    // all of them, we'll patch the method.
+    // Instead of subclassing each implementation, monkey patch the send
+    // method on whichever instance we create
     function patchSend(exporter: any) {
       const send = exporter.send
 
       exporter.send = function(
         objects: otelTraceBase.ReadableSpan[],
         onSuccess: () => void,
+        // This error is actually an Error subtype which corresponds 1:1 with
+        // the OTLPTraceExporter class being instrumented, but making this a
+        // proper generic type is hard - it's fine!
         onError: (error: any) => void
       ) {
         otel.diag.debug(`sending ${objects.length} spans to ${this.url}`)
