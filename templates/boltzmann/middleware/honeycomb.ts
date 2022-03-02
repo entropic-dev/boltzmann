@@ -201,7 +201,6 @@ function otelTrace () {
         // for backwards compatibility with beeline traces
         span.setAttribute('boltzmann.http.query', context.url.search)
 
-        // the default name for the http span is BAD - let's fix it
         span.updateName(traceName(context.method, context.url.pathname))
 
         traceContext = otel.trace.setSpan(traceContext, span)
