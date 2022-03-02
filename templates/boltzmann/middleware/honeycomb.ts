@@ -10,12 +10,6 @@ import isDev from 'are-we-dev'
 void `{% endif %}`;
 
 function traceName(method: string, pathname: string) {
-  // This is how OpenTelemetry names request-level spans by default, so we
-  // go with the grain
-  if (honeycomb.features.otel) {
-    return `HTTP ${method}`
-  }
-  // This is what the beeline traces are named today
   return `${method} ${pathname}`
 }
 
@@ -206,6 +200,10 @@ function otelTrace () {
       if (span) {
         // for backwards compatibility with beeline traces
         span.setAttribute('boltzmann.http.query', context.url.search)
+
+        // the default name for the http span is BAD - let's fix it
+        span.updateName(traceName(context.method, context.url.pathname))
+
         traceContext = otel.trace.setSpan(traceContext, span)
 
         if (isDev()) {
@@ -280,7 +278,7 @@ if (require.main === module) {
   test('traceName', async (assert: Test) => {
     assert.same(
       traceName('GET', '/echo'),
-      'HTTP GET'
+      'GET /echo'
     )
   });
 

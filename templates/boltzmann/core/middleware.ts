@@ -268,7 +268,7 @@ if (require.main === module) {
         },
         // The request-level parent span
         {
-          spanName: 'HTTP GET',
+          spanName: 'GET /',
           serviceName: 'test-app',
           library: 'boltzmann',
           traceId: boltzmannSpans[3].traceId,
