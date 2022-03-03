@@ -1,6 +1,6 @@
 void `{% if selftest %}`;
 export { Handler, Adaptor, Middleware, MiddlewareConfig, Response, buildMiddleware, handler }
-import { beeline, getOtelMockSpans, honeycomb, otel } from '../core/honeycomb'
+import { beeline, getOtelMockSpans, honeycomb, otel, otelSemanticConventions } from '../core/honeycomb'
 import { HttpMetadata } from '../core/prelude'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
@@ -99,6 +99,8 @@ async function handler (context: Context) {
       'handler.route': handler.route,
       'handler.version': handler.version || '*',
       'handler.decorators': String(handler.decorators),
+      [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
+      'boltzmann.honeycomb.trace_type': 'beeline',
     })
   } else if (honeycomb.features.otel) {
 

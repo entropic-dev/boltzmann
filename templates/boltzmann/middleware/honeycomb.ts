@@ -165,6 +165,11 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
         name: middlewareSpanName(name)
       })
 
+      beeline.addContext({
+        [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
+        'boltzmann.honeycomb.trace_type': 'beeline'
+      })
+
       // Assumption: the invariant middleware between each layer
       // will ensure that no errors are thrown from next().
       const result = await next(context)
