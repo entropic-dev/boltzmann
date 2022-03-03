@@ -3,16 +3,17 @@ use std::io::prelude::*;
 use log::{debug, info, trace};
 use owo_colors::OwoColorize;
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 #[cfg(target_os = "windows")]
 use std::os::windows::fs::OpenOptionsExt;
-use std::collections::HashMap;
 use std::path::PathBuf;
 
-use path_slash::PathExt;
 use anyhow::{Context as ErrorContext, Result};
+use include_dir::{include_dir, Dir};
+use path_slash::PathExt;
 use serde::Deserialize;
 use serde_json::Value;
 use tera::{Context, Tera};
@@ -23,20 +24,18 @@ use super::When;
 use pulldown_cmark::{Event, LinkType, Options, Parser, Tag};
 use pulldown_cmark_to_cmark::cmark;
 
-const TEMPLATES_DIR: include_dir::Dir = include_dir::include_dir!("templates");
-const DOCS_DIR: include_dir::Dir = include_dir::include_dir!("docs/content/reference");
+const TEMPLATES_DIR: Dir = include_dir!("templates");
+const DOCS_DIR: Dir = include_dir!("docs/content/reference");
 
 fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
     let page = args
         .get("page")
-        .map(|xs| xs.as_str())
-        .flatten()
+        .and_then(|xs| xs.as_str())
         .ok_or_else(|| tera::Error::msg("page argument is required"))?;
 
     let section = args
         .get("section")
-        .map(|xs| xs.as_str())
-        .flatten()
+        .and_then(|xs| xs.as_str())
         .ok_or_else(|| tera::Error::msg("section argument is required"))?;
 
     let file = DOCS_DIR
@@ -150,15 +149,32 @@ fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
         })
         .collect();
 
-    let canonical = format!("\"https://www.boltzmann.dev/en/latest/docs/reference/{}#{}\"", &page[..page.len() - 3], section);
-    events.push(Event::Start(Tag::Link(LinkType::Reference, canonical.as_str().into(), "".into())));
+    let canonical = format!(
+        "\"https://www.boltzmann.dev/en/latest/docs/reference/{}#{}\"",
+        &page[..page.len() - 3],
+        section
+    );
+    events.push(Event::Start(Tag::Link(
+        LinkType::Reference,
+        canonical.as_str().into(),
+        "".into(),
+    )));
     events.push(Event::Text("Docs".into()));
-    events.push(Event::End(Tag::Link(LinkType::Reference, canonical.as_str().into(), "".into())));
+    events.push(Event::End(Tag::Link(
+        LinkType::Reference,
+        canonical.as_str().into(),
+        "".into(),
+    )));
 
     let mut buf = String::with_capacity(1024);
     cmark(events.into_iter(), &mut buf, None).map_err(|e| tera::Error::msg(e.to_string()))?;
 
-    Ok(buf.split("\n").collect::<Vec<_>>().join("\n * ").replace("*/", "*\\/").into())
+    Ok(buf
+        .split('\n')
+        .collect::<Vec<_>>()
+        .join("\n * ")
+        .replace("*/", "*\\/")
+        .into())
 }
 
 lazy_static::lazy_static! {
@@ -306,11 +322,11 @@ fn render_dir(
     Ok(None)
 }
 
-pub fn scaffold(mut cwd: &mut PathBuf, settings: &Settings) -> Result<Option<String>> {
+pub fn scaffold(cwd: &mut PathBuf, settings: &Settings) -> Result<Option<String>> {
     info!("    writing boltzmann files...");
     let root_node: Node = ron::de::from_str(include_str!("dirspec.ron"))?;
     let mut parents = Vec::new();
-    root_node.render(&mut cwd, 0o777, &mut parents, &settings)?;
+    root_node.render(cwd, 0o777, &mut parents, settings)?;
 
     Ok(None)
 }

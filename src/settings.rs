@@ -234,28 +234,28 @@ impl fmt::Display for Settings {
     }
 }
 
-impl Into<Context> for Settings {
-    fn into(self) -> Context {
+impl From<Settings> for Context {
+    fn from(settings: Settings) -> Self {
         let mut ctxt = Context::new();
 
-        ctxt.insert("staticfiles", &self.staticfiles.unwrap_or(false));
-        ctxt.insert("csrf", &self.csrf.unwrap_or(false));
-        ctxt.insert("githubci", &self.githubci.unwrap_or(false));
-        ctxt.insert("honeycomb", &self.honeycomb.unwrap_or(false));
-        ctxt.insert("esbuild", &self.esbuild.unwrap_or(false));
-        ctxt.insert("jwt", &self.jwt.unwrap_or(false));
-        ctxt.insert("livereload", &self.livereload.unwrap_or(false));
-        ctxt.insert("oauth", &self.oauth.unwrap_or(false));
-        ctxt.insert("ping", &self.ping.unwrap_or(false));
-        ctxt.insert("postgres", &self.postgres.unwrap_or(false));
-        ctxt.insert("redis", &self.redis.unwrap_or(false));
-        ctxt.insert("status", &self.status.unwrap_or(false));
-        ctxt.insert("templates", &self.templates.unwrap_or(false));
-        ctxt.insert("typescript", &self.typescript.unwrap_or(false));
-        ctxt.insert("selftest", &self.selftest.unwrap_or(false));
+        ctxt.insert("staticfiles", &settings.staticfiles.unwrap_or(false));
+        ctxt.insert("csrf", &settings.csrf.unwrap_or(false));
+        ctxt.insert("githubci", &settings.githubci.unwrap_or(false));
+        ctxt.insert("honeycomb", &settings.honeycomb.unwrap_or(false));
+        ctxt.insert("esbuild", &settings.esbuild.unwrap_or(false));
+        ctxt.insert("jwt", &settings.jwt.unwrap_or(false));
+        ctxt.insert("livereload", &settings.livereload.unwrap_or(false));
+        ctxt.insert("oauth", &settings.oauth.unwrap_or(false));
+        ctxt.insert("ping", &settings.ping.unwrap_or(false));
+        ctxt.insert("postgres", &settings.postgres.unwrap_or(false));
+        ctxt.insert("redis", &settings.redis.unwrap_or(false));
+        ctxt.insert("status", &settings.status.unwrap_or(false));
+        ctxt.insert("templates", &settings.templates.unwrap_or(false));
+        ctxt.insert("typescript", &settings.typescript.unwrap_or(false));
+        ctxt.insert("selftest", &settings.selftest.unwrap_or(false));
         ctxt.insert(
             "version",
-            &self
+            &settings
                 .version
                 .unwrap_or_else(|| "<unknown version>".to_string())[..],
         );
@@ -264,24 +264,15 @@ impl Into<Context> for Settings {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, clap::ArgEnum, Debug)]
 pub enum Flipper {
     Off,
     On,
 }
 
-impl Into<bool> for Flipper {
-    fn into(self) -> bool {
-        match self {
-            Flipper::On => true,
-            Flipper::Off => false,
-        }
-    }
-}
-
-impl Into<Flipper> for bool {
-    fn into(self) -> Flipper {
-        if self {
+impl From<bool> for Flipper {
+    fn from(v: bool) -> Self {
+        if v {
             Flipper::On
         } else {
             Flipper::Off
@@ -290,7 +281,7 @@ impl Into<Flipper> for bool {
 }
 
 impl std::str::FromStr for Flipper {
-    type Err = Box<dyn std::error::Error + 'static>;
+    type Err = Box<dyn std::error::Error + 'static + Send + Sync>;
 
     fn from_str(s: &str) -> Result<Flipper, Self::Err> {
         Ok(match s {
