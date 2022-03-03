@@ -1,11 +1,19 @@
 {
-  "author": "C J Silverio <ceejceej@gmail.com>",
-  "description": "An example of using Boltzmann's sessions feature",
-  "keywords": [],
-  "license": "ISC",
-  "main": "index.js",
   "name": "sessions",
+  "description": "An example of using Boltzmann's sessions feature",
   "version": "1.0.0",
+  "author": "C J Silverio <ceejceej@gmail.com>",
+  "boltzmann": {
+    "version": "0.5.3",
+    "csrf": true,
+    "githubci": false,
+    "honeycomb": true,
+    "jwt": false,
+    "ping": true,
+    "redis": true,
+    "status": true,
+    "templates": true
+  },
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
@@ -45,8 +53,11 @@
     "prettier": "^2.0.5",
     "stackman": "^4.0.1",
     "supports-hyperlinks": "^2.1.0",
-    "tap": "^15.0.2"
+    "tap": "^15.1.5"
   },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:esbuild": null,
@@ -56,16 +67,5 @@
     "posttest": "npm run lint",
     "start": "nodemon --ignore static/ --ignore tests/ -e js,html ./boltzmann.js",
     "test": "c8 tap --no-cov tests"
-  },
-  "boltzmann": {
-    "version": "0.5.2",
-    "csrf": true,
-    "githubci": false,
-    "honeycomb": true,
-    "jwt": false,
-    "ping": true,
-    "redis": true,
-    "status": true,
-    "templates": true
   }
 }

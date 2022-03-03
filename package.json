@@ -28,6 +28,7 @@
     "micromatch": "^4.0.2",
     "mime": "^2.4.6",
     "minimist": "^1.2.0",
+    "npm": "^8.5.2",
     "nunjucks": "^3.2.1",
     "oauth": "^0.9.15",
     "oblique-strategies": "^1.0.1",
