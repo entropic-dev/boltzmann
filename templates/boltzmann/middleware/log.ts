@@ -13,6 +13,9 @@ void `{% endif %}`;
 
 function log ({
   logger = bole(serviceName),
+  // {% if honeycomb %}
+  honeycombLogger = bole(`${serviceName}:honeycomb`),
+  // {% endif %}
   level = process.env.LOG_LEVEL || 'debug',
   stream = process.stdout,
 } = {}) {
@@ -24,21 +27,21 @@ function log ({
   bole.output({ level, stream })
 
   void `{% if honeycomb %}`
-  honeycomb.logger = bole('boltzmann:honeycomb')
+  honeycomb.logger = honeycombLogger
 
   const hasWriteKey: boolean = Boolean(
     honeycomb.options.writeKey && honeycomb.options.writeKey.length
   )
 
-  let otelConfig: Record<string, unknown> = {
+  let honeycombConfig: Record<string, unknown> = {
     serviceName: honeycomb.options.serviceName,
     writeKey: `${hasWriteKey ? "DEFINED" : "NOT DEFINED"}`,
     dataset: honeycomb.options.dataset
   }
 
-  Object.assign(otelConfig, honeycomb.features)
+  Object.assign(honeycombConfig, honeycomb.features)
 
-  otel.diag.verbose('OpenTelemetry config:', otelConfig)
+  honeycombLogger.debug('Honeycomb tracing config:', honeycombConfig)
 
   void `{% endif %}`
 
@@ -80,6 +83,7 @@ if (require.main === module) {
 
   test('log: logs expected keys for success responses', async (assert) => {
     const logged: [string, Record<string, any>][] = []
+    const loggedByHoneycomb: [string, Record<string, any>][] = []
 
     const handler = (_: Context) => {
       return { [STATUS]: 202, result: 'ok' }
@@ -87,11 +91,19 @@ if (require.main === module) {
 
     const middleware = log({
       logger: <typeof bole><unknown>{
+        debug(what: object) {
+          logged.push(['debug', what])
+        },
         info(what: object) {
           logged.push(['info', what])
         },
         error(what: object) {
           logged.push(['error', what])
+        },
+      },
+      honeycombLogger: <typeof bole><unknown>{
+        debug(what: object) {
+          loggedByHoneycomb.push(['debug', what])
         },
       },
     })((context: Context) => handler(context))
@@ -114,10 +126,15 @@ if (require.main === module) {
     assert.ok('url' in logged[0][1])
     assert.ok('host' in logged[0][1])
     assert.ok('ip' in logged[0][1])
+
+    assert.equal(loggedByHoneycomb.length, 1)
+    assert.equal(loggedByHoneycomb[0][0], 'debug')
+    assert.equal(loggedByHoneycomb[0][1], 'Honeycomb tracing config:')
   })
 
   test('log: logs expected keys for thrown error responses', async (assert) => {
     const logged: [string, Record<string, any>][] = []
+    const loggedByHoneycomb: [string, Record<string, any>][] = []
     const handler = (_: Context) => {
       throw new Error('foo')
     }
@@ -129,6 +146,11 @@ if (require.main === module) {
         },
         error(what: object) {
           logged.push(['error', what])
+        },
+      },
+      honeycombLogger: <typeof bole><unknown>{
+        debug(what: object) {
+          loggedByHoneycomb.push(['debug', what])
         },
       },
     })(enforceInvariants()((context: Context) => handler(context)))
@@ -146,6 +168,10 @@ if (require.main === module) {
     assert.equal(logged[0][1].message, 'foo')
     assert.equal(logged[1][0], 'info')
     assert.equal(logged[1][1].message, '500 GET /bloo')
+
+    assert.equal(loggedByHoneycomb.length, 1)
+    assert.equal(loggedByHoneycomb[0][0], 'debug')
+    assert.equal(loggedByHoneycomb[0][1], 'Honeycomb tracing config:')
   })
 }
 void `{% endif %}`;
