@@ -1,18 +1,17 @@
 #![allow(clippy::option_option)]
 
 use std::io::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context as ErrorContext, Result};
 use atty::Stream;
-use log::{info, warn, debug};
+use clap::Parser;
+use log::{debug, info, warn};
 use owo_colors::OwoColorize;
 use prettytable::Table;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, Value};
-use structopt::clap::AppSettings::*;
-use structopt::StructOpt;
 use subprocess::{Exec, ExitStatus, NullFile};
 
 mod render;
@@ -26,9 +25,11 @@ static NPM: &str = "npm";
 #[cfg(target_os = "windows")]
 static NPM: &str = "npm.cmd";
 
-#[derive(Clone, Serialize, StructOpt)]
-#[structopt(
+#[derive(Clone, Serialize, Parser)]
+#[clap(
     name = "boltzmann",
+    version,
+    author,
     about = "Generate or update scaffolding for a Boltzmann service.
 To enable a feature, mention it or set the option to `on`.
 To remove a feature from an existing project, set it to `off`.
@@ -37,94 +38,111 @@ Examples:
 boltzmann my-project --redis --website
 boltzmann my-project --githubci=off --honeycomb --jwt"
 )]
-#[structopt(global_setting(ColoredHelp), global_setting(ColorAuto))]
 pub struct Flags {
-    #[structopt(long, help = "Enable redis")]
+    #[clap(long)]
+    /// Enable redis middleware
     redis: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable postgres")]
+    #[clap(long)]
+    /// Enable postgres middleware
     postgres: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable tracing via Honeycomb")]
+    #[clap(long)]
+    /// Enable tracing via Honeycomb
     honeycomb: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable GitHub actions CI")]
+    #[clap(long)]
+    /// Enable GitHub actions CI
     githubci: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable Nunjucks templates")]
+    #[clap(long)]
+    /// Enable Nunjucks templates
     templates: Option<Option<Flipper>>,
 
-    #[structopt(
-        long,
-        help = "Scaffold a project implemented in TypeScript",
-    )]
+    #[clap(long)]
+    /// Scaffold a project implemented in TypeScript
     typescript: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable csrf protection middleware")]
+    #[clap(long)]
+    /// Enable csrf protection middleware
     csrf: Option<Option<Flipper>>,
 
-    #[structopt(
-        long,
-        help = "Enable /monitor/status healthcheck endpoint; on by default"
-    )]
+    #[clap(long)]
+    /// Enable /monitor/status healthcheck endpoint; on by default
     status: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable /monitor/ping liveness endpoint; on by default")]
+    #[clap(long)]
+    /// Enable /monitor/ping liveness endpoint; on by default
     ping: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable jwt middleware")]
+    #[clap(long)]
+    /// Enable jwt middleware
     jwt: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable live reload in development")]
+    #[clap(long)]
+    /// Enable live reload in development
     livereload: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable OAuth")]
+    #[clap(long)]
+    /// Enable OAuth
     oauth: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable static file serving in development")]
+    #[clap(long)]
+    /// Enable static file serving in development
     staticfiles: Option<Option<Flipper>>,
 
-    #[structopt(long, help = "Enable asset bundling via ESBuild")]
+    #[clap(long)]
+    /// Enable asset bundling via ESBuild
     esbuild: Option<Option<Flipper>>,
 
     // Convenient option groups next. These aren't saved individually.
-    #[structopt(
+    #[clap(
         long,
-        help = "Enable website feature set (templates, csrf, staticfiles, jwt, livereload, ping, status)"
+        help = ""
     )]
+    /// Enable all features relevant to building websites
+    ///
+    /// This option group enables the templates, csrf, staticfile, jwt, livereload, ping, and
+    /// status options.
     website: bool,
 
-    #[structopt(long, help = "Enable everything!")]
+    #[clap(long)]
+    /// Enable everything (mostly for testing)
     all: bool,
 
-    #[structopt(long, help = "Update a git-repo destination even if there are changes")]
+    #[clap(long)]
+    /// Update a git-repo destination even if there are changes
     force: bool, // for enemies
 
-    #[structopt(
+    #[clap(
         short,
         long,
         parse(from_occurrences),
-        help = "Pass -v or -vv to increase verbosity"
     )]
+    /// Pass -v or -vv to increase verbosity
     verbose: u64, // huge but this is what our logger wants
 
-    #[structopt(long, short, help = "Suppress all output except errors")]
+    #[clap(long, short)]
+    /// Suppress all output except errors
     silent: bool,
 
-    #[structopt(long, short, help = "Suppress all output except errors")]
+    #[clap(long, short)]
+    /// Suppress all output except errors; an alias for silent
     quiet: bool,
 
-    #[structopt(long, help = "Build for a self-test")]
+    #[clap(long)]
+    /// Template a project with the self-test code enabled.
     selftest: bool, // turn on the oven in self-cleaning mode.
 
-    #[structopt(long, help = "Open the Boltzmann documentation in a web browser")]
+    #[clap(long)]
+    /// Open the Boltzmann documentation in a web browser
     docs: bool,
 
-    #[structopt(
+    #[clap(
         parse(from_os_str),
-        help = "The path to the Boltzmann service",
         default_value = ""
     )]
+    /// The path to the Boltzmann service
     destination: PathBuf,
 }
 
@@ -203,7 +221,7 @@ fn check_git_status(flags: &Flags) -> Result<()> {
     }
 }
 
-fn initialize_package_json(path: &PathBuf, verbosity: u64) -> Result<()> {
+fn initialize_package_json(path: &Path, verbosity: u64) -> Result<()> {
     if let Err(e) = std::fs::DirBuilder::new().create(&path) {
         if e.kind() != std::io::ErrorKind::AlreadyExists {
             return Err(e.into());
@@ -265,8 +283,8 @@ struct DependencySpec {
     preconditions: Option<When>,
 }
 
-fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
-    let mut flags = Flags::from_args();
+fn main() -> anyhow::Result<(), anyhow::Error> {
+    let mut flags = Flags::parse();
 
     let verbosity: u64 = if flags.silent || flags.quiet {
         0
@@ -349,10 +367,14 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
         load_package_json(&flags, default_settings.clone())
     {
         if let Some(t) = package_json.boltzmann.clone() {
-            prev_version = Version::parse(&t.version.unwrap_or_else(|| "0.0.0".to_string())).unwrap_or(prev_version);
+            prev_version = Version::parse(&t.version.unwrap_or_else(|| "0.0.0".to_string()))
+                .unwrap_or(prev_version);
         }
         if semver_version > prev_version {
-            info!("    upgrading from boltzmann@{}", prev_version.to_string().bold().blue());
+            info!(
+                "    upgrading from boltzmann@{}",
+                prev_version.to_string().bold().blue()
+            );
         } else {
             info!("    loaded settings from existing package.json");
         }
@@ -369,7 +391,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     };
 
     if package_json.boltzmann.is_none() {
-        return Err(anyhow!("Somehow we do not have default settings! Please file a bug.").into());
+        return Err(anyhow!("Somehow we do not have default settings! Please file a bug."));
     }
 
     let settings = package_json.boltzmann.take().unwrap();
@@ -383,11 +405,11 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
     let mut dependencies = package_json
         .dependencies
         .take()
-        .unwrap_or_else(Default::default);
+        .unwrap_or_default();
     let mut devdeps = package_json
         .dev_dependencies
         .take()
-        .unwrap_or_else(Default::default);
+        .unwrap_or_default();
     let candidates: Vec<DependencySpec> = ron::de::from_str(include_str!("dependencies.ron"))?;
 
     let mut table = Table::new();
@@ -511,7 +533,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                     // targets like `test` and `postinstall`. If they're present and set to a value we
                     // previously gave them, we can feel free to update them. If not, we move on.
                     if candidate.versions.is_empty() {
-                        debug!( "{} has no history", format!("npm run {}", candidate.key).bold().red());
+                        debug!(
+                            "{} has no history",
+                            format!("npm run {}", candidate.key).bold().red()
+                        );
                         continue 'next;
                     }
 
@@ -519,7 +544,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                     // This is the version our runscript would have come from. If a match, we want to update.
                     // If not a match, we continue with the next script candidate.
                     let mut history = candidate.versions.clone();
-                    history.sort_by(|left, right| right.version.partial_cmp(&left.version).unwrap()); // yes reversed
+                    history
+                        .sort_by(|left, right| right.version.partial_cmp(&left.version).unwrap()); // yes reversed
                     for potential_source in history {
                         if potential_source.version <= prev_version {
                             // We have found our previous managed value for this run script.
@@ -528,7 +554,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
                                 .unwrap_or(&false_sentinel)
                                 .as_str()
                                 .unwrap_or("");
-                            if !current.to_string().is_empty() && current != potential_source.value {
+                            if !current.to_string().is_empty() && current != potential_source.value
+                            {
                                 actions.push(format!(
                                     "{} left in place",
                                     format!("npm run {}", candidate.key).bold().red()
@@ -549,7 +576,10 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             .unwrap_or("")
             != candidate.value
         {
-            actions.push(format!("{} set", format!("npm run {}", candidate.key).bold().green()));
+            actions.push(format!(
+                "{} set",
+                format!("npm run {}", candidate.key).bold().green()
+            ));
             scripts.insert(candidate.key, serde_json::Value::String(candidate.value));
         }
     }
@@ -588,6 +618,13 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error + 'static>> {
             print_table(features, 8, 3);
             Ok(())
         }
-        _ => Err(anyhow!("npm install exited with non-zero status").into()),
+        _ => Err(anyhow!("npm install exited with non-zero status; run by hand to diagnose.")),
     }
+}
+
+#[test]
+fn verify_app() {
+    use clap::CommandFactory;
+    let app = Flags::command();
+    app.debug_assert()
 }
