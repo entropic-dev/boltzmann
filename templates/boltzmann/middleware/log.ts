@@ -41,7 +41,10 @@ function log ({
 
   Object.assign(honeycombConfig, honeycomb.features)
 
-  honeycombLogger.debug('Honeycomb tracing config:', honeycombConfig)
+  honeycombLogger.debug({
+      message: 'Honeycomb tracing enabled',
+      ...honeycombConfig
+  });
 
   void `{% endif %}`
 
@@ -129,7 +132,7 @@ if (require.main === module) {
 
     assert.equal(loggedByHoneycomb.length, 1)
     assert.equal(loggedByHoneycomb[0][0], 'debug')
-    assert.equal(loggedByHoneycomb[0][1], 'Honeycomb tracing config:')
+    assert.equal(loggedByHoneycomb[0][1].message, 'Honeycomb tracing enabled')
   })
 
   test('log: logs expected keys for thrown error responses', async (assert) => {
@@ -171,7 +174,7 @@ if (require.main === module) {
 
     assert.equal(loggedByHoneycomb.length, 1)
     assert.equal(loggedByHoneycomb[0][0], 'debug')
-    assert.equal(loggedByHoneycomb[0][1], 'Honeycomb tracing config:')
+    assert.equal(loggedByHoneycomb[0][1].message, 'Honeycomb tracing enabled')
   })
 }
 void `{% endif %}`;
