@@ -613,6 +613,7 @@ class Honeycomb {
 
       if (this.features.beeline && writeKey) {
         beeline({ writeKey, dataset, sampleRate, serviceName })
+        this.initialized = true
         return
       }
 
