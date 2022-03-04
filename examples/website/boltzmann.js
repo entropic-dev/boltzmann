@@ -2,7 +2,7 @@
 /* eslint-disable */
 /* c8 ignore file */
 'use strict';
-// Boltzmann v0.5.2
+// Boltzmann v0.5.3
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -15,10 +15,22 @@ function _getServiceName() {
 }
 void ``;
 const beeline = require("honeycomb-beeline");
+if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
+    process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET;
+}
+if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
+    process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY;
+}
+if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
+    process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE;
+}
+if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
+    process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM;
+}
 beeline({
-    writeKey: process.env.HONEYCOMBIO_WRITE_KEY,
-    dataset: process.env.HONEYCOMBIO_DATASET,
-    sampleRate: Number(process.env.HONEYCOMBIO_SAMPLE_RATE) || Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
+    writeKey: process.env.HONEYCOMB_WRITEKEY,
+    dataset: process.env.HONEYCOMB_DATASET,
+    sampleRate: Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
     serviceName,
 });
 const onHeaders = require("on-headers");
@@ -136,7 +148,7 @@ async function handler(context) {
     const handler = context.handler;
     // 
     let span = null;
-    if (process.env.HONEYCOMBIO_WRITE_KEY) {
+    if (process.env.HONEYCOMB_WRITEKEY) {
         span = beeline.startSpan({
             name: `handler: ${handler.name}`,
             'handler.name': handler.name,
@@ -152,7 +164,7 @@ async function handler(context) {
         // 
     }
     finally {
-        if (process.env.HONEYCOMBIO_WRITE_KEY && span !== null) {
+        if (process.env.HONEYCOMB_WRITEKEY && span !== null) {
             beeline.finishSpan(span);
         }
     }
@@ -403,7 +415,7 @@ class Context {
     // 
     /**[Docs]("https://www.boltzmann.dev/en/latest/docs/reference/02-handlers#traceURL")*/
     get traceURL() {
-        const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMBIO_TEAM}/datasets/${process.env.HONEYCOMBIO_DATASET}/trace`);
+        const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`);
         url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id']);
         url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime / 1000 - 1)));
         return String(url);
@@ -1140,18 +1152,18 @@ function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_OR
     const includesStar = originsArray.includes('*');
     return (next) => {
         return async function cors(context) {
-            if (!includesStar && !originsArray.includes(String(context.headers.origin))) {
-                throw Object.assign(new Error('Origin not allowed'), {
-                    [Symbol.for('status')]: 400
-                });
-            }
+            const reflectedOrigin = (includesStar
+                ? '*'
+                : (originsArray.includes(String(context.headers.origin))
+                    ? context.headers.origin
+                    : false));
             const response = (context.method === 'OPTIONS'
                 ? Object.assign(Buffer.from(''), {
                     [Symbol.for('status')]: 204,
                 })
                 : await next(context));
             response[Symbol.for('headers')] = {
-                'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
+                ...(reflectedOrigin ? { 'Access-Control-Allow-Origin': reflectedOrigin } : {}),
                 'Access-Control-Allow-Methods': [].concat(methods).join(','),
                 'Access-Control-Allow-Headers': [].concat(headers).join(',')
             };
@@ -1220,7 +1232,7 @@ function enforceInvariants() {
 
 void ``;
 function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) {
-    if (!process.env.HONEYCOMBIO_WRITE_KEY) {
+    if (!process.env.HONEYCOMB_WRITEKEY) {
         return (next) => (context) => next(context);
     }
     const schema = require('honeycomb-beeline/lib/schema');
@@ -1291,7 +1303,7 @@ function trace({ headerSources = ['x-honeycomb-trace', 'x-request-id'], } = {}) 
     }
 }
 function honeycombMiddlewareSpans({ name } = {}) {
-    if (!process.env.HONEYCOMBIO_WRITE_KEY) {
+    if (!process.env.HONEYCOMB_WRITEKEY) {
         return (next) => (context) => next(context);
     }
     return function honeycombSpan(next) {
@@ -1320,7 +1332,7 @@ function authenticateJWT({ scheme = 'Bearer', publicKey = process.env.AUTHENTICA
     if (!publicKey) {
         throw new Error(`To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-https://www.boltzmann.dev/en/docs/0.5.2/reference/middleware/#authenticatejwt
+https://www.boltzmann.dev/en/docs/0.5.3/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '));
     }
     return async (next) => {
@@ -1330,7 +1342,7 @@ https://www.boltzmann.dev/en/docs/0.5.2/reference/middleware/#authenticatejwt
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
-          https://www.boltzmann.dev/en/docs/0.5.2/reference/middleware/#authenticatejwt
+          https://www.boltzmann.dev/en/docs/0.5.3/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '));
                 throw err;
             })
@@ -1649,7 +1661,7 @@ function handleStatus({ git = process.env.GIT_COMMIT, reachability = defaultReac
 // 
 
 void ``;
-const boltzmannVersion = `0.5.2`;
+const boltzmannVersion = `0.5.3`;
 // 
 const devErrorTemplateSource = `
 <!DOCTYPE html>
@@ -1761,9 +1773,9 @@ const devErrorTemplateSource = `
               {% else %}
               <details>
                 <summary>Not available.</summary>
-                Make sure the <code>HONEYCOMBIO_DATASET</code>,
-                <code>HONEYCOMBIO_WRITE_KEY</code>, and
-                <code>HONEYCOMBIO_TEAM</code> environment variables are set,
+                Make sure the <code>HONEYCOMB_DATASET</code>,
+                <code>HONEYCOMB_WRITEKEY</code>, and
+                <code>HONEYCOMB_TEAM</code> environment variables are set,
                 then restart boltzmann.
               </details>
               {% endif %}
@@ -2354,7 +2366,7 @@ const validate = {
  * 
  * The `validate.body` middleware applies [JSON schema]( "https://json-schema.org/") validation to incoming
  * request bodies. It intercepts the body that would be returned by
- * \[`context.body`] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
+ * \[`context.body`\] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
  * passed through.
  * 
  * `Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In

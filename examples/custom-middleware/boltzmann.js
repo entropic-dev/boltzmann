@@ -2,7 +2,7 @@
 /* eslint-disable */
 /* c8 ignore file */
 'use strict';
-// Boltzmann v0.5.2
+// Boltzmann v0.5.3
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -996,18 +996,18 @@ function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_OR
     const includesStar = originsArray.includes('*');
     return (next) => {
         return async function cors(context) {
-            if (!includesStar && !originsArray.includes(String(context.headers.origin))) {
-                throw Object.assign(new Error('Origin not allowed'), {
-                    [Symbol.for('status')]: 400
-                });
-            }
+            const reflectedOrigin = (includesStar
+                ? '*'
+                : (originsArray.includes(String(context.headers.origin))
+                    ? context.headers.origin
+                    : false));
             const response = (context.method === 'OPTIONS'
                 ? Object.assign(Buffer.from(''), {
                     [Symbol.for('status')]: 204,
                 })
                 : await next(context));
             response[Symbol.for('headers')] = {
-                'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
+                ...(reflectedOrigin ? { 'Access-Control-Allow-Origin': reflectedOrigin } : {}),
                 'Access-Control-Allow-Methods': [].concat(methods).join(','),
                 'Access-Control-Allow-Headers': [].concat(headers).join(',')
             };
@@ -1398,7 +1398,7 @@ const validate = {
  * 
  * The `validate.body` middleware applies [JSON schema]( "https://json-schema.org/") validation to incoming
  * request bodies. It intercepts the body that would be returned by
- * \[`context.body`] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
+ * \[`context.body`\] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
  * passed through.
  * 
  * `Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In

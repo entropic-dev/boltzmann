@@ -2,6 +2,7 @@ use std::io::prelude::*;
 
 use log::{debug, info, trace};
 use owo_colors::OwoColorize;
+use pulldown_cmark::HeadingLevel;
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -57,11 +58,11 @@ fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
     // 2. turn bold "Arguments" next to a list into @param <li>
     // 3. add a link to the full docs.
     let mut recording = false;
-    let mut match_level = 0u32;
+    let mut match_level = HeadingLevel::H1;
     let mut last: Option<String> = None;
     let mut events: Vec<_> = Parser::new_ext(contents, opts)
         .filter_map(|event| match event {
-            Event::Start(Tag::Heading(level)) => {
+            Event::Start(Tag::Heading(level, _, _)) => {
                 if recording {
                     if match_level == level {
                         recording = false;
@@ -76,7 +77,7 @@ fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
                 }
             }
 
-            Event::End(Tag::Heading(_)) => {
+            Event::End(Tag::Heading(_, _, _)) => {
                 if let Some(text) = last.take() {
                     let id = if text.as_bytes().last() == Some(&b'}') {
                         if let Some(mut i) = text.find("{#") {
@@ -167,7 +168,7 @@ fn tsdoc(args: &HashMap<String, Value>) -> tera::Result<Value> {
     )));
 
     let mut buf = String::with_capacity(1024);
-    cmark(events.into_iter(), &mut buf, None).map_err(|e| tera::Error::msg(e.to_string()))?;
+    cmark(events.into_iter(), &mut buf).map_err(|e| tera::Error::msg(e.to_string()))?;
 
     Ok(buf
         .split('\n')

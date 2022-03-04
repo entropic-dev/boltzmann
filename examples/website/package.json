@@ -1,11 +1,18 @@
 {
-  "author": "",
-  "description": "",
-  "keywords": [],
-  "license": "ISC",
-  "main": "index.js",
   "name": "website",
+  "description": "",
   "version": "1.0.0",
+  "author": "",
+  "boltzmann": {
+    "version": "0.5.3",
+    "csrf": true,
+    "githubci": false,
+    "honeycomb": true,
+    "jwt": true,
+    "ping": true,
+    "status": true,
+    "templates": true
+  },
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
@@ -44,8 +51,11 @@
     "prettier": "^2.0.5",
     "stackman": "^4.0.1",
     "supports-hyperlinks": "^2.1.0",
-    "tap": "^15.0.2"
+    "tap": "^15.1.5"
   },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
@@ -54,15 +64,5 @@
     "posttest": "npm run lint",
     "start": "nodemon ./boltzmann.js",
     "test": "c8 tap --no-cov tests"
-  },
-  "boltzmann": {
-    "version": "0.5.2",
-    "csrf": true,
-    "githubci": false,
-    "honeycomb": true,
-    "jwt": true,
-    "ping": true,
-    "status": true,
-    "templates": true
   }
 }

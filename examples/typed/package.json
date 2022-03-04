@@ -1,11 +1,15 @@
 {
-  "author": "",
-  "description": "",
-  "keywords": [],
-  "license": "ISC",
-  "main": "index.js",
   "name": "typed",
+  "description": "",
   "version": "1.0.0",
+  "author": "",
+  "boltzmann": {
+    "version": "0.5.3",
+    "githubci": false,
+    "ping": true,
+    "status": true,
+    "typescript": true
+  },
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
@@ -55,10 +59,13 @@
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
     "supports-hyperlinks": "^2.1.0",
-    "tap": "^15.0.2",
+    "tap": "^15.1.5",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:routes": "node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
@@ -70,12 +77,5 @@
     "pretest": "tsc --noEmit",
     "start": "nodemon ./boltzmann.ts",
     "test": "cross-env TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov tests/"
-  },
-  "boltzmann": {
-    "version": "0.5.2",
-    "githubci": false,
-    "ping": true,
-    "status": true,
-    "typescript": true
   }
 }

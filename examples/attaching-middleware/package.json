@@ -1,11 +1,14 @@
 {
-  "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
-  "description": "",
-  "keywords": [],
-  "license": "MIT",
-  "main": "index.js",
   "name": "attaching-middleware",
+  "description": "",
   "version": "1.0.0",
+  "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
+  "boltzmann": {
+    "version": "0.5.3",
+    "githubci": false,
+    "ping": true,
+    "status": true
+  },
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
@@ -38,8 +41,11 @@
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
     "supports-hyperlinks": "^2.1.0",
-    "tap": "^15.0.2"
+    "tap": "^15.1.5"
   },
+  "keywords": [],
+  "license": "MIT",
+  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:esbuild": null,
@@ -49,11 +55,5 @@
     "posttest": "npm run lint",
     "start": "./boltzmann.js",
     "test": "c8 tap --no-cov tests"
-  },
-  "boltzmann": {
-    "version": "0.5.2",
-    "githubci": false,
-    "ping": true,
-    "status": true
   }
 }
