@@ -205,7 +205,7 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase
   // just the active span.
   onStart(span: otelTraceBase.Span, _: otel.Context): void {
     span.setAttribute('service_name', span.resource.attributes['service.name'])
-    span.setAttribute('boltzmann.honeycomb.trace_type', 'otel')
+    span.setAttribute('honeycomb.trace_type', 'otel')
 
     otelTraceBase.SimpleSpanProcessor.prototype.onStart.call(this, span)
   }

@@ -100,7 +100,7 @@ async function handler (context: Context) {
       'handler.version': handler.version || '*',
       'handler.decorators': String(handler.decorators),
       [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
-      'boltzmann.honeycomb.trace_type': 'beeline',
+      'honeycomb.trace_type': 'beeline',
     })
   } else if (honeycomb.features.otel) {
 
