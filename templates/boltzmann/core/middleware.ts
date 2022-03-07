@@ -283,7 +283,7 @@ if (require.main === module) {
           }
         },
      ],
-      "There are two nested spans, in the same trace, with service name and attributes"
+      "There are four spans, with the expected relationships and attributes"
     )
   })
 }
