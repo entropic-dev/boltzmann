@@ -1375,22 +1375,17 @@ function handleCORS ({
 
   return (next: Handler) => {
     return async function cors (context: Context) {
-      const spanAttributes = {
-        'boltzmann.http.origin': String(context.headers.origin)
-      }
-      if (honeycomb.features.beeline) {
-        beeline.addContext(spanAttributes)
-      }
-      const span = otel.trace.getSpan(otel.context.active())
-      if (span) {
-        span.setAttributes(spanAttributes)
-      }
+      const reflectedOrigin = (
+        includesStar
+        ? '*'
+        : (
+          originsArray.includes(String(context.headers.origin))
+          ? context.headers.origin
+          : false
+        )
+      )
 
-      if (!includesStar && !originsArray.includes(String(context.headers.origin))) {
-        throw Object.assign(new Error('Origin not allowed'), {
-          [Symbol.for('status')]: 400
-        })
-      }
+      void ``
 
       const response = (
         context.method === 'OPTIONS'
@@ -1401,7 +1396,7 @@ function handleCORS ({
       )
 
       response[Symbol.for('headers')] = {
-        'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
+        ...(reflectedOrigin ? { 'Access-Control-Allow-Origin': reflectedOrigin } : {}),
         'Access-Control-Allow-Methods': ([] as any[]).concat(methods).join(','),
         'Access-Control-Allow-Headers': ([] as any[]).concat(headers).join(',')
       }
@@ -2026,7 +2021,7 @@ const validate = {
  * 
  * The `validate.body` middleware applies [JSON schema]( "https://json-schema.org/") validation to incoming
  * request bodies. It intercepts the body that would be returned by
- * \[`context.body`] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
+ * \[`context.body`\] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
  * passed through.
  * 
  * `Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In
