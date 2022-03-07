@@ -231,7 +231,7 @@ if (require.main === module) {
           attributes: {
             "handler_attribute": "testing 123",
             "service_name": "test-app",
-            "boltzmann.honeycomb.trace_type": "otel",
+            "honeycomb.trace_type": "otel",
             "boltzmann.http.handler.name": "testHandler",
             "boltzmann.handler.method": "GET",
             "boltzmann.handler.route": "/",
@@ -250,7 +250,7 @@ if (require.main === module) {
           // TODO: There *should* be attributes here, no?
           attributes: {
             "service_name": "test-app",
-            "boltzmann.honeycomb.trace_type": "otel",
+            "honeycomb.trace_type": "otel",
           }
         },
         // The test middleware span
@@ -265,7 +265,7 @@ if (require.main === module) {
           attributes: {
             "middleware_attribute": "testing 123",
             "service_name": "test-app",
-            "boltzmann.honeycomb.trace_type": "otel",
+            "honeycomb.trace_type": "otel",
           }
         },
         // The request-level parent span
@@ -279,7 +279,7 @@ if (require.main === module) {
           attributes: {
             "boltzmann.http.query": "",
             "service_name": "test-app",
-            "boltzmann.honeycomb.trace_type": "otel"
+            "honeycomb.trace_type": "otel"
           }
         },
      ],
