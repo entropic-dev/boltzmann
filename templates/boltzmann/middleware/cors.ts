@@ -32,6 +32,9 @@ function handleCORS ({
           : false
         )
       )
+
+      void `{% if honeycomb %}`
+
       const spanAttributes = {
         'boltzmann.http.origin': String(context.headers.origin)
       }
@@ -42,6 +45,8 @@ function handleCORS ({
       if (span) {
         span.setAttributes(spanAttributes)
       }
+
+      void `{% endif %}`
 
       const response = (
         context.method === 'OPTIONS'
