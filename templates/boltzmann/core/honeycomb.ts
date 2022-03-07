@@ -760,9 +760,6 @@ class OtelMockSpanProcessor extends HoneycombSpanProcessor {
   }
 
   onEnd(span: otelTraceBase.ReadableSpan): void {
-    // don't call super's onEnd, if only because it mysteriously causes
-    // sdk startup to time out in test
-
     // note that this collects spans as they *close*, meaning a parent span
     // will be *behind* its children
     this._exporterCreatedSpans.push(span)
