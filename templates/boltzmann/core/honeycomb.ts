@@ -499,8 +499,7 @@ class Honeycomb {
   }
 
   get tracer (): otel.Tracer {
-    // TODO: Can we do better than hard-coding 1.0.0?
-    return otel.trace.getTracer('boltzmann', '1.0.0')
+    return otel.trace.getTracer('boltzmann', '{{ version }}')
   }
 
   // We (usually) load options from the environment. Unlike with Options,
