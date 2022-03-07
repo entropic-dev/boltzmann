@@ -203,7 +203,6 @@ function otelTrace () {
       // concerned the span could still be undefined. We could assert that it
       // exists, but throwing instrumentation-related errors is poor form.
       if (span) {
-        // for backwards compatibility with beeline traces
         span.setAttribute('boltzmann.http.query', context.url.search)
 
         span.updateName(traceName(context.method, context.url.pathname))
