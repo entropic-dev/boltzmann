@@ -802,8 +802,8 @@ and [OTLP exporter-specific environment variables](https://github.com/open-telem
 and it's worth perusing all of them. However, if you are in a rush:
 
 - `HONEYCOMB_WRITEKEY`: this is still used in an OpenTelemetry configuration
+- `HONEYCOMB_DATASET`: this is also still used in an OpenTelemetry configuration
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: the API endpoint - i.e. `https://api.honeycomb.io`, or your [refinery](https://docs.honeycomb.io/manage-data-volume/refinery/) instance if using one
-- `
 
 In you really, really want to use the default OpenTelemetry configuration,
 you can set `OTEL_ENABLE=1` - this isn't meaningful for the OpenTelemetry SDKs
