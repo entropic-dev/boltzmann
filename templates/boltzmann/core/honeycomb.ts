@@ -192,10 +192,6 @@ type _OtelSpanProcessorClass = new(_exporter: otelTraceBase.SpanExporter) => {
 const _OtelSpanProcessor: _OtelSpanProcessorClass = otelTraceBase.SimpleSpanProcessor
 
 class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase.SpanProcessor {
-  constructor(_exporter: otelTraceBase.SpanExporter) {
-    super(_exporter)
-  }
-
   // We want every span in the process to contain a couple of extra attributes.
   // Right now that's just service_name (for backwards compatibility with
   // beeline) and a trace type (so we can detect whether a service is using
@@ -210,6 +206,8 @@ class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase
     otelTraceBase.SimpleSpanProcessor.prototype.onStart.call(this, span)
   }
 
+  // We need to define this method to override the types, even though there's
+  // no change in logic - c'est la vie!
   onEnd(span: otelTraceBase.ReadableSpan): void {
     otelTraceBase.SimpleSpanProcessor.prototype.onEnd.call(this, span)
   }
