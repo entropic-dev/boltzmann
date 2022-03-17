@@ -36,7 +36,7 @@ Honeycomb instrumentation is in index.tera *before* the prelude.
 This is because instrumentation needs to be installed prior to
 instrumented modules being imported.
 
-In production, honeycomb.ts defines a class called Honeycomb and a singleton
+When templated into a service scaffold, honeycomb.ts defines a class called Honeycomb and a singleton
 instance, so we can simply reach for it. In self-test mode, we need to import
 it, as is typical for non-prelude files.
 
