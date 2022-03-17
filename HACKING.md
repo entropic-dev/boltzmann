@@ -36,6 +36,10 @@ The files in `templates/boltzmann/` include inline `tap` tests. You can run
 `npm ci; npm t` to run those tests. This tests the files in-situ. Integration
 tests for the compiled scaffold can be run using the `bin/test` tool.
 
+You can also check whether the TypeScript will compile by running
+`bin/checkts.sh`, which unlike `bin/buildjs.sh` will merely check that the
+code is valid TypeScript.
+
 When writing a module in `templates/boltzmann`, keep the following in mind:
 
 - All modules are concatenated inline using `templates/boltzmann/index.tera`.
@@ -85,7 +89,7 @@ Dependencies are controlled by `src/runscripts.ron`.
 You should have:
 
 - Rust installed (use [rustup])
-- node 14+
+- node 16+
 
 Check the project out and run `npm ci`.
 

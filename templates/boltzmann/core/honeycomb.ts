@@ -512,9 +512,6 @@ class Honeycomb {
     )
   }
 
-  // serviceName is defined in the prelude, so rather than doing the same
-  // logic twice we let the prelude inject it when creating the honeycomb
-  // object.
   public static parseEnv(env: typeof process.env = process.env): HoneycombOptions {
     // For beelines, if we don't have HONEYCOMB_WRITEKEY there isn't much we
     // can do...
