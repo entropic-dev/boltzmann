@@ -68,6 +68,7 @@ function handleStatus ({
             git,
             uptime: process.uptime(),
             service: serviceName,
+            version: '{{ version }}',
             hostname,
             memory: process.memoryUsage(),
             downstream,
