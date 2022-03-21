@@ -650,27 +650,15 @@ class Honeycomb {
   // a no-op. This needs to happen before anything happens in
   // the entrypoint and is an async operation.
   public async start(): Promise<void> {
-    let exitCode = 0
     const sdk = this.sdk
-
-    const die = async (err: Error) => {
-      otel.diag.error(err.stack || String(err));
-      exitCode = 1
-      await shutdown()
-    }
 
     const shutdown = async () => {
       await this.stop()
-      process.exit(exitCode)
     }
 
     if (sdk) {
-      process.once('SIGTERM', shutdown)
       process.once('beforeExit', shutdown)
-      process.once('uncaughtException', die)
-      process.once('unhandledRejection', async (reason: Error | any, _: Promise<any>) => {
-        await die(reason)
-      })
+
       await sdk.start()
     }
     this.started = true
