@@ -433,10 +433,10 @@ const defaultOtelFactories: OtelFactories = {
   }
 }
 
-// For testing purposes, it can be beneficial to
-// override how objects in OpenTelemetry initialization
-// are created. The Honeycomb class allows for
-// passing overrides into its constructor.
+// For testing purposes, it can be beneficial to override how objects in
+// OpenTelemetry initialization are created. The Honeycomb class allows for
+// passing overrides into its constructor. This is an INTERNAL API - unless
+// you're writing honeycomb-related unit tests, it won't be relevant to you.
 interface OtelFactoryOverrides {
   headers?: (writeKey: string | null, dataset: string | null) => HoneycombOTLPHeaders
   resource?: (serviceName: string) => otelResources.Resource
