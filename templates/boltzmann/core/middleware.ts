@@ -98,9 +98,7 @@ async function handler (context: Context) {
       'handler.method': String(handler.method),
       'handler.route': handler.route,
       'handler.version': handler.version || '*',
-      'handler.decorators': String(handler.decorators),
-      [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
-      'honeycomb.trace_type': 'beeline',
+      'handler.decorators': String(handler.decorators)
     })
   } else if (honeycomb.features.otel) {
 
@@ -230,8 +228,6 @@ if (require.main === module) {
           // TODO: There *should* be attributes here, no?
           attributes: {
             "handler_attribute": "testing 123",
-            "service_name": "test-app",
-            "honeycomb.trace_type": "otel",
             "boltzmann.http.handler.name": "testHandler",
             "boltzmann.handler.method": "GET",
             "boltzmann.handler.route": "/",
@@ -248,10 +244,7 @@ if (require.main === module) {
           spanId: boltzmannSpans[1].spanId,
           parentSpanId: boltzmannSpans[2].spanId,
           // TODO: There *should* be attributes here, no?
-          attributes: {
-            "service_name": "test-app",
-            "honeycomb.trace_type": "otel",
-          }
+          attributes: {}
         },
         // The test middleware span
         {
@@ -264,8 +257,6 @@ if (require.main === module) {
           // TODO: There *should* be attributes here, no?
           attributes: {
             "middleware_attribute": "testing 123",
-            "service_name": "test-app",
-            "honeycomb.trace_type": "otel",
           }
         },
         // The request-level parent span
@@ -278,8 +269,6 @@ if (require.main === module) {
           parentSpanId: undefined,
           attributes: {
             "boltzmann.http.query": "",
-            "service_name": "test-app",
-            "honeycomb.trace_type": "otel"
           }
         },
      ],

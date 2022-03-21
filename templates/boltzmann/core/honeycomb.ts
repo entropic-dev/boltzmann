@@ -177,42 +177,6 @@ if (!process.env.LOG_LEVEL || process.env.LOG_LEVEL === 'debug') {
   otel.diag.setLogger(_diagLogger, otelCore.getEnv().OTEL_LOG_LEVEL)
 }
 
-// There's a bug in the trace base library where the SimpleSpanProcessor doesn't
-// actually conform to the SpanProcessor interface! onStart in particular
-// doesn't take the context argument. This makes typescript extremely
-// cranky.
-//
-// We work around this by defining a new type which is the same as a
-// SimpleSpanProcessor, but without enforcing onStart and onEnd. Then, we
-// implement those methods as specified by the SpanProcessor interface.
-type _OtelSpanProcessorClass = new(_exporter: otelTraceBase.SpanExporter) => {
-  [P in Exclude<keyof otelTraceBase.SpanProcessor, 'onStart' | 'onEnd'>]: otelTraceBase.SpanProcessor[P]
-}
-
-const _OtelSpanProcessor: _OtelSpanProcessorClass = otelTraceBase.SimpleSpanProcessor
-
-class HoneycombSpanProcessor extends _OtelSpanProcessor implements otelTraceBase.SpanProcessor {
-  // We want every span in the process to contain a couple of extra attributes.
-  // Right now that's just service_name (for backwards compatibility with
-  // beeline) and a trace type (so we can detect whether a service is using
-  // beeline or otel). This could theoretically be extended to allow
-  // customization a la beeline.addTraceContext, but that problem is really
-  // hairy and there are a lot of good reasons to add most attributes to
-  // just the active span.
-  onStart(span: otelTraceBase.Span, _: otel.Context): void {
-    span.setAttribute('service_name', span.resource.attributes['service.name'])
-    span.setAttribute('honeycomb.trace_type', 'otel')
-
-    otelTraceBase.SimpleSpanProcessor.prototype.onStart.call(this, span)
-  }
-
-  // We need to define this method to override the types, even though there's
-  // no change in logic - c'est la vie!
-  onEnd(span: otelTraceBase.ReadableSpan): void {
-    otelTraceBase.SimpleSpanProcessor.prototype.onEnd.call(this, span)
-  }
-}
-
 type HoneycombOTLPHeaders = {
   [s: string]: string
 }
@@ -368,7 +332,12 @@ const defaultOtelFactories: OtelFactories = {
   // Process spans, using the supplied trace exporter to
   // do the actual exporting.
   spanProcessor (spanExporter: otelTraceBase.SpanExporter): otelTraceBase.SpanProcessor {
-    return new HoneycombSpanProcessor(spanExporter)
+    // There's a bug in the trace base library where the SimpleSpanProcessor doesn't
+    // actually conform to the SpanProcessor interface! Luckily this difference
+    // comes from not including an optional argument in the type signature and is
+    // safe to cast.
+
+    return <otelTraceBase.SpanProcessor>(new otelTraceBase.SimpleSpanProcessor(spanExporter))
   },
 
   instrumentations () {
@@ -727,14 +696,13 @@ export {
   HoneycombFeatures,
   HoneycombOptions,
   HoneycombOTLPHeaders,
-  HoneycombSpanProcessor,
   OtelFactories,
   OtelFactoryOverrides,
 }
 
 void `{% if selftest %}`
 
-class OtelMockSpanProcessor extends HoneycombSpanProcessor {
+class OtelMockSpanProcessor extends otelTraceBase.SimpleSpanProcessor {
   public _exporterCreatedSpans: otelTraceBase.ReadableSpan[] = []
 
   constructor(_exporter: otelTraceBase.SpanExporter) {

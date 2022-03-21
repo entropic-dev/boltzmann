@@ -85,10 +85,7 @@ function beelineTrace ({
         'request.method': context.method,
         'request.scheme': context.url.protocol,
         'request.path': context.url.pathname,
-        'request.query': context.url.search,
-        // for forward compatibility with OpenTelemetry traces
-        [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
-        'honeycomb.trace_type': 'beeline'
+        'request.query': context.url.search
       },
       traceContext.traceId,
       traceContext.parentSpanId,
@@ -163,11 +160,6 @@ function beelineMiddlewareSpans ({name}: {name?: string} = {}) {
     return async (context: Context) => {
       const span = beeline.startSpan({
         name: middlewareSpanName(name)
-      })
-
-      beeline.addContext({
-        [otelSemanticConventions.SemanticResourceAttributes.SERVICE_NAME]: honeycomb.options.serviceName,
-        'honeycomb.trace_type': 'beeline'
       })
 
       // Assumption: the invariant middleware between each layer
