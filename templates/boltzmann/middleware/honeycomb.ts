@@ -254,7 +254,7 @@ function otelMiddlewareSpans ({name}: {name?: string} = {}) {
 
       const span = honeycomb.tracer.startSpan(
         middlewareSpanName(name),
-        { kind: otel.SpanKind.SERVER },
+        { kind: otel.SpanKind.INTERNAL },
         traceContext
       )
       traceContext = otel.trace.setSpan(traceContext, span)

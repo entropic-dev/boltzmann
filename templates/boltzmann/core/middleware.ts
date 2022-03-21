@@ -114,7 +114,7 @@ async function handler (context: Context) {
           'boltzmann.http.handler.version': handler.version || '*',
           'boltzmann.http.handler.decorators': String(handler.decorators)
         },
-        kind: otel.SpanKind.SERVER
+        kind: otel.SpanKind.INTERNAL
       },
       traceContext
     )
@@ -187,7 +187,7 @@ if (require.main === module) {
     let traceContext = otel.context.active()
     const span = honeycomb.tracer.startSpan(
       'HTTP GET',
-      { kind: otel.SpanKind.SERVER, },
+      { kind: otel.SpanKind.INTERNAL, },
       traceContext
     )
 
