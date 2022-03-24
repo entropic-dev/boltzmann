@@ -24,6 +24,11 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
 
+      - name: Install volta
+        run: |
+          curl https://get.volta.sh | bash
+          echo "PATH='${PATH}:${HOME}/.volta/bin'" >> "${GITHUB_ENV}"
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
