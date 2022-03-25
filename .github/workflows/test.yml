@@ -30,6 +30,12 @@ jobs:
           echo "VOLTA_HOME='${HOME}/.volta'" >> "${GITHUB_ENV}"
           echo "${HOME}/.volta/bin" >> "${GITHUB_PATH}"
 
+      - name: Why isn't volta working?
+        run: |
+          echo "${PATH}"
+          echo "${VOLTA_HOME}"
+          ls ~/.volta
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
