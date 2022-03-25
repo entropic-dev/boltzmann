@@ -27,7 +27,8 @@ jobs:
       - name: Install volta
         run: |
           curl https://get.volta.sh | bash
-          echo "PATH='${PATH}:${HOME}/.volta/bin'" >> "${GITHUB_ENV}"
+          echo "VOLTA_HOME='${HOME}/.volta'" >> "${GITHUB_ENV}"
+          echo "${HOME}/.volta/bin" >> "${GITHUB_PATH}"
 
       - uses: actions-rs/toolchain@v1
         with:
