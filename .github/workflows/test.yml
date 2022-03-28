@@ -30,13 +30,10 @@ jobs:
           echo "VOLTA_HOME='${HOME}/.volta'" >> "${GITHUB_ENV}"
           echo "${HOME}/.volta/bin" >> "${GITHUB_PATH}"
 
-      - name: Run volta install
-        run: |
-          volta install node
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
       - uses: actions/cache@v2
         if: runner.os != 'macOS'
         with:
@@ -58,6 +55,9 @@ jobs:
 
       - name: run cargo build --release for caching
         run: |
+          volta install node
+          echo "${PATH}"
+          echo "$(which node)"
           bin/buildjs.sh
           cargo build --release
 
