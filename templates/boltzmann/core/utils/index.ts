@@ -40,7 +40,8 @@ function _processBodyParsers(parsers: BodyImport) {
 async function _requireOr(target: string, value: any) {
   try {
     return require(target)
-  } catch (err) {
+  } catch (_err) {
+    const err = <any>_err;
     if (err.code === 'MODULE_NOT_FOUND' && err.requireStack && err.requireStack[0] === __filename) {
       return value
     }
@@ -62,7 +63,7 @@ if (require.main === module) {
       await _requireOr('./require-or-test', [])
       assert.fail('expected to fail with MODULE_NOT_FOUND')
     } catch (err) {
-      assert.equal(err.code, 'MODULE_NOT_FOUND')
+      assert.equal((err as any).code, 'MODULE_NOT_FOUND')
     }
   })
 

@@ -642,7 +642,10 @@ fn main() -> anyhow::Result<(), anyhow::Error> {
         }
     };
 
-    let mut subproc = Exec::cmd(NPM).arg("i").cwd(&target);
+    // It's not actually possible, afaict, to install the opentelemetry libraries
+    // with versions that will completely satisfy the peer deps rules, so we
+    // use the "legacy" behavior which makes a best effort.
+    let mut subproc = Exec::cmd(NPM).arg("i").arg("--legacy-peer-deps").cwd(&target);
 
     subproc = if verbosity < 2 {
         subproc.stdout(NullFile).stderr(NullFile)

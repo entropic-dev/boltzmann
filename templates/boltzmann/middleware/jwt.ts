@@ -206,7 +206,7 @@ if (require.main === module) {
       assert.fail('expected failure, unexpected success. not cause for celebration')
     } catch (err) {
       assert.equal(called, 0)
-      assert.equal(err[Symbol.for('status')], 403)
+      assert.equal((err as any)[Symbol.for('status')], 403)
     }
   })
 
@@ -226,7 +226,7 @@ if (require.main === module) {
       assert.fail('expected failure, unexpected success. not cause for celebration')
     } catch (err) {
       assert.equal(called, 0)
-      assert.equal(err[Symbol.for('status')], 403)
+      assert.equal((err as any)[Symbol.for('status')], 403)
     }
   })
 

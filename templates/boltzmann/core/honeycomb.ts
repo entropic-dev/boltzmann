@@ -608,7 +608,7 @@ class Honeycomb {
       this.initialized = true
     } catch (err) {
       if (err instanceof HoneycombError) {
-        otel.diag.error(err.stack || String(err));
+        otel.diag.error((err as any).stack || String(err));
         return;
       }
       throw err;
@@ -639,7 +639,7 @@ class Honeycomb {
     try {
       await sdk.shutdown()
     } catch (err) {
-      otel.diag.error(err.stack || String(err))
+      otel.diag.error((err as any).stack || String(err))
     }
   }
 

@@ -588,7 +588,7 @@ function template ({
           })
         })
       } catch (err) {
-        status = err[STATUS] || 500
+        status = (err as any)[STATUS] || 500
         const target = !renderingErrorTemplate && isDev() ? devErrorTemplate : '5xx.html'
 
         rendered = await new Promise((resolve, _) => {
@@ -651,7 +651,7 @@ if (require.main === module) {
     try {
       template(<any>{ paths: { foo: 'bar' } })
     } catch (err) {
-      assert.match(err.message, /must be an array/)
+      assert.match((err as any).message, /must be an array/)
       caught++
     }
     assert.equal(caught, 1)

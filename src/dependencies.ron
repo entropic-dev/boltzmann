@@ -84,20 +84,6 @@
   ),
 
   DependencySpec(
-    name: "@opentelemetry/instrumentation-graphql",
-    version: "^0.27.1",
-    kind: Normal,
-    preconditions: Some(When(all_of: ["honeycomb"]))
-  ),
-
-  DependencySpec(
-    name: "@opentelemetry/instrumentation-grpc",
-    version: "^0.27.0",
-    kind: Normal,
-    preconditions: Some(When(all_of: ["honeycomb"]))
-  ),
-
-  DependencySpec(
     name: "@opentelemetry/instrumentation-http",
     version: "^0.27.0",
     kind: Normal,

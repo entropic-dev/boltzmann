@@ -57,7 +57,7 @@ function handleStatus ({
               await test(context, meta)
               meta.status = 'healthy'
             } catch (err) {
-              meta.error = err
+              meta.error = <Error | null>err
             } finally {
               meta.latency = Date.now() - start
             }
