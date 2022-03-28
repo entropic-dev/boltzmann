@@ -138,6 +138,13 @@ impl Settings {
             None => self.typescript.unwrap_or(false),
         };
 
+        let is_volta = match &flags.volta {
+            Some(None) => true,
+            Some(Some(Flipper::On)) => true,
+            Some(Some(Flipper::Off)) => false,
+            None => self.volta.unwrap_or(false),
+        };
+
         Settings {
             // website features, grouped
             csrf: cast(&flags.csrf, &self.csrf, flags.all || flags.website),
@@ -172,7 +179,7 @@ impl Settings {
             typescript: if is_typescript { Some(true) } else { None },
             version: Some(version),
             node_version: Some(node_version),
-            volta: cast(&flags.volta, &self.volta, flags.all),
+            volta: if is_volta { Some(true) } else { None},
 
             selftest: if flags.selftest { Some(true) } else { None },
             rest: HashMap::new(),
