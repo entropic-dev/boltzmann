@@ -2,7 +2,7 @@
 authors = ["C J Silverio <ceejceej@gmail.com>", "Chris Dickinson <chris@neversaw.us>"]
 edition = "2021"
 name = "boltzmann"
-version = "0.6.0"
+version = "0.5.3"
 documentation = "https://www.boltzmann.dev/en/docs/latest/"
 description = "A scaffolder for Boltzmann.js http service projects."
 license = "Apache-2.0"
@@ -11,8 +11,6 @@ include = ["src/**/*", "docs/contents/reference/*.md", "templates/**/*"]
 [package.metadata.release]
 sign-commit = true
 sign-tag = true
-exclude-paths = ["/docs/**", "/README.md", "/tests/**", "/bin/**", "examples/**"]
-no-dev-version = true
 
 [dependencies]
 anyhow = "1.0.32"
