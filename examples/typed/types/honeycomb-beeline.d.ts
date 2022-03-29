@@ -15,6 +15,6 @@ declare module 'honeycomb-beeline' {
     addTraceContext: (opts?: Record<string, unknown>) => void
   }
 
-  declare const beeline: Beeline;
-  export = beeline;
+  declare const beeline: Beeline
+  export = beeline
 }

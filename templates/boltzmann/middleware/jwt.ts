@@ -32,7 +32,7 @@ function authenticateJWT ({
     throw new Error(
       `To authenticate JWTs you must pass the path to a public key file in either
 the environment variable "AUTHENTICATION_KEY" or the publicKey config field
-https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authenticatejwt
+https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#authenticatejwt
 `.trim().split('\n').join(' '))
   }
 
@@ -44,7 +44,7 @@ https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authentica
           boltzmann authenticateJWT middleware cannot read public key at "${publicKey}".
           Is the AUTHENTICATION_KEY environment variable set correctly?
           Is the file readable?
-          https://www.boltzmann.dev/en/docs/{{ version }}/reference/middleware/#authenticatejwt
+          https://www.boltzmann.dev/en/docs/v{{ version }}/reference/middleware/#authenticatejwt
         `.trim().split('\n').join(' '))
         throw err
       })
@@ -206,7 +206,7 @@ if (require.main === module) {
       assert.fail('expected failure, unexpected success. not cause for celebration')
     } catch (err) {
       assert.equal(called, 0)
-      assert.equal(err[Symbol.for('status')], 403)
+      assert.equal((err as any)[Symbol.for('status')], 403)
     }
   })
 
@@ -226,7 +226,7 @@ if (require.main === module) {
       assert.fail('expected failure, unexpected success. not cause for celebration')
     } catch (err) {
       assert.equal(called, 0)
-      assert.equal(err[Symbol.for('status')], 403)
+      assert.equal((err as any)[Symbol.for('status')], 403)
     }
   })
 

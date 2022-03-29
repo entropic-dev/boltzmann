@@ -2,7 +2,8 @@ void `{% if selftest %}`;
 import bole from '@entropic/bole'
 import isDev from 'are-we-dev'
 
-import { Handler, MiddlewareConfig } from '../core/middleware'
+import { honeycomb } from '../core/honeycomb'
+import { MiddlewareConfig } from '../core/middleware'
 import { _processMiddleware, _requireOr } from '../core/utils'
 import { attachPostgres } from '../middleware/postgres'
 import { livereload } from '../middleware/livereload'
@@ -11,15 +12,15 @@ import { attachRedis } from '../middleware/redis'
 import { handlePing } from '../middleware/ping'
 import { trace } from '../middleware/honeycomb'
 import { runserver } from '../bin/runserver'
-import { Context } from '../data/context'
 import { log } from '../middleware/log'
 void `{% endif %}`;
 
 /* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
-  function passthrough() {
-    return (next: Handler) => (context: Context) => next(context)
-  }
+  // {% if honeycomb %}
+  honeycomb.start().then(run)
+  function run() {
+  // {% endif %}
 
   runserver({
     middleware: (_requireOr('./middleware', [] as MiddlewareConfig[]) as Promise<MiddlewareConfig[]>)
@@ -29,12 +30,12 @@ if (require.main === module && !process.env.TAP) {
         // {# so we're gonna do this one flag at a time. #}
         const acc = []
 
-        // {% if honeycomb %}
-        acc.push(trace)
-        // {% endif %}
-
         // {% if ping %}
         acc.push(handlePing)
+        // {% endif %}
+
+        // {% if honeycomb %}
+        acc.push(trace)
         // {% endif %}
 
         // {% if livereload %}
@@ -63,7 +64,7 @@ if (require.main === module && !process.env.TAP) {
       }),
   })
     .then((server) => {
-      server.listen(Number(process.env.PORT) || 5000, () => {
+      server.listen(Number(process.env.PORT) || 8000, () => {
         const addrinfo = server.address()
         if (!addrinfo) {
           return
@@ -75,4 +76,7 @@ if (require.main === module && !process.env.TAP) {
       console.error(err.stack)
       process.exit(1)
     })
+  // {% if honeycomb %}
+  }
+  // {% endif %}
 }

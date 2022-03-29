@@ -28,32 +28,23 @@ function _getServiceName() {
   }
 }
 
+/*{#
+
+/!\ ACHTUNG! /!\
+
+Honeycomb instrumentation is in index.tera *before* the prelude.
+This is because instrumentation needs to be installed prior to
+instrumented modules being imported.
+
+When templated into a service scaffold, honeycomb.ts defines a class called Honeycomb and a singleton
+instance, so we can simply reach for it. In self-test mode, we need to import
+it, as is typical for non-prelude files.
+
+For the most part, dependencies used by honeycomb core should be properly
+exported even when honeycomb is disabled. However, dependencies used by
+honeycomb middlewares, etc., should still be imported and exported here.
+#}*/
 void `{% if honeycomb %}`;
-import beeline from 'honeycomb-beeline'
-
-if (!process.env.HONEYCOMB_DATASET && process.env.HONEYCOMBIO_DATASET) {
-  process.env.HONEYCOMB_DATASET = process.env.HONEYCOMBIO_DATASET
-}
-
-if (!process.env.HONEYCOMB_WRITEKEY && process.env.HONEYCOMBIO_WRITEKEY) {
-  process.env.HONEYCOMB_WRITEKEY = process.env.HONEYCOMBIO_WRITEKEY
-}
-
-if (!process.env.HONEYCOMB_SAMPLE_RATE && process.env.HONEYCOMBIO_SAMPLE_RATE) {
-  process.env.HONEYCOMB_SAMPLE_RATE = process.env.HONEYCOMBIO_SAMPLE_RATE
-}
-
-if (!process.env.HONEYCOMB_TEAM && process.env.HONEYCOMBIO_TEAM) {
-  process.env.HONEYCOMB_TEAM = process.env.HONEYCOMBIO_TEAM
-}
-
-beeline({
-  writeKey: process.env.HONEYCOMB_WRITEKEY,
-  dataset: process.env.HONEYCOMB_DATASET,
-  sampleRate: Number(process.env.HONEYCOMB_SAMPLE_RATE) || 1,
-  serviceName,
-})
-
 import onHeaders from 'on-headers'
 void `{% endif %}`;
 
@@ -113,13 +104,11 @@ import type tap from 'tap'
 
 import querystring from 'querystring'
 import { promisify } from 'util'
-import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
 import accepts from 'accepts'
 import { promises as fs } from 'fs'
 import crypto from 'crypto'
 import http from 'http'
-import bole from '@entropic/bole'
 import path from 'path'
 import os from 'os'
 void `{% if redis %}`;
@@ -153,7 +142,7 @@ export { redis }
 void `{% endif %}`;
 
 void `{% if honeycomb %}`;
-export { onHeaders, beeline }
+export { onHeaders }
 void `{% endif %}`;
 
 void `{% if jwt or oauth %}`;
@@ -203,15 +192,14 @@ export {
   Listener,
   ResponseObject,
   cookie,
+  tap,
   os,
   path,
-  bole,
   http,
   crypto,
   fs,
   accepts,
   fmw,
-  isDev,
   promisify,
   querystring,
   ships,

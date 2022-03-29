@@ -58,6 +58,9 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) version: Option<String>,
 
+    #[serde(skip_serializing)]
+    pub(crate) node_version: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) csrf: Option<bool>,
 
@@ -103,12 +106,15 @@ pub struct Settings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) typescript: Option<bool>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) volta: Option<bool>,
+
     #[serde(flatten)]
     pub(crate) rest: HashMap<String, Value>,
 }
 
 impl Settings {
-    pub fn merge_flags(&self, version: String, flags: &Flags) -> Settings {
+    pub fn merge_flags(&self, version: String, node_version: String, flags: &Flags) -> Settings {
         // TODO: This is becoming horrifying.
         let cast = |xs: &Option<Option<Flipper>>,
                     default: &Option<bool>,
@@ -130,6 +136,13 @@ impl Settings {
             Some(Some(Flipper::On)) => true,
             Some(Some(Flipper::Off)) => false,
             None => self.typescript.unwrap_or(false),
+        };
+
+        let is_volta = match &flags.volta {
+            Some(None) => true,
+            Some(Some(Flipper::On)) => true,
+            Some(Some(Flipper::Off)) => false,
+            None => self.volta.unwrap_or(false),
         };
 
         Settings {
@@ -165,6 +178,8 @@ impl Settings {
             // oddballs:
             typescript: if is_typescript { Some(true) } else { None },
             version: Some(version),
+            node_version: Some(node_version),
+            volta: if is_volta { Some(true) } else { None},
 
             selftest: if flags.selftest { Some(true) } else { None },
             rest: HashMap::new(),
@@ -259,6 +274,7 @@ impl From<Settings> for Context {
                 .version
                 .unwrap_or_else(|| "<unknown version>".to_string())[..],
         );
+        ctxt.insert("node_version", &settings.node_version.unwrap());
 
         ctxt
     }

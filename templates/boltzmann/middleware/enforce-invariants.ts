@@ -11,7 +11,8 @@ function enforceInvariants () {
     // the "...args" here are load-bearing: this is applied between
     // decorators _and_ middleware
     return async function invariant (ctx: Context) {
-      let error, result
+      let error: any
+      let result
 
       try {
         result = await next(ctx)

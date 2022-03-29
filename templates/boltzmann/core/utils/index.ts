@@ -40,7 +40,8 @@ function _processBodyParsers(parsers: BodyImport) {
 async function _requireOr(target: string, value: any) {
   try {
     return require(target)
-  } catch (err) {
+  } catch (_err) {
+    const err = <any>_err;
     if (err.code === 'MODULE_NOT_FOUND' && err.requireStack && err.requireStack[0] === __filename) {
       return value
     }
@@ -62,20 +63,20 @@ if (require.main === module) {
       await _requireOr('./require-or-test', [])
       assert.fail('expected to fail with MODULE_NOT_FOUND')
     } catch (err) {
-      assert.equals(err.code, 'MODULE_NOT_FOUND')
+      assert.equal((err as any).code, 'MODULE_NOT_FOUND')
     }
   })
 
   test('_requireOr returns default if toplevel require fails', async (assert: Test) => {
     const expect = {}
-    assert.equals(await _requireOr('./d-n-e', expect), expect)
+    assert.equal(await _requireOr('./d-n-e', expect), expect)
   })
 
   test('_collect takes a stream and returns a promise for a buffer of its content', async (assert: Test) => {
     const result = await _collect(<IncomingMessage>(<unknown>createReadStream(__filename)))
     const expect = await fs.readFile(__filename)
 
-    assert.equals(String(result), String(expect))
+    assert.equal(String(result), String(expect))
   })
 }
 void `{% endif %}`;

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 {% if not selftest %}/* eslint-disable */{% endif %}
 {% if not selftest %}/* c8 ignore file */{% endif %}
+{% include "boltzmann/core/honeycomb.ts" %}
 {% include "boltzmann/core/prelude.ts" %}
 
 {# core functions (middleware, body parsing, and routing support) #}

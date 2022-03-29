@@ -1,4 +1,5 @@
 void `{% if selftest %}`;
+import { honeycomb } from '../core/honeycomb'
 import { IncomingMessage, ServerResponse } from 'http'
 import { Accepts } from 'accepts'
 import accepts from 'accepts'
@@ -61,6 +62,7 @@ class Context {
     this.id = String(
       request.headers['x-honeycomb-trace'] ||
       request.headers['x-request-id'] ||
+      request.headers['traceparent'] ||
       uuid.v4()
     )
     this._loadSession = async () => {
@@ -127,8 +129,20 @@ class Context {
   /**{{- tsdoc(page="02-handlers.md", section="traceURL") -}}*/
   get traceURL () {
     const url = new URL(`https://ui.honeycomb.io/${process.env.HONEYCOMB_TEAM}/datasets/${process.env.HONEYCOMB_DATASET}/trace`)
-    url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
-    url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
+    if (honeycomb.features.beeline) {
+      url.searchParams.set('trace_id', this._honeycombTrace.payload['trace.trace_id'])
+      url.searchParams.set('trace_start_ts', String(Math.floor(this._honeycombTrace.startTime/1000 - 1)))
+    } else if (honeycomb.features.otel) {
+      const spanCtx = this._honeycombTrace.spanContext()
+      let startTime = Date.now() - 60000
+      if (this._honeycombTrace.startTime) {
+        const [startSeconds, startNanos] = this._honeycombTrace.startTime
+        startTime = startSeconds * 1000 + startNanos / 1000
+      }
+      url.searchParams.set('trace_id', spanCtx.traceId)
+
+      url.searchParams.set('trace_start_ts', String(startTime))
+    }
     return String(url)
   }
   // {% endif %}

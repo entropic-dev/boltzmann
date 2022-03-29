@@ -1,6 +1,7 @@
 void `{% if selftest %}`;
 export { handleCORS }
 
+import { beeline, honeycomb, otel } from '../core/honeycomb'
 import { HTTPMethod } from 'find-my-way'
 import isDev from 'are-we-dev'
 
@@ -31,6 +32,21 @@ function handleCORS ({
           : false
         )
       )
+
+      void `{% if honeycomb %}`
+
+      const spanAttributes = {
+        'boltzmann.http.origin': String(context.headers.origin)
+      }
+      if (honeycomb.features.beeline) {
+        beeline.addContext(spanAttributes)
+      }
+      const span = otel.trace.getSpan(otel.context.active())
+      if (span) {
+        span.setAttributes(spanAttributes)
+      }
+
+      void `{% endif %}`
 
       const response = (
         context.method === 'OPTIONS'

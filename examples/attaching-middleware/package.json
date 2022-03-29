@@ -1,14 +1,14 @@
 {
-  "name": "attaching-middleware",
-  "description": "",
-  "version": "1.0.0",
   "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
-  "boltzmann": {
-    "version": "0.5.3",
-    "githubci": false,
-    "ping": true,
-    "status": true
+  "description": "",
+  "directories": {
+    "test": "tests"
   },
+  "keywords": [],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "attaching-middleware",
+  "version": "1.0.0",
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
@@ -28,8 +28,8 @@
   "devDependencies": {
     "@hapi/shot": "^5.0.4",
     "@types/uuid": "^8.3.0",
-    "@typescript-eslint/eslint-plugin": "^4.11.0",
-    "@typescript-eslint/parser": "^4.11.0",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.1",
     "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
     "c8": "^7.7.1",
@@ -43,17 +43,19 @@
     "supports-hyperlinks": "^2.1.0",
     "tap": "^15.1.5"
   },
-  "keywords": [],
-  "license": "MIT",
-  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
-    "boltzmann:esbuild": null,
     "boltzmann:routes": "node -e 'require(\"./boltzmann\").printRoutes()'",
     "boltzmann:upgrade": "npx boltzmann-cli",
     "lint": "eslint .",
     "posttest": "npm run lint",
-    "start": "./boltzmann.js",
+    "start": "nodemon ./boltzmann.js",
     "test": "c8 tap --no-cov tests"
+  },
+  "boltzmann": {
+    "version": "0.6.0",
+    "githubci": false,
+    "ping": true,
+    "status": true
   }
 }

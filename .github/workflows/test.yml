@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Use Node.js 12.x
+      - name: Use Node.js ${{ matrix.node_version }}
         uses: actions/setup-node@v2.1.2
         with:
           node-version: ${{ matrix.node_version }}
@@ -27,6 +27,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
       - uses: actions/cache@v2
         if: runner.os != 'macOS'
         with:

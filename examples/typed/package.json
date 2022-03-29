@@ -1,15 +1,14 @@
 {
-  "name": "typed",
-  "description": "",
-  "version": "1.0.0",
   "author": "",
-  "boltzmann": {
-    "version": "0.5.3",
-    "githubci": false,
-    "ping": true,
-    "status": true,
-    "typescript": true
+  "description": "This project gives you the random cat names you didn't realize you needed, implemented in TypeScript. `npm start` to run the project, then visit either of the two provided endpoints to get the name of your next cat:",
+  "directories": {
+    "test": "tests"
   },
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "typed",
+  "version": "1.0.0",
   "dependencies": {
     "@entropic/bole": "^4.0.1",
     "@hapi/iron": "^6.0.0",
@@ -46,8 +45,8 @@
     "@types/hapi__shot": "^4.1.1",
     "@types/tap": "^15.0.0",
     "@types/uuid": "^8.3.0",
-    "@typescript-eslint/eslint-plugin": "^4.11.0",
-    "@typescript-eslint/parser": "^4.11.0",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.1",
     "ansi-escapes": "^4.3.1",
     "bistre": "^1.0.1",
     "c8": "^7.7.1",
@@ -63,9 +62,6 @@
     "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   },
-  "keywords": [],
-  "license": "ISC",
-  "main": "index.js",
   "scripts": {
     "boltzmann:docs": "npx boltzmann-cli --docs",
     "boltzmann:routes": "node -r ts-node/register -e 'require(\"./boltzmann\").printRoutes()'",
@@ -77,5 +73,12 @@
     "pretest": "tsc --noEmit",
     "start": "nodemon ./boltzmann.ts",
     "test": "cross-env TS_NODE_FILES=true TS_NODE_PROJECT=./tsconfig.json c8 tap --ts --no-cov tests/"
+  },
+  "boltzmann": {
+    "version": "0.6.0",
+    "githubci": false,
+    "ping": true,
+    "status": true,
+    "typescript": true
   }
 }

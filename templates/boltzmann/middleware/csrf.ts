@@ -136,7 +136,7 @@ if (require.main === module) {
     }
 
     assert.ok(threw)
-    assert.ok(/a secret for signing cookies/.test(error.message))
+    assert.ok(/a secret for signing cookies/.test((error as any).message))
   })
 
   test('csrf middleware adds a token generator to the context', async (assert) => {

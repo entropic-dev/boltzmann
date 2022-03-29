@@ -2,7 +2,19 @@
 /* eslint-disable */
 /* c8 ignore file */
 'use strict'
-// Boltzmann v0.5.3
+
+/**/
+
+// Dependencies used outside of honeycomb
+import bole from '@entropic/bole'
+import isDev from 'are-we-dev'
+
+export { bole, isDev }
+
+void ``
+
+'use strict'
+// Boltzmann v0.6.0
 /**/
 
 const serviceName = _getServiceName()
@@ -15,6 +27,7 @@ function _getServiceName() {
   }
 }
 
+/**/
 void ``;
 
 import ships from 'culture-ships'
@@ -53,13 +66,11 @@ import type tap from 'tap'
 
 import querystring from 'querystring'
 import { promisify } from 'util'
-import isDev from 'are-we-dev'
 import fmw from 'find-my-way'
 import accepts from 'accepts'
 import { promises as fs } from 'fs'
 import crypto from 'crypto'
 import http from 'http'
-import bole from '@entropic/bole'
 import path from 'path'
 import os from 'os'
 void ``;
@@ -175,7 +186,8 @@ interface Adaptor {
 
 interface Middleware {
   (...args: any[]): Adaptor
-  name?: string
+  name?: string,
+  doNotTrace?: boolean
 }
 
 type MiddlewareConfig = Middleware | [Middleware, ...any[]]
@@ -206,12 +218,18 @@ async function buildMiddleware (middleware: MiddlewareConfig[], router: Handler)
   }, Promise.resolve(router))
 }
 
+function handlerSpanName(handler: Handler) {
+  return `handler: ${handler.name || '<unknown>'}`
+}
+
 async function handler (context: Context) {
   const handler = context.handler as Handler
   // 
-    return await handler(context)
-    // 
+      return await handler(context)
+      // 
 }
+
+void ``
 
 void ``;
 
@@ -268,11 +286,15 @@ class Context {
 
   /**{{ changelog(version = "0.0.0") }}
  * 
+ * * **Changed in 0.6.0:** Use `traceparent` as the `id` when available.
+ *   {% end %}
+ * 
  * A unique string identifier for the request for tracing purposes. The value is
  * drawn from:
  * 
- * 1. `x-honeycomb-trace`
+ * 1. `x-honeycomb-trace` (via Honeycomb beeline tracing)
  * 1. `x-request-id`
+ * 1. `traceparent` (via Honeycomb OpenTelemetry tracing)
  * 1. A generated [ship name from Iain M Bank's Culture series]( "https://en.wikipedia.org/wiki/Culture_series") (e.g.: `"ROU Frank Exchange Of Views"`)
  * 
  * **Example use:**
@@ -391,6 +413,7 @@ class Context {
     this.id = String(
       request.headers['x-honeycomb-trace'] ||
       request.headers['x-request-id'] ||
+      request.headers['traceparent'] ||
       uuid.v4()
     )
     this._loadSession = async () => {
@@ -1362,6 +1385,8 @@ function handleCORS ({
         )
       )
 
+      void ``
+
       const response = (
         context.method === 'OPTIONS'
         ? Object.assign(Buffer.from(''), {
@@ -1451,9 +1476,10 @@ function enforceInvariants () {
 void ``;
 
 function log ({
-  logger = bole(process.env.SERVICE_NAME || 'boltzmann'),
+  logger = bole(serviceName),
+  // 
   level = process.env.LOG_LEVEL || 'debug',
-  stream = process.stdout
+  stream = process.stdout,
 } = {}) {
   if (isDev()) {
     const pretty = require('bistre')({ time: true })
@@ -1461,6 +1487,8 @@ function log ({
     stream = pretty
   }
   bole.output({ level, stream })
+
+  void ``
 
   return function logMiddleware (next: Handler) {
     return async function inner (context: Context) {
@@ -1496,6 +1524,7 @@ void ``;
 
 void ``;
 
+handlePing.doNotTrace = true
 function handlePing () {
   return (next: Handler) => (context: Context) => {
     if (context.url.pathname === '/monitor/ping') {
@@ -2282,9 +2311,9 @@ const middleware = {
  * ````
  * 
  * The `id` fields in logs is the value of the request-id, available on the context object as the `id`
- * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
- * and `x-request-id` before falling back to generating a request id using a short randomly-selected
- * string.
+ * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`,
+ * `x-request-id` and `traceparent` before falling back to generating a request id using a short
+ * randomly-selected string.
  * 
  * To log from your handlers, you might write code like this:
  * 
@@ -2521,9 +2550,7 @@ export {
 
 /* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
-  function passthrough() {
-    return (next: Handler) => (context: Context) => next(context)
-  }
+  // 
 
   runserver({
     middleware: (_requireOr('./middleware', [] as MiddlewareConfig[]) as Promise<MiddlewareConfig[]>)
@@ -2534,9 +2561,9 @@ if (require.main === module && !process.env.TAP) {
         const acc = []
 
         // 
-
-        // 
         acc.push(handlePing)
+        // 
+
         // 
 
         // 
@@ -2557,7 +2584,7 @@ if (require.main === module && !process.env.TAP) {
       }),
   })
     .then((server) => {
-      server.listen(Number(process.env.PORT) || 5000, () => {
+      server.listen(Number(process.env.PORT) || 8000, () => {
         const addrinfo = server.address()
         if (!addrinfo) {
           return
@@ -2569,6 +2596,7 @@ if (require.main === module && !process.env.TAP) {
       console.error(err.stack)
       process.exit(1)
     })
+  // 
 }
 
 

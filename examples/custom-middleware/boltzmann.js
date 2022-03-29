@@ -2,7 +2,15 @@
 /* eslint-disable */
 /* c8 ignore file */
 'use strict';
-// Boltzmann v0.5.3
+/**/
+// Dependencies used outside of honeycomb
+const bole = require("@entropic/bole");
+const isDev = require("are-we-dev");
+module.exports = {...module.exports,  bole, isDev };
+void ``;
+
+'use strict';
+// Boltzmann v0.6.0
 /**/
 const serviceName = _getServiceName();
 function _getServiceName() {
@@ -13,6 +21,7 @@ function _getServiceName() {
         return 'boltzmann';
     }
 }
+/**/
 void ``;
 const ships = require("culture-ships");
 void ``;
@@ -35,13 +44,11 @@ void ``;
 const { Readable } = require("stream");
 const querystring = require("querystring");
 const { promisify } = require("util");
-const isDev = require("are-we-dev");
 const fmw = require("find-my-way");
 const accepts = require("accepts");
 const { promises: fs } = require("fs");
 const crypto = require("crypto");
 const http = require("http");
-const bole = require("@entropic/bole");
 const path = require("path");
 const os = require("os");
 void ``;
@@ -109,12 +116,16 @@ async function buildMiddleware(middleware, router) {
         return rhs(await lhs);
     }, Promise.resolve(router));
 }
+function handlerSpanName(handler) {
+    return `handler: ${handler.name || '<unknown>'}`;
+}
 async function handler(context) {
     const handler = context.handler;
     // 
-        return await handler(context);
-        // 
+            return await handler(context);
+            // 
 }
+void ``;
 
 void ``;
 async function routes(handlers) {
@@ -173,6 +184,7 @@ class Context {
         this.params = {};
         this.id = String(request.headers['x-honeycomb-trace'] ||
             request.headers['x-request-id'] ||
+            request.headers['traceparent'] ||
             uuid.v4());
         this._loadSession = async () => {
             throw new Error('To use context.session, attach session middleware to your app');
@@ -996,18 +1008,28 @@ function handleCORS({ origins = isDev() ? '*' : String(process.env.CORS_ALLOW_OR
     const includesStar = originsArray.includes('*');
     return (next) => {
         return async function cors(context) {
-            const reflectedOrigin = (includesStar
-                ? '*'
-                : (originsArray.includes(String(context.headers.origin))
-                    ? context.headers.origin
-                    : false));
+            const spanAttributes = {
+                'boltzmann.http.origin': String(context.headers.origin)
+            };
+            if (honeycomb.features.beeline) {
+                beeline.addContext(spanAttributes);
+            }
+            const span = otel.trace.getSpan(otel.context.active());
+            if (span) {
+                span.setAttributes(spanAttributes);
+            }
+            if (!includesStar && !originsArray.includes(String(context.headers.origin))) {
+                throw Object.assign(new Error('Origin not allowed'), {
+                    [Symbol.for('status')]: 400
+                });
+            }
             const response = (context.method === 'OPTIONS'
                 ? Object.assign(Buffer.from(''), {
                     [Symbol.for('status')]: 204,
                 })
                 : await next(context));
             response[Symbol.for('headers')] = {
-                ...(reflectedOrigin ? { 'Access-Control-Allow-Origin': reflectedOrigin } : {}),
+                'Access-Control-Allow-Origin': includesStar ? '*' : context.headers.origin,
                 'Access-Control-Allow-Methods': [].concat(methods).join(','),
                 'Access-Control-Allow-Headers': [].concat(headers).join(',')
             };
@@ -1073,13 +1095,16 @@ function enforceInvariants() {
 
 
 void ``;
-function log({ logger = bole(process.env.SERVICE_NAME || 'boltzmann'), level = process.env.LOG_LEVEL || 'debug', stream = process.stdout } = {}) {
+function log({ logger = bole(serviceName), 
+// 
+level = process.env.LOG_LEVEL || 'debug', stream = process.stdout, } = {}) {
     if (isDev()) {
         const pretty = require('bistre')({ time: true });
         pretty.pipe(stream);
         stream = pretty;
     }
     bole.output({ level, stream });
+    void ``;
     return function logMiddleware(next) {
         return async function inner(context) {
             const result = await next(context);
@@ -1398,7 +1423,7 @@ const validate = {
  * 
  * The `validate.body` middleware applies [JSON schema]( "https://json-schema.org/") validation to incoming
  * request bodies. It intercepts the body that would be returned by
- * \[`context.body`\] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
+ * \[`context.body`] and validates it against the given schema, throwing a `400 Bad Request` error on validation failure. If the body passes validation it is
  * passed through.
  * 
  * `Ajv` is configured with `{useDefaults: true, allErrors: true}` by default. In
@@ -1677,9 +1702,9 @@ const middleware = {
  * ````
  * 
  * The `id` fields in logs is the value of the request-id, available on the context object as the `id`
- * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
- * and `x-request-id` before falling back to generating a request id using a short randomly-selected
- * string.
+ * field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`,
+ * `x-request-id` and `traceparent` before falling back to generating a request id using a short
+ * randomly-selected string.
  * 
  * To log from your handlers, you might write code like this:
  * 
@@ -1883,40 +1908,39 @@ module.exports = {...module.exports,  Context, main: runserver, middleware, body
   void ``;
 /* c8 ignore next */
 if (require.main === module && !process.env.TAP) {
-    function passthrough() {
-        return (next) => (context) => next(context);
-    }
-    runserver({
-        middleware: _requireOr('./middleware', [])
-            .then(_processMiddleware)
-            .then((mw) => {
-            // 
-            // 
-            const acc = [];
-            // 
-            // 
-            // 
-            acc.push(log);
-            // 
-            // 
-            acc.push(...mw);
-            // 
-            return acc.filter(Boolean);
-        }),
-    })
-        .then((server) => {
-        server.listen(Number(process.env.PORT) || 5000, () => {
-            const addrinfo = server.address();
-            if (!addrinfo) {
-                return;
-            }
-            bole('boltzmann:server').info(`now listening on port ${typeof addrinfo == 'string' ? addrinfo : addrinfo.port}`);
+    // 
+        runserver({
+            middleware: _requireOr('./middleware', [])
+                .then(_processMiddleware)
+                .then((mw) => {
+                // 
+                // 
+                const acc = [];
+                // 
+                // 
+                // 
+                acc.push(log);
+                // 
+                // 
+                acc.push(...mw);
+                // 
+                return acc.filter(Boolean);
+            }),
+        })
+            .then((server) => {
+            server.listen(Number(process.env.PORT) || 8000, () => {
+                const addrinfo = server.address();
+                if (!addrinfo) {
+                    return;
+                }
+                bole('boltzmann:server').info(`now listening on port ${typeof addrinfo == 'string' ? addrinfo : addrinfo.port}`);
+            });
+        })
+            .catch((err) => {
+            console.error(err.stack);
+            process.exit(1);
         });
-    })
-        .catch((err) => {
-        console.error(err.stack);
-        process.exit(1);
-    });
+        // 
 }
 
 

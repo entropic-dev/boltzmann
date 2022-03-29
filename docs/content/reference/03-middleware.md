@@ -744,9 +744,9 @@ Here is an example of the request logging:
 ```
 
 The `id` fields in logs is the value of the request-id, available on the context object as the `id`
-field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`
-and `x-request-id` before falling back to generating a request id using a short randomly-selected
-string.
+field. This is set by examining headers for an existing id. Boltzmann consults `x-honeycomb-trace`,
+`x-request-id` and `traceparent` before falling back to generating a request id using a short
+randomly-selected string.
 
 To log from your handlers, you might write code like this:
 
@@ -773,19 +773,45 @@ Boltzmann automatically attaches one instance of [`route`](#route).
 
 ### `trace`
 
+{% changelog(version="0.0.0") %}
+- **Changed in 0.6.0:** Tracing now uses OpenTelemetry if any `OTEL_*` environment
+variable is defined
+{% end %}
+
 This middleware is added to your service if you have enabled the `honeycomb` feature.
 This feature sends trace data to the [Honeycomb](https://www.honeycomb.io) service for
 deep observability of the performance of your handlers.
 
-To configure this middleware, set the following environment variables:
+To configure this middleware for [beeline](https://www.npmjs.com/package/honeycomb-beeline) 
+tracing, set the following environment variables:
 
--   `HONEYCOMB_WRITEKEY`: the honeycomb API key to use; required to enable tracing
--   `HONEYCOMB_DATASET`: the name of the dataset to send trace data to; required to enable tracing
--   `HONEYCOMB_TEAM`: optional; set this to enable links to traces from error reporting
--   `HONEYCOMB_SAMPLE_RATE`: optional; passed to `honeycomb-beeline` to set the sampling rate for events
+-   `HONEYCOMB_API_HOST`: (optional) the honeycomb API endpoint to use - defaults to localhost
+-   `HONEYCOMB_WRITEKEY`: the honeycomb API key to use - required to enable beeline tracing
+-   `HONEYCOMB_DATASET`: the name of the dataset to send trace data to - defaults to `nodejs`
+-   `HONEYCOMB_TEAM`: (optional) set this to enable links to traces from development error reporting
+-   `HONEYCOMB_SAMPLE_RATE`: (optional) passed to `honeycomb-beeline` to set the sampling rate for events - defaults to 1
 
-The sampling rate defaults to 1 if neither sample rate env var is set. Tracing is
-disabled if a write key and dataset are not provided; the middleware is still
-attached but does nothing in this case.
+The honeycomb middleware also supports
+[OpenTelemetry](https://opentelemetry.io/docs/instrumentation/js/getting-started/nodejs/)
+tracing over [the OTLP http/protobuf protocol](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/otlp.md).
+This is enabled if any `OTEL_*` environment variables are defined.
+
+OpenTelemetry supports many, many environment variables - they document both
+[common SDK environment variables](https://opentelemetry.io/docs/reference/specification/sdk-environment-variables/)
+and [OTLP exporter-specific environment variables](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/protocol/exporter.md),
+and it's worth perusing all of them. However, if you are in a rush:
+
+- `HONEYCOMB_WRITEKEY`: this is still used in an OpenTelemetry configuration
+- `HONEYCOMB_DATASET`: this is also still used in an OpenTelemetry configuration
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: the API endpoint - i.e. `https://api.honeycomb.io`, or your [refinery](https://docs.honeycomb.io/manage-data-volume/refinery/) instance if using one
+
+In you really, really want to use the default OpenTelemetry configuration,
+you can set `OTEL_ENABLE=1` - this isn't meaningful for the OpenTelemetry SDKs
+or OTLP exporters but will trigger the enabling of OpenTelemetry in boltzmann.
+
+Note that OpenTelemetry tracing, while intended for use with Honeycomb, may be
+used with any OTLP tracing backend. You can do this by foregoing the setting of
+`HONEYCOMB_WRITEKEY` and setting `OTEL_EXPORTER_OTLP_HEADERS` to contain the
+alternate headers for your backend.
 
 * * *
